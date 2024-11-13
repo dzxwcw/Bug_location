@@ -41,6 +41,6 @@ We propose a novel approach called BisL to locate fault with Issue-Fix Graph. In
 
     *   Nutch
 
-![](README_md_files/f2c7b890-a0d8-11ef-adbc-b36e8252c198.jpeg?v=1\&type=image)
+![issue](README_md_files/f2c7b890-a0d8-11ef-adbc-b36e8252c198.jpeg?v=1\&type=image)
 
 Issue reports are stored in xml format and each report contains information such as fixdate, opendate, summary, description, fixed version and fixed files.&#x20;
