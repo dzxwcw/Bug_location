@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  <bug fixdate="2015-4-1 01:00:00" id="13374" opendate="2015-4-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Small scanners (with particular configurations) do not return all rows</summary>
+      <description>I recently ran into a couple data loss issues with small scans. Similar to HBASE-13262, these issues only appear when scans are configured in such a way that the max result size limit is reached before the caching limit is reached. As far as I can tell, this issue affects branches 0.98+I should note that after investigation it looks like the root cause of these issues is not the same as HBASE-13262. Rather, these issue are caused by errors in the small scanner logic (I will explain in more depth below). Furthermore, I do know that the solution from HBASE-13262 has not made its way into small scanners (it is being addressed in HBASE-13335). As a result I made sure to test these issues with the patch from HBASE-13335 applied and I saw that they were still present.The following two issues have been observed (both lead to data loss):1. When a small scan is configured with a caching value of Integer.MAX_VALUE, and a maxResultSize limit that is reached before the region is exhausted, integer overflow will occur. This eventually leads to a preemptive skip of the regions.2. When a small scan is configured with a maxResultSize that is smaller than the size of a single row, the small scanner will jump between regions preemptively. This issue seems to be because small scanners assume that, unless a region is exhausted, at least 2 rows will be returned from the server. This assumption isn't clearly state in the small scanners but is implied through the use of skipRowOfFirstResult.Again, I would like to stress that the root cause of these issues is NOT related to the cause of HBASE-13262. These issues occur because of inappropriate assumption made in the small scanner logic. The inappropriate assumptions are:1. Integer overflow will not occur when incrementing caching2. At least 2 rows will be returned from the server unless the region has been exhaustedI am attaching a patch that contains tests to display these issues. If these issues should be split into separate JIRAs please let me know.</description>
+      <version>1.0.0,1.1.0,0.98.13,2.0.0</version>
+      <fixedVersion>1.0.1,1.1.0,0.98.12,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestScannersFromClientSide.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ClientSmallScanner.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ClientSmallReversedScanner.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2009-7-30 01:00:00" id="1359" opendate="2009-4-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>After a large truncating table HBase becomes unresponsive</summary>
+      <description>If you see **** I removed and ip or something for security reasonsOnce I truncate the table, hbase freaks out for about 10 seconds and all the thrift servers die.Thrift server log:2009-04-02 12:09:08,971 INFO org.apache.hadoop.ipc.HBaseClass: Retrying connect to server: /*****:60020. Already tried 0 time(s).You see this a bunch of times and then it times outThe hbase shellnhbase(main):001:0&gt; truncate 't2'09/04/30 13:01:08 INFO zookeeper.ZooKeeperWrapper: Quorum servers: ****Truncating t2; it may take a whileDisabling table...09/04/30 13:01:19 INFO client.HBaseAdmin: Disabled t20 row(s) in 10.3417 secondsDropping table...09/04/30 13:01:19 INFO client.HBaseAdmin: Deleted t20 row(s) in 0.1592 secondsCreating table...0 row(s) in 14.7567 secondshbase(main):002:0&gt; lsitNameError: undefined local variable or method `lsit' for #&lt;Object:0x3bbe9a50&gt; from (hbase):3hbase(main):003:0&gt; lsitNameError: undefined local variable or method `lsit' for #&lt;Object:0x3bbe9a50&gt; from (hbase):4hbase(main):004:0&gt; listNativeException: java.lang.NullPointerException: null from org/apache/hadoop/hbase/client/HConnectionManager.java:344:in `processRow' from org/apache/hadoop/hbase/client/MetaScanner.java:64:in `metaScan' from org/apache/hadoop/hbase/client/MetaScanner.java:29:in `metaScan' from org/apache/hadoop/hbase/client/HConnectionManager.java:351:in `listTables' from org/apache/hadoop/hbase/client/HBaseAdmin.java:121:in `listTables' from sun/reflect/NativeMethodAccessorImpl.java:-2:in `invoke0' from sun/reflect/NativeMethodAccessorImpl.java:39:in `invoke' from sun/reflect/DelegatingMethodAccessorImpl.java:25:in `invoke' from java/lang/reflect/Method.java:597:in `invoke' from org/jruby/javasupport/JavaMethod.java:298:in `invokeWithExceptionHandling' from org/jruby/javasupport/JavaMethod.java:259:in `invoke' from org/jruby/java/invokers/InstanceMethodInvoker.java:36:in `call' from org/jruby/runtime/callsite/CachingCallSite.java:260:in `cacheAndCall' from org/jruby/runtime/callsite/CachingCallSite.java:75:in `call' from org/jruby/ast/CallNoArgNode.java:61:in `interpret' from org/jruby/ast/ForNode.java:101:in `interpret'... 113 levels... from org/jruby/internal/runtime/methods/DynamicMethod.java:226:in `call' from org/jruby/internal/runtime/methods/CompiledMethod.java:216:in `call' from org/jruby/internal/runtime/methods/CompiledMethod.java:71:in `call' from org/jruby/runtime/callsite/CachingCallSite.java:260:in `cacheAndCall' from org/jruby/runtime/callsite/CachingCallSite.java:75:in `call' from home/fds/ts/hadoop/hbase/bin/$dot_dot/bin/hirb.rb:441:in `_file_' from home/fds/ts/hadoop/hbase/bin/$dot_dot/bin/hirb.rb:-1:in `_file_' from home/fds/ts/hadoop/hbase/bin/$dot_dot/bin/hirb.rb:-1:in `load' from org/jruby/Ruby.java:564:in `runScript' from org/jruby/Ruby.java:467:in `runNormally' from org/jruby/Ruby.java:340:in `runFromMain' from org/jruby/Main.java:214:in `run' from org/jruby/Main.java:100:in `run' from org/jruby/Main.java:84:in `main' from /home/fds/ts/hadoop/hbase/bin/../bin/hirb.rb:300:in `list' from (hbase):5hbase(main):005:0&gt;hbase(main):006:0*</description>
+      <version>None</version>
+      <fixedVersion>0.20.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-5-22 01:00:00" id="13746" opendate="2015-5-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>list_replicated_tables command is not listing table in hbase shell.</summary>
+      <description>IN HBase shell prompt execute the following commandlist_replicated_tableshbase(main):014:0&gt; list_replicated_tablesTABLE:COLUMNFAMILY ReplicationTypeERROR: undefined method `TNAME' for Java::OrgApacheHadoopHbaseClientReplication::ReplicationAdmin:ClassHere is some help for this command:List all the tables and column families replicated from this cluster hbase&gt; list_replicated_tables hbase&gt; list_replicated_tables 'abc.*' list.select {|s| pattern.match(s.get(ReplicationAdmin.TNAME))}</description>
+      <version>1.1.0,0.98.13,1.0.2,2.0.0</version>
+      <fixedVersion>0.98.13,1.0.2,1.2.0,1.1.1,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-shell.src.main.ruby.hbase.replication.admin.rb</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-6-2 01:00:00" id="13826" opendate="2015-6-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to create table when group acls are appropriately set.</summary>
+      <description>Steps for reproducing the issue. Create user 'test' and group 'hbase-admin'. Grant global create permissions to 'hbase-admin'. Add user 'test' to 'hbase-admin' group. Create table operation for 'test' user will throw ADE.</description>
+      <version>0.98.13,1.0.2,1.2.0,1.1.1,2.0.0</version>
+      <fixedVersion>0.98.13,1.0.2,1.2.0,1.1.1,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.access.TestAccessController2.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.security.access.TableAuthManager.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2015-8-29 01:00:00" id="13985" opendate="2015-6-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add configuration to skip validating HFile format when bulk loading</summary>
+      <description>When bulk loading millions of HFile into one HTable, checking HFile format is the most time-consuming phase. Maybe we could use a parallel mechanism to increase the speed, but when it comes to millions of HFiles, it may still cost dozens of minutes. So I think it's necessary to add an option for advanced user to bulkload without checking HFile format at all. Of course, the default value of this option should be true.</description>
+      <version>0.98.13</version>
+      <fixedVersion>0.98.14,1.2.0,1.3.0,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-7-9 01:00:00" id="14045" opendate="2015-7-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bumping thrift version to 0.9.2.</summary>
+      <description>From mailing list conversation:Currently, HBase is using Thrift 0.9.0 version, with the latest version being 0.9.2. Currently, the HBase Thrift gateway is vulnerable to crashes due to THRIFT-2660 when used with default transport and the workaround for this problem is switching to framed transport. Unfortunately, the recently added impersonation support [1] doesn't work with framed transport leaving thrift gateway using this feature susceptible to crashes. Updating thrift version to 0.9.2 will help us in mitigating this problem. Given that security is one of key requirements for the production clusters, it would be good to ensure our users that security features in thrift gateway can be used without any major concerns. Aside this, there are also some nice fixes pertaining to leaky resources in 0.9.2 like [2] and [3].As far compatibility guarantees are concerned, thrift assures 100% wire compatibility. However, it is my understanding that there were some minor additions (new API) in 0.9.2 [4] which won't work in 0.9.0, but that won't affect us since we are not using those features. And I tried running test suite and did manual testing with thrift version set to 0.9.2 and things are running smoothly. If there are no objections to this change, I would be more than happy to file a jira and follow this up.[1] https://issues.apache.org/jira/browse/HBASE-11349[2] https://issues.apache.org/jira/browse/THRIFT-2274[3] https://issues.apache.org/jira/browse/THRIFT-2359[4] https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12310800&amp;version=12324954</description>
+      <version>None</version>
+      <fixedVersion>1.3.0,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-9-7 01:00:00" id="14193" opendate="2015-8-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove support for direct upgrade from pre-0.96 versions</summary>
+      <description>As discussed on the mailing list this will remove all support for upgrades from pre-0.96 versions.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.FSTableDescriptorMigrationToSubdir.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.MasterFileSystem.java</file>
+      <file type="M">bin.hbase.cmd</file>
+      <file type="M">bin.hbase</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-10-7 01:00:00" id="14198" opendate="2015-8-7 00:00:00" resolution="Invalid">
+    <buginformation>
+      <summary>Eclipse project generation is broken in master</summary>
+      <description>After running mvn eclipse:eclipse I tried to import projects into Eclipse (Luna) and got multiple build errors, similar to:Cannot nest output folder 'hbase-thrift/target/test-classes/META-INF' inside output folder 'hbase-thrift/target/test-classes' hbase-thrift</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

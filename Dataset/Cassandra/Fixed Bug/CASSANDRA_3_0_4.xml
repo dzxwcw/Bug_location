@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10371" opendate="2015-9-18 00:00:00" fixdate="2015-2-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Decommissioned nodes can remain in gossip</summary>
+      <description>This may apply to other dead states as well. Dead states should be expired after 3 days. In the case of decom we attach a timestamp to let the other nodes know when it should be expired. It has been observed that sometimes a subset of nodes in the cluster never expire the state, and through heap analysis of these nodes it is revealed that the epstate.isAlive check returns true when it should return false, which would allow the state to be evicted. This may have been affected by CASSANDRA-8336.</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10512" opendate="2015-10-13 00:00:00" fixdate="2015-2-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>We do not save an upsampled index summaries</summary>
+      <description>If we downsample an index summary, we overwrite the existing summary, despite downsampling being inexpensive. However on upsampling (which is expensive) we do not, so that on restart all of our index summaries are the smallest they have ever been adjusted to.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableReaderTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.SegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.MmappedSegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10721" opendate="2015-11-17 00:00:00" fixdate="2015-2-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Altering a UDT might break UDA deserialisation</summary>
+      <description>CASSANDRA-10650 switched UDA's initcond serialisation in schema to its CQL literal. This means that if any particular field is renamed in the UDT, or of its type gets changes, we will not be able to parse initcond back.We should either:1) Forbid renames and type switches in UDTs that are being used in UDAs, or2) Make sure we alter the UDAs in schema alongside the new UDT at all times</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL,Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.UserTypesTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.UserType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.TupleType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.SetType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ReversedType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.MapType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ListType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.CompositeType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AbstractType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AbstractCompositeType.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropTypeStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTypeStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10733" opendate="2015-11-19 00:00:00" fixdate="2015-2-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inconsistencies in CQLSH auto-complete</summary>
+      <description>Auto-complete in cqlsh does not work correctly on some commands. We see some inconsistent behaviour when completing part of the statement and hitting the tab key.Works correctlyAuto-complete on 'desc table ', 'desc function ' and 'desc type ' works correctly. We see a list of all tables (or functions, types) in the current keyspace plus a list of all available keyspaces followed by a full stop (e.g. system.)cqlsh:fxaggr&gt; desc TABLE minutedata system_distributed.; rawtickdatabylp system_traces.&lt;enter&gt; rawtickdatabysymbol tickdatadaydata system. fxaggr. system_auth. Fix required'desc aggregate ' displays the aggregates in the current keyspace (in this case, only 1, called 'average') but does not display a list of available keyspaces. It only displays the current keyspace, with no following full stop.cqlsh:fxaggr&gt; desc aggregate ; &lt;enter&gt; average fxaggrWorks correctlyAuto-complete on 'desc table &lt;keyspace&gt;. ' and 'desc type &lt;keyspace&gt;.' works correctly. We see a list of all tables (or types) in the current keyspacecqlsh:fxaggr&gt; desc table fxaggr.daydata rawtickdatabylp tickdataminutedata rawtickdatabysymbol Fix requiredAuto-complete on 'desc function &lt;keyspace&gt;. ' and 'desc aggregate &lt;keyspace&gt;.' works inconsistently. In a keyspace with 2 functions, both beginning with the letters 'avg', if I type 'desc function &lt;keyspace&gt;' and hit tab, auto-complete will result in this: 'desc function fxaggr.avg ' and will not display the matching functions. If I type 'desc function &lt;keyspace&gt;.' (note the trailing full stop) and hit tab, auto-complete will work correctly:cqlsh:fxaggr&gt; desc function fxaggr.avgavgfinal avgstate If I type 'desc aggregate &lt;keyspace&gt;' and hit tab, auto-complete returns 'desc aggregate &lt;keyspace&gt; ' (it adds a space) and does not show me the list of available aggregates. If I type 'desc aggregate &lt;keyspace&gt;.' (note the trailing full stop) and hit tab, auto-complete will work correctly.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.test.keyspace.init.cql</file>
+      <file type="M">pylib.cqlshlib.test.test.cqlsh.completion.py</file>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10840" opendate="2015-12-10 00:00:00" fixdate="2015-2-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replacing an aggregate with a new version doesn&amp;#39;t reset INITCOND</summary>
+      <description>use simplex; CREATE FUNCTION state_group_and_sum(state map&lt;int, int&gt;, star_rating int) CALLED ON NULL INPUT RETURNS map&lt;int, int&gt; LANGUAGE java AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;'; CREATE FUNCTION percent_stars(state map&lt;int,int&gt;) RETURNS NULL ON NULL INPUT RETURNS map&lt;int, int&gt; LANGUAGE java AS $$Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k);}java.util.Map&lt;Integer, Integer&gt; results = new java.util.HashMap&lt;Integer, Integer&gt;();for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum);}return results;$$;CREATE OR REPLACE AGGREGATE group_and_sum(int) SFUNC state_group_and_sum STYPE map&lt;int, int&gt; FINALFUNC percent_stars INITCOND {}1. View the aggregatesselect * from system.schema_aggregates;2. Now updateCREATE OR REPLACE AGGREGATE group_and_sum(int) SFUNC state_group_and_sum STYPE map&lt;int, int&gt; FINALFUNC percent_stars INITCOND NULL3. View the aggregatesselect * from system.schema_aggregates;Expected result: The update should have made initcond nullActual result: The update did not touch INITCOND.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaTables.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10972" opendate="2016-1-6 00:00:00" fixdate="2016-2-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>File based hints don&amp;#39;t implement backpressure and can OOM</summary>
+      <description>This is something I reproduced in practice. I have what I think is a reasonable implementation of backpressure, but still need to put together a unit test.</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.hints.HintsBufferTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsWriteExecutor.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsBufferPool.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11033" opendate="2016-1-19 00:00:00" fixdate="2016-2-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prevent logging in sandboxed state</summary>
+      <description>logback will re-read its configuration file regularly. So it is possible that logback tries to reload the configuration while we log from a sandboxed UDF, which will fail due to the restricted access privileges for UDFs. UDAs are also affected as these use UDFs./cc doanduyhai</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.UseOfSynchronizedWithWaitLI.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.UseOfSynchronizedWithWaitL.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.UseOfSynchronizedWithWait.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.UseOfSynchronizedWithNotifyAll.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.UseOfSynchronizedWithNotify.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.UseOfSynchronized.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.GoodClass.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.ClassWithStaticInitializer.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.ClassWithInitializer3.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.ClassWithInitializer2.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.ClassWithInitializer.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.ClassWithField.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.CallOrgApache.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.CallFinalize.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.CallComDatastax.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.udfverify.CallClone.java</file>
+      <file type="M">test.conf.logback-test.xml</file>
+      <file type="M">src.resources.org.apache.cassandra.cql3.functions.JavaSourceUDF.txt</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.UDHelper.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.UDFunction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.UDFByteCodeVerifier.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.ScriptBasedUDFunction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.JavaUDF.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.JavaBasedUDFunction.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11041" opendate="2016-1-20 00:00:00" fixdate="2016-2-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make it clear what timestamp_resolution is used for with DTCS</summary>
+      <description>We have had a few cases lately where users misunderstand what timestamp_resolution does, we should; make the option not autocomplete in cqlsh update documentation log a warning</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyOptions.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11090" opendate="2016-1-28 00:00:00" fixdate="2016-2-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid creating empty hint files</summary>
+      <description>After the hints executor finishes sending hints, another hints file is created for the same host, which is then processed on the next go around. This continues indefinitely. The new hint files are empty, so there shouldn't be any network traffic. However, there's still unnecessary hint activity, and the hint crc file isn't deleted in the 3.0 branch after hints are dispatched (but is in trunk), so any hint activity will trigger ~8640 files being created per day until the node is restarted. Restarting the node fixes the problem, after the existing hint files are processed. This can be duplicated on cassandra-3.0 to trunk with this script: https://gist.github.com/bdeggleston/13fbb9e70c0c0bd277c7</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsWriteExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11146" opendate="2016-2-10 00:00:00" fixdate="2016-2-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Adding field to UDT definition breaks SELECT JSON</summary>
+      <description>CREATE TYPE test_type ( i int);CREATE TABLE test_table ( id int PRIMARY KEY, model frozen&lt;test_type&gt;);INSERT INTO test_table JSON '{"id": 1, "model": {"i": 123}}';SELECT JSON * FROM test_table;successALTER TYPE test_type ADD b boolean;SELECT JSON * FROM test_table;errorServerError: &lt;ErrorMessage code=0000 [Server error] message="java.lang.ArrayIndexOutOfBoundsException: 1"&gt;</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.UserType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11172" opendate="2016-2-15 00:00:00" fixdate="2016-2-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Infinite loop bug adding high-level SSTableReader in compaction</summary>
+      <description>Observed that after a large repair on LCS that sometimes the system will enter an infinite loop with vast amounts of logs lines recording, "Adding high-level (L${LEVEL}) SSTableReader(path='${TABLE}') to candidates"This results in an outage of the node and eventual crashing. The log spam quickly rotates out possibly useful earlier debugging.</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11214" opendate="2016-2-23 00:00:00" fixdate="2016-2-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Adding Support for system-Z(s390x) architecture</summary>
+      <description>System-Z (s390x) supports unaligned memory access so adding the architecture name in the list of architectures, supporting it.Required for few test-case execution.</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>Legacy/Observability,Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.memory.MemoryUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11239" opendate="2016-2-25 00:00:00" fixdate="2016-2-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Deprecated repair methods cause NPE</summary>
+      <description>The deprecated repair methods cause an NPE if you aren't doing local repairs. Attaching patch to fix.</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5902" opendate="2013-8-19 00:00:00" fixdate="2013-2-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dealing with hints after a topology change</summary>
+      <description>Hints are stored and delivered by destination node id. This allows them to survive IP changes in the target, while making "scan all the hints for a given destination" an efficient operation. However, we do not detect and handle new node assuming responsibility for the hinted row via bootstrap before it can be delivered.I think we have to take a performance hit in this case &amp;#8211; we need to deliver such a hint to all replicas, since we don't know which is the "new" one. This happens infrequently enough, however &amp;#8211; requiring first the target node to be down to create the hint, then the hint owner to be down long enough for the target to both recover and stream to a new node &amp;#8211; that this should be okay.</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.hints.HintTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsService.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsDispatchExecutor.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsDispatcher.java</file>
+      <file type="M">src.java.org.apache.cassandra.batchlog.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7238" opendate="2014-5-14 00:00:00" fixdate="2014-2-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool Status performance is much slower with VNodes On</summary>
+      <description>Nodetool status on a 1000 Node cluster without vnodes returns in several seconds. With vnodes on (256) there are OOM errors with the default XMX of 32. Adjusting the XMX to 128 allows nodetool status to complete but the execution takes roughly 10 minutes.TestedXMX | Status32 | OOM64 | OOM: GC Overhead128 | Finishes in ~10 minutes500 | Finishes in ~10 minutes1000 | Finishes in ~10 minutes</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7281" opendate="2014-5-21 00:00:00" fixdate="2014-2-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SELECT on tuple relations are broken for mixed ASC/DESC clustering order</summary>
+      <description>As noted on CASSANDRA-6875, the tuple notation is broken when the clustering order mixes ASC and DESC directives because the range of data they describe don't correspond to a single continuous slice internally. To copy the example from CASSANDRA-6875:cqlsh:ks&gt; create table foo (a int, b int, c int, PRIMARY KEY (a, b, c)) WITH CLUSTERING ORDER BY (b DESC, c ASC);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 2, 0);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 1, 0);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 1, 1);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 0, 0);cqlsh:ks&gt; SELECT * FROM foo WHERE a=0; a | b | c---+---+--- 0 | 2 | 0 0 | 1 | 0 0 | 1 | 1 0 | 0 | 0(4 rows)cqlsh:ks&gt; SELECT * FROM foo WHERE a=0 AND (b, c) &gt; (1, 0); a | b | c---+---+--- 0 | 2 | 0(1 rows)The last query should really return (0, 2, 0) and (0, 1, 1).For that specific example we should generate 2 internal slices, but I believe that with more clustering columns we may have more slices.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectMultiColumnRelationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSetTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.CompositesBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.TokenRestriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.SingleColumnRestriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.RestrictionSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.Restriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.MultiColumnRestriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.ForwardingPrimaryKeyRestrictions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.AbstractRestriction.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7464" opendate="2014-6-27 00:00:00" fixdate="2014-2-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replace sstable2json</summary>
+      <description>Both tools are pretty awful. They are primarily meant for debugging (there is much more efficient and convenient ways to do import/export data), but their output manage to be hard to handle both for humans and for tools (especially as soon as you have modern stuff like composites).There is value to having tools to export sstable contents into a format that is easy to manipulate by human and tools for debugging, small hacks and general tinkering, but sstable2json and json2sstable are not that. So I propose that we deprecate those tools and consider writing better replacements. It shouldn't be too hard to come up with an output format that is more aware of modern concepts like composites, UDTs, ....</description>
+      <version>3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableScannerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.big.BigTableScanner.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.big.BigTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SerializationHeader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.Unfiltered.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.AbstractRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.AbstractRangeTombstoneMarker.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

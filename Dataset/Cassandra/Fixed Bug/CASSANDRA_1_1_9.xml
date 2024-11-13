@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="4767" opendate="2012-10-4 00:00:00" fixdate="2012-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Need some indication of node repair success or failure</summary>
+      <description>We are currently verifying node repair status via basic log analysis. In order to automatically track the status of periodic node repair jobs, it would be better to have an indicator (through JMX perhaps).</description>
+      <version>1.1.9,1.2.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AntiEntropyService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5053" opendate="2012-12-11 00:00:00" fixdate="2012-12-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>not possible to change crc_check_chance</summary>
+      <description>It is not possible to change crc_check_chance using a schema modification after CASSANDRA-4266This patch fixes that and moves the setting out into a configuration parameter instead, you dont want to upgrade/scrub/.. all your sstables to change the crc_check_chance.</description>
+      <version>1.1.9,1.2.0rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressedRandomAccessReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStoreMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5089" opendate="2012-12-23 00:00:00" fixdate="2012-1-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>get_range_slices does not validate end_token</summary>
+      <description>get_range_slices times out, java log has the following exception:ERROR &amp;#91;Thrift:1&amp;#93; 2012-12-22 08:14:30,120 AbstractCassandraDaemon.java (line 135) Exception in thread Thread&amp;#91;Thrift:1,5,main&amp;#93;java.lang.AssertionError: &amp;#91;DecoratedKey(28555413689034504124051437792156504, 6434313866653035643631663962323635323937343337653666636265616162),max(0)&amp;#93; at org.apache.cassandra.dht.Bounds.&lt;init&gt;(Bounds.java:45) at org.apache.cassandra.dht.Bounds.&lt;init&gt;(Bounds.java:38) at org.apache.cassandra.thrift.CassandraServer.get_range_slices(CassandraServer.java:698) at org.apache.cassandra.thrift.Cassandra$Processor$get_range_slices.getResult(Cassandra.java:3083) at org.apache.cassandra.thrift.Cassandra$Processor$get_range_slices.getResult(Cassandra.java:3071) at org.apache.thrift.ProcessFunction.process(ProcessFunction.java:32) at org.apache.thrift.TBaseProcessor.process(TBaseProcessor.java:34) at org.apache.cassandra.thrift.CustomTThreadPoolServer$WorkerProcess.run(CustomTThreadPoolServer.java:186) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1110) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603) at java.lang.Thread.run(Thread.java:722)We see it every time on the SECOND get_range_slices call when we clear start_token and set start_key in the key range.We noticed this in 1.1.7 first, 1.1.8 still affected. 1.1.6 is fine.Please contact me if you need more information.</description>
+      <version>1.1.9,1.2.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5099" opendate="2013-1-2 00:00:00" fixdate="2013-1-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Since 1.1, get_count sometimes returns value smaller than actual column count</summary>
+      <description>We have a CF where rows have thousands of TTLd columns. The columns are continually added at a regular rate, and TTL out after 15 minutes. We continually run a 'get_count' on these keys to get a count of the number of live columns.Since we upgrade from 1.0 to 1.1.7, "get_count" regularly returns much smaller values than are possible. For example, with roughly 15,000 columns that have well-distributed TTLs, running a get_count 10 times will result in 1 or 2 results that are up to half the actual column count. Using a normal 'get' to count those columns always results in proper values. For example:(all of these counts were ran within a second or less of eachother)[default@reddit] count AccountsActiveBySR['2qh0u'];13665 columns[default@reddit] count AccountsActiveBySR['2qh0u'];13665 columns[default@reddit] count AccountsActiveBySR['2qh0u'];13666 columns[default@reddit] count AccountsActiveBySR['2qh0u'];3069 columns[default@reddit] count AccountsActiveBySR['2qh0u'];13660 columns[default@reddit] count AccountsActiveBySR['2qh0u'];13661 columnsI should note that this issue happens much more frequently with larger (&gt;10k columns) rows than smaller rows. It never seems to happen with rows having fewer than 1k columns.There are no supercolumns in use. The key names and column names are very short, and there are no column values. The CF is LCS, and due to the TTL only hovers around a few MB in size. GC grace is normally at zero, but the problem is consistent with non-zero gc grace times.It appears that there was an issue (CASSANDRA-4833) fixed in 1.1.7 regarding get_count. Some logic was added to prevent an infinite loop case. Could that change have resulted in this problem somehow? I can't find any other relevant 1.1 changes that might explain this issue.</description>
+      <version>1.1.9,1.2.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5106" opendate="2013-1-3 00:00:00" fixdate="2013-1-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Stock example for using pig throws InvalidRequestException(why:Start token sorts after end token)</summary>
+      <description>The setup:This is from printenvHADOOP_HOME=/home/Downloads/hadoop-1.1.1PIG_HOME=/home/Downloads/pig-0.10.0PIG_INITIAL_ADDRESS=localhostPIG_RPC_PORT=9160PIG_PARTITIONER=org.apache.cassandra.dht.Murmur3PartitionerThis is from cassandra-cli&amp;#91;default@PigTest&amp;#93; describe cluster;Cluster Information: Snitch: org.apache.cassandra.locator.SimpleSnitch Partitioner: org.apache.cassandra.dht.Murmur3Partitioner Schema versions: b5fc9a82-fbdd-3cf5-af16-9c498c9f9a5c: &amp;#91;127.0.0.1&amp;#93;Running test_storage.pig asbin/pig_cassandra -x local test/test_storage.pigafter populating the cf ascassandra-cli --host localhost --port 9160 &lt; populate-cli.txtthrows 2013-01-03 02:20:47,626 &amp;#91;Thread-4&amp;#93; INFO org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigRecordReader - Current split being processed ColumnFamilySplit((-1, '-1728690256123413808] @&amp;#91;localhost.localdomain&amp;#93;)2013-01-03 02:20:47,758 &amp;#91;Thread-4&amp;#93; WARN org.apache.hadoop.mapred.FileOutputCommitter - Output path is null in cleanup2013-01-03 02:20:47,760 &amp;#91;Thread-4&amp;#93; WARN org.apache.hadoop.mapred.LocalJobRunner - job_local_0001java.lang.RuntimeException: InvalidRequestException(why:Start token sorts after end token) at org.apache.cassandra.hadoop.ColumnFamilyRecordReader$StaticRowIterator.maybeInit(ColumnFamilyRecordReader.java:384) at org.apache.cassandra.hadoop.ColumnFamilyRecordReader$StaticRowIterator.computeNext(ColumnFamilyRecordReader.java:390) at org.apache.cassandra.hadoop.ColumnFamilyRecordReader$StaticRowIterator.computeNext(ColumnFamilyRecordReader.java:313) at com.google.common.collect.AbstractIterator.tryToComputeNext(AbstractIterator.java:143) at com.google.common.collect.AbstractIterator.hasNext(AbstractIterator.java:138) at org.apache.cassandra.hadoop.ColumnFamilyRecordReader.nextKeyValue(ColumnFamilyRecordReader.java:184) at org.apache.cassandra.hadoop.pig.CassandraStorage.getNext(CassandraStorage.java:226) at org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigRecordReader.nextKeyValue(PigRecordReader.java:194) at org.apache.hadoop.mapred.MapTask$NewTrackingRecordReader.nextKeyValue(MapTask.java:532) at org.apache.hadoop.mapreduce.MapContext.nextKeyValue(MapContext.java:67) at org.apache.hadoop.mapreduce.Mapper.run(Mapper.java:143) at org.apache.hadoop.mapred.MapTask.runNewMapper(MapTask.java:764) at org.apache.hadoop.mapred.MapTask.run(MapTask.java:370) at org.apache.hadoop.mapred.LocalJobRunner$Job.run(LocalJobRunner.java:212)Caused by: InvalidRequestException(why:Start token sorts after end token) at org.apache.cassandra.thrift.Cassandra$get_range_slices_result.read(Cassandra.java:12916) at org.apache.thrift.TServiceClient.receiveBase(TServiceClient.java:78) at org.apache.cassandra.thrift.Cassandra$Client.recv_get_range_slices(Cassandra.java:734) at org.apache.cassandra.thrift.Cassandra$Client.get_range_slices(Cassandra.java:718) at org.apache.cassandra.hadoop.ColumnFamilyRecordReader$StaticRowIterator.maybeInit(ColumnFamilyRecordReader.java:346) ... 13 more</description>
+      <version>1.1.9,1.2.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5109" opendate="2013-1-4 00:00:00" fixdate="2013-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>convert default marshallers list to map for better readability</summary>
+      <description>Code uses index 0, 1, 2, 3 of a list to mean specific things.. difficult to read and is brittle, changed to a map.</description>
+      <version>1.1.9,1.2.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.pig.CassandraStorage.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5118" opendate="2013-1-5 00:00:00" fixdate="2013-1-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>user defined compaction is broken</summary>
+      <description>currently forceUserDefinedCompaction takes (keyspace, datafile)cassandra tries to look for ks/ks-cf-hf-80-Data.db when the sstable actually exists at ks/cf/ks-cf-hf-80-Data.dbfix would be for user defined compaction to look for the sstable datafile in the correct location</description>
+      <version>1.1.9,1.2.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.CompactionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5135" opendate="2013-1-9 00:00:00" fixdate="2013-1-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>calculatePendingRanges could be asynchronous</summary>
+      <description>In the vein of CASSANDRA-3881, cPR is expensive and can end up dominating the gossip thread, causing all sorts of havoc. One simple way we can triage this is to simply give it its own executor with a queue size of 1 (since we don't actually need to recalculate for every host we see if we suddenly see many of them) and do the calculation asynchronously, freeing up the gossiper.</description>
+      <version>1.1.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.locator.SimpleStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5137" opendate="2013-1-9 00:00:00" fixdate="2013-1-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make sure SSTables left over from compaction get deleted and logged</summary>
+      <description>When opening ColumnFamily, cassandra checks SSTable files' ancestors and skips loading already compacted ones. Those files are expected to be deleted, but currently that never happens.Also, there is no indication of skipping loading file in the log, so it is confusing especially doing upgradesstables.</description>
+      <version>1.1.9,1.2.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="ARIES">
+  <bug id="1724" opendate="2017-5-25 00:00:00" fixdate="2017-5-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Proxy generates calls to static methods in &lt;clinit&gt; which can fail on Java 9</summary>
+      <description>The issue is that the JVMS was changed in Java 9 to disallow "final" fields from being modified outside of the &lt;clinit&gt; method. Even other methods called by &lt;clinit&gt;."if the field is final the instruction must occur in the &lt; clinit &gt; method of the current class. Otherwise, an IllegalAccessError is thrown."The issue here is that aires generates method proxies that stores references to the generated methods in 'private static final' fields, which it then assigns in woven static init weaving code by calling another generated static method.It seems that we can trivially fix this by removing the 'final' modifier of the generated method field.Here is what the current generated code would looking as a java class:Foo.javapublic class Foo { static final boolean bar; static { setBar(); // blows up with IAE as of class version &gt;= 53 } static void setBar() { bar = true; }}Where the bar field is a field declared by the proxy code and set by another static method which is called by the &lt;clinit&gt; block. A proper fix would be to change the generated code to do something more like this:Foo.javapublic class Foo { static final boolean bar; static { bar = getBar(); } static boolean getBar() { return true; }}But as of now I am not sure how complicated of a change that would be to the proxy code. The simple fix is to not generate these static private fields as final.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">proxy.proxy-impl.src.main.java.org.apache.aries.proxy.impl.common.AbstractWovenProxyAdapter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1806" opendate="2018-5-31 00:00:00" fixdate="2018-11-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support to create prototype scoped services</summary>
+      <description>It would be nice if one could specify that the type of service produced for the SPI type is prototype scoped.</description>
+      <version>None</version>
+      <fixedVersion>spifly-1.2</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">spi-fly.spi-fly-core.src.main.java.org.apache.aries.spifly.ProviderBundleTrackerCustomizer.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

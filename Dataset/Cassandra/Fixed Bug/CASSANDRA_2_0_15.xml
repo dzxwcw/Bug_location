@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="7292" opendate="2014-5-23 00:00:00" fixdate="2014-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Can&amp;#39;t seed new node into ring with (public) ip of an old node</summary>
+      <description>This bug prevents node to return with bootstrap into the cluster with its old ip.Scenario: five node ec2 cluster spread into three AZ, all in one region. I'm using Ec2MultiRegionSnitch. Nodes are reported with their public ips (as Ec2MultiRegionSnitch requires)I simulated a loss of one node by terminating one instance. nodetool status reported correctly that node was down. Then I launched new instance with the old public ip (i'm using elastic ips) with "Dcassandra.replace_address=IP_ADDRESS" but the new node can't join the cluster: INFO 07:20:43,424 Gathering node replacement information for /54.86.191.30 INFO 07:20:43,428 Starting Messaging Service on port 9043 INFO 07:20:43,489 Handshaking version with /54.86.171.10 INFO 07:20:43,491 Handshaking version with /54.86.187.245(some delay)ERROR 07:21:14,445 Exception encountered during startupjava.lang.RuntimeException: Unable to gossip with any seeds at org.apache.cassandra.gms.Gossiper.doShadowRound(Gossiper.java:1193) at org.apache.cassandra.service.StorageService.prepareReplacementInfo(StorageService.java:419) at org.apache.cassandra.service.StorageService.prepareToJoin(StorageService.java:650) at org.apache.cassandra.service.StorageService.initServer(StorageService.java:612) at org.apache.cassandra.service.StorageService.initServer(StorageService.java:505) at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:362) at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:480) at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:569)It does not help if I remove the "Dcassandra.replace_address=IP_ADDRESS" system property. Also it does not help to remove the node with "nodetool removenode" with or without the cassandra.replace_address property.I think this is because the node information is preserved in the gossip info as seen this output of "nodetool gossipinfo"/54.86.191.30 INTERNAL_IP:172.16.1.231 DC:us-east REMOVAL_COORDINATOR:REMOVER,d581309a-8610-40d4-ba30-cb250eda22a8 STATUS:removed,19311925-46b5-4fe4-928a-321e8adb731d,1401089960664 HOST_ID:19311925-46b5-4fe4-928a-321e8adb731d RPC_ADDRESS:0.0.0.0 NET_VERSION:7 SCHEMA:226f9315-b4b2-32c1-bfe1-f4bb49fccfd5 RACK:1b LOAD:7.075290515E9 SEVERITY:0.0 RELEASE_VERSION:2.0.7</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.ReconnectableSnitchHelper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7712" opendate="2014-8-7 00:00:00" fixdate="2014-3-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>temporary files need to be cleaned by unit tests</summary>
+      <description>There are many unit test temporary files left behind after test runs. In the case of CI servers, I have seen &gt;70,000 files accumulate in /tmp over a period of time. Each unit test should make an effort to remove its temporary files when the test is completed.My current unit test cleanup block:# clean up after unit tests..rm -rf /tmp/140*-0 /tmp/CFWith* /tmp/Counter1* /tmp/DescriptorTest* /tmp/Keyspace1* \ /tmp/KeyStreamingTransferTestSpace* /tmp/SSTableExportTest* /tmp/SSTableImportTest* \ /tmp/Standard1* /tmp/Statistics.db* /tmp/StreamingTransferTest* /tmp/ValuesWithQuotes* \ /tmp/cassandra* /tmp/jna-* /tmp/ks-cf-ib-1-* /tmp/lengthtest* /tmp/liblz4-java*.so /tmp/readtest* \ /tmp/set_length_during_read_mode* /tmp/set_negative_length* /tmp/snappy-*.so</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7816" opendate="2014-8-21 00:00:00" fixdate="2014-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Duplicate DOWN/UP Events Pushed with Native Protocol</summary>
+      <description>Added "MOVED_NODE" as a possible type of topology change and also specified that it is possible to receive the same event multiple times.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">doc.native.protocol.v2.spec</file>
+      <file type="M">doc.native.protocol.v1.spec</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.EndpointState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7976" opendate="2014-9-19 00:00:00" fixdate="2014-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Changes to index_interval table properties revert after subsequent modifications</summary>
+      <description>It appears that if you want to increase the sampling in *-Summary.db files, you would change the default for index_interval table property from the 128 default value to 256 on a given CQL TABLE.However, if you ALTER TABLE after setting the value, index_interval returns to the default, 128. This is unexpected behavior. I would expect the value for index_interval to not be affected by subsequent ALTER TABLE statements.As noted in Environment, this was seen with a 2.0.9-SNAPSHOT built w/ `ccm`. If I just use a table from one of DataStax documentation tutorials (musicdb as mdb):cqlsh:mdb&gt; DESC TABLE songs;CREATE TABLE songs ( id uuid, album text, artist text, data blob, reviews list&lt;text&gt;, tags set&lt;text&gt;, title text, venue map&lt;timestamp, text&gt;, PRIMARY KEY ((id))) WITH bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='' AND dclocal_read_repair_chance=0.100000 AND gc_grace_seconds=864000 AND index_interval=128 AND read_repair_chance=0.000000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND default_time_to_live=0 AND speculative_retry='99.0PERCENTILE' AND memtable_flush_period_in_ms=0 AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'LZ4Compressor'};We've got 128 as expected.We alter it:cqlsh:mdb&gt; ALTER TABLE songs WITH index_interval = 256; And the change appears: cqlsh:mdb&gt; DESC TABLE songs;CREATE TABLE songs ( id uuid, album text, artist text, data blob, reviews list&lt;text&gt;, tags set&lt;text&gt;, title text, venue map&lt;timestamp, text&gt;, PRIMARY KEY ((id))) WITH bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='' AND dclocal_read_repair_chance=0.100000 AND gc_grace_seconds=864000 AND index_interval=256 AND read_repair_chance=0.000000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND default_time_to_live=0 AND speculative_retry='99.0PERCENTILE' AND memtable_flush_period_in_ms=0 AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'LZ4Compressor'};But if do another ALTER TABLE, say, change the caching or comment, the index_interval will revert back to 128.cqlsh:mdb&gt; ALTER TABLE songs WITH caching = 'none'; cqlsh:mdb&gt; DESC TABLE songs; CREATE TABLE songs ( id uuid, album text, artist text, data blob, reviews list&lt;text&gt;, tags set&lt;text&gt;, title text, venue map&lt;timestamp, text&gt;, PRIMARY KEY ((id))) WITH bloom_filter_fp_chance=0.010000 AND caching='NONE' AND comment='' AND dclocal_read_repair_chance=0.100000 AND gc_grace_seconds=864000 AND index_interval=128 AND read_repair_chance=0.000000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND default_time_to_live=0 AND speculative_retry='99.0PERCENTILE' AND memtable_flush_period_in_ms=0 AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'LZ4Compressor'};It should be index_interval=256.I know that 2.1 will replace index_interval. I have not confirmed any behavior with min_index_interval nor max_index_interval (which is described in resolved #6379).</description>
+      <version>2.0.15</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8051" opendate="2014-10-3 00:00:00" fixdate="2014-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add SERIAL and LOCAL_SERIAL consistency levels to cqlsh</summary>
+      <description>cqlsh does not support setting the serial consistency level. The default CL.SERIAL does not let users safely execute LWT alongside an app that runs at LOCAL_SERIAL, and can prevent any LWT from running when a DC is down (e.g. with 2 DCs, RF=3 in each.)Implementing this well is a bit tricky. A user setting the serial CL will probably not want all of their statements to have a serial CL attached, but only the conditional updates. At the same time it would be useful to support serial reads. "WITH CONSISTENCY LEVEL" used to provide this flexibility.I believe that it is currently impossible to run a SELECT at SERIAL or LOCAL_SERIAL; the only workaround seems to be to run a conditional update with a predicate that always resolves to False, and to rely on the CAS response to read the data.</description>
+      <version>2.0.15,2.1.6</version>
+      <fixedVersion>Feature/LightweightTransactions,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cql-internal-only-1.4.1.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8102" opendate="2014-10-10 00:00:00" fixdate="2014-4-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-cli and cqlsh report two different values for a setting, partially update it and partially report it</summary>
+      <description>cassandra-cli updates and prints out a min_compaction_threshold that is not shown by cqlsh (it shows a different min_threshold attribute)cqlsh updates "both" values but only shows one of themcassandra-cli:UPDATE COLUMN FAMILY foo WITH min_compaction_threshold = 8;$ echo "describe foo;" | cassandra-cli -h `hostname` -k bar Compaction min/max thresholds: 8/32$ echo "describe table foo;" | cqlsh -k bar `hostname` compaction={'class': 'SizeTieredCompactionStrategy'} ANDcqlsh:ALTER TABLE foo WITH compaction = {'class' : 'SizeTieredCompactionStrategy', 'min_threshold' : 16};cassandra-cli: Compaction min/max thresholds: 16/32 Compaction Strategy Options: min_threshold: 16cqlsh: compaction={'min_threshold': '16', 'class': 'SizeTieredCompactionStrategy'} ANDcassandra-cli:UPDATE COLUMN FAMILY foo WITH min_compaction_threshold = 8;cassandra-cli: Compaction min/max thresholds: 8/32 Compaction Strategy Options: min_threshold: 16cqlsh: compaction={'min_threshold': '16', 'class': 'SizeTieredCompactionStrategy'} AND</description>
+      <version>2.0.15</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8243" opendate="2014-11-3 00:00:00" fixdate="2014-11-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DTCS can leave time-overlaps, limiting ability to expire entire SSTables</summary>
+      <description>CASSANDRA-6602 (DTCS) and CASSANDRA-5228 are supposed to be a perfect match for tables where every value is written with a TTL. DTCS makes sure to keep old data separate from new data. So shortly after the TTL has passed, Cassandra should be able to throw away the whole SSTable containing a given data point.CASSANDRA-5228 deletes the very oldest SSTables, and only if they don't overlap (in terms of timestamps) with another SSTable which cannot be deleted.DTCS however, can't guarantee that SSTables won't overlap (again, in terms of timestamps). In a test that I ran, every single SSTable overlapped with its nearest neighbors by a very tiny amount. My reasoning for why this could happen is that the dumped memtables were already overlapping from the start. DTCS will never create an overlap where there is none. I surmised that this happened in my case because I sent parallel writes which must have come out of order. This was just locally, and out of order writes should be much more common non-locally.That means that the SSTable removal optimization may never get a chance to kick in!I can see two solutions:1. Make DTCS split SSTables on time window borders. This will essentially only be done on a newly dumped memtable once every base_time_seconds.2. Make TTL SSTable expiry more aggressive. Relax the conditions on which an SSTable can be dropped completely, of course without affecting any semantics.</description>
+      <version>2.0.15,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.TTLExpiryTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8336" opendate="2014-11-18 00:00:00" fixdate="2014-4-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add shutdown gossip state to prevent timeouts during rolling restarts</summary>
+      <description>In CASSANDRA-3936 we added a gossip shutdown announcement. The problem here is that this isn't sufficient; you can still get TOEs and have to wait on the FD to figure things out. This happens due to gossip propagation time and variance; if node X shuts down and sends the message to Y, but Z has a greater gossip version than Y for X and has not yet received the message, it can initiate gossip with Y and thus mark X alive again. I propose quarantining to solve this, however I feel it should be a -D parameter you have to specify, so as not to destroy current dev and test practices, since this will mean a node that shuts down will not be able to restart until the quarantine expires.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.VersionedValue.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.HeartBeatState.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.GossipShutdownVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8359" opendate="2014-11-21 00:00:00" fixdate="2014-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make DTCS consider removing SSTables much more frequently</summary>
+      <description>When I run DTCS on a table where every value has a TTL (always the same TTL), SSTables are completely expired, but still stay on disk for much longer than they need to. I've applied CASSANDRA-8243, but it doesn't make an apparent difference (probably because the subject SSTables are purged via compaction anyway, if not by directly dropping them).Disk size graphs show clearly that tombstones are only removed when the oldest SSTable participates in compaction. In the long run, size on disk continually grows bigger. This should not have to happen. It should easily be able to stay constant, thanks to DTCS separating the expired data from the rest.I think checks for whether SSTables can be dropped should happen much more frequently. This is something that probably only needs to be tweaked for DTCS, but perhaps there's a more general place to put this. Anyway, my thinking is that DTCS should, on every call to getNextBackgroundTask, check which SSTables can be dropped. It would be something like a call to CompactionController.getFullyExpiredSSTables with all non-compactingSSTables sent in as "compacting" and all other SSTables sent in as "overlapping". The returned SSTables, if any, are then added to whichever set of SSTables that DTCS decides to compact. Then before the compaction happens, Cassandra is going to make another call to CompactionController.getFullyExpiredSSTables, where it will see that it can just drop them.This approach has a bit of redundancy in that it needs to call CompactionController.getFullyExpiredSSTables twice. To avoid that, the code path for deciding SSTables to drop would have to be changed.(Side tracking a little here: I'm also thinking that tombstone compactions could be considered more often in DTCS. Maybe even some kind of multi-SSTable tombstone compaction involving the oldest couple of SSTables...)</description>
+      <version>2.0.15,2.1.5,2.2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8360" opendate="2014-11-21 00:00:00" fixdate="2014-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>In DTCS, always compact SSTables in the same time window, even if they are fewer than min_threshold</summary>
+      <description>DTCS uses min_threshold to decide how many time windows of the same size that need to accumulate before merging into a larger window. The age of an SSTable is determined as its min timestamp, and it always falls into exactly one of the time windows. If multiple SSTables fall into the same window, DTCS considers compacting them, but if they are fewer than min_threshold, it decides not to do it.When do more than 1 but fewer than min_threshold SSTables end up in the same time window (except for the current window), you might ask? In the current state, DTCS can spill some extra SSTables into bigger windows when the previous window wasn't fully compacted, which happens all the time when the latest window stops being the current one. Also, repairs and hints can put new SSTables in old windows.I think, and jjordan agreed in a comment on CASSANDRA-6602, that DTCS should ignore min_threshold and compact tables in the same windows regardless of how few they are. I guess max_threshold should still be respected.jjordan suggested that this should apply to all windows but the current window, where all the new SSTables end up. That could make sense. I'm not clear on whether compacting many SSTables at once is more cost efficient or not, when it comes to the very newest and smallest SSTables. Maybe compacting as soon as 2 SSTables are seen is fine if the initial window size is small enough? I guess the opposite could be the case too; that the very newest SSTables should be compacted very many at a time?</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8516" opendate="2014-12-19 00:00:00" fixdate="2014-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NEW_NODE topology event emitted instead of MOVED_NODE by moving node</summary>
+      <description>As discovered in CASSANDRA-8373, when you move a node in a single-node cluster, a NEW_NODE event is generated instead of a MOVED_NODE event.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8559" opendate="2015-1-5 00:00:00" fixdate="2015-3-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>OOM caused by large tombstone warning.</summary>
+      <description>When running with high amount of tombstones the error message generation from CASSANDRA-6117 can lead to out of memory situation with the default setting.Attached a heapdump viewed in visualvm showing how this construct created two 777mb strings to print the error message for a read query and then crashed OOM. if (respectTombstoneThresholds() &amp;&amp; columnCounter.ignored() &gt; DatabaseDescriptor.getTombstoneWarnThreshold()) { StringBuilder sb = new StringBuilder(); CellNameType type = container.metadata().comparator; for (ColumnSlice sl : slices) { assert sl != null; sb.append('['); sb.append(type.getString(sl.start)); sb.append('-'); sb.append(type.getString(sl.finish)); sb.append(']'); } logger.warn("Read {} live and {} tombstoned cells in {}.{} (see tombstone_warn_threshold). {} columns was requested, slices={}, delInfo={}", columnCounter.live(), columnCounter.ignored(), container.metadata().ksName, container.metadata().cfName, count, sb, container.deletionInfo()); }</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8613" opendate="2015-1-13 00:00:00" fixdate="2015-3-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression in mixed single and multi-column relation support</summary>
+      <description>In 2.0.6 through 2.0.8, a query like the following was supported:SELECT * FROM mytable WHERE clustering_0 = ? AND (clustering_1, clustering_2) &gt; (?, ?)However, after CASSANDRA-6875, you'll get the following error:Clustering columns may not be skipped in multi-column relations. They should appear in the PRIMARY KEY order. Got (c, d) &gt; (0, 0)</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8614" opendate="2015-1-13 00:00:00" fixdate="2015-2-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Select optimal CRC32 implementation at runtime</summary>
+      <description>JDK 8 has support for an intrinsic for CRC32 that runs at 12-13 gigabytes/sec per core in my quick and dirty test. PureJavaCRC32 is &lt; 800 megabytes/sec if I recall and it has a lookup table that evicts random cache lines every time it runs.In order to capture the benefit of that when it is available we can select a CRC32 implementation at startup in a static block.If JDK 8 is not what is running we can fall back to the existing PureJavaCRC32 implementation.</description>
+      <version>None</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths,Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.PureJavaCrc32.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8734" opendate="2015-2-3 00:00:00" fixdate="2015-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose commit log archive status</summary>
+      <description>The operational procedure to modify commit log archiving is to edit commitlog_archiving.properties and then perform a restart. However this has troublesome edge cases:1) It is possible for people to modify commitlog_archiving.properties but then not perform a restart2) It is possible for people to modify commitlog_archiving.properties only on some nodes3) It is possible for people to have modified file + restart but then later add more nodes without correct modifications.Because of these reasons, it is operationally useful to be able to audit the commit log archive state of a node. Simply parsing commitlog_archiving.properties is insufficient due to #1. I would suggest exposing either via some system table or JMX would be useful.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogArchiver.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8909" opendate="2015-3-4 00:00:00" fixdate="2015-3-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replication Strategy creation errors are lost in try/catch</summary>
+      <description>I was initially executing a bad cassandra-stress command and was getting this error:Unable to create stress keyspace: Error constructing replication strategy classwith the following command:cassandra-stress -o insert --replication-strategy NetworkTopologyStrategy --strategy-properties dc1:1,dc2:1 --replication-factor 1After digging in the code, I noticed that the error displayed was not the one thrown by the replication strategy code and that the try/catch block could be improved. Basically, the Constructor.newInstance can throw an InvocationTargetException, which provide a better error report.I think this improvement can also be done in 2.1 (not tested yet). If my attached patch is acceptable, I will test and provide the right version for 2.1 and trunk.With the patch, I can see the proper error when executing my bad command:Unable to create stress keyspace: replication_factor is an option for SimpleStrategy, not NetworkTopologyStrategy</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.AbstractReplicationStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8934" opendate="2015-3-9 00:00:00" fixdate="2015-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY command has inherent 128KB field size limit</summary>
+      <description>In using the COPY command as follows:cqlsh -e "COPY test.test1mb(pkey, ccol, data) FROM 'in/data1MB/data1MB_9.csv'"the following error is thrown:&lt;stdin&gt;:1:field larger than field limit (131072)The data file contains a field that is greater than 128KB (it's more like almost 1MB).A work-around (thanks to jjordan and thobbs is to modify the cqlsh script and add the linecsv.field_size_limit(1000000000)anywhere after the lineimport csv</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9036" opendate="2015-3-25 00:00:00" fixdate="2015-3-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"disk full" when running cleanup (on a far from full disk)</summary>
+      <description>I'm trying to run cleanup, but get this: INFO [CompactionExecutor:18] 2015-03-25 10:29:16,355 CompactionManager.java (line 564) Cleaning up SSTableReader(path='/cassandra/production/Data_daily/production-Data_daily-jb-4345750-Data.db')ERROR [CompactionExecutor:18] 2015-03-25 10:29:16,664 CassandraDaemon.java (line 199) Exception in thread Thread[CompactionExecutor:18,1,main]java.io.IOException: disk full at org.apache.cassandra.db.compaction.CompactionManager.doCleanupCompaction(CompactionManager.java:567) at org.apache.cassandra.db.compaction.CompactionManager.access$400(CompactionManager.java:63) at org.apache.cassandra.db.compaction.CompactionManager$5.perform(CompactionManager.java:281) at org.apache.cassandra.db.compaction.CompactionManager$2.call(CompactionManager.java:225) at java.util.concurrent.FutureTask.run(FutureTask.java:262) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) at java.lang.Thread.run(Thread.java:745)Now that's odd, since: Disk has some 680G left The sstable it's trying to cleanup is far less than 680G:# ls -lh *4345750*-rw-r--r-- 1 cassandra cassandra 64M Mar 21 04:42 production-Data_daily-jb-4345750-CompressionInfo.db-rw-r--r-- 1 cassandra cassandra 219G Mar 21 04:42 production-Data_daily-jb-4345750-Data.db-rw-r--r-- 1 cassandra cassandra 503M Mar 21 04:42 production-Data_daily-jb-4345750-Filter.db-rw-r--r-- 1 cassandra cassandra 42G Mar 21 04:42 production-Data_daily-jb-4345750-Index.db-rw-r--r-- 1 cassandra cassandra 5.9K Mar 21 04:42 production-Data_daily-jb-4345750-Statistics.db-rw-r--r-- 1 cassandra cassandra 81M Mar 21 04:42 production-Data_daily-jb-4345750-Summary.db-rw-r--r-- 1 cassandra cassandra 79 Mar 21 04:42 production-Data_daily-jb-4345750-TOC.txtSure, it's large, but it's not 680G. No other compactions are running on that server. I'm getting this on 12 / 56 servers right now. Could it be some bug in the calculation of the expected size of the new sstable, perhaps?</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9128" opendate="2015-4-7 00:00:00" fixdate="2015-4-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Flush system.IndexInfo after index state changed</summary>
+      <description>We don't force a flush of system.IndexInfo after updating it by marking an index as built. This may lead to indexes being unnecessarily rebuilt following a disorderly shutdown.We also don't update it after an index is removed, but that's probably less of an issue as we do flush system.schema_columns after removing the index, so those won't get rebuilt.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9132" opendate="2015-4-7 00:00:00" fixdate="2015-7-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>resumable_bootstrap_test can hang</summary>
+      <description>The bootstrap_test.TestBootstrap.resumable_bootstrap_test can hang sometimes. It looks like the following line never completes:node3.watch_log_for("Listening for thrift clients...")I'm not familiar enough with the recent bootstrap changes to know why that's not happening.</description>
+      <version>2.0.15,2.1.6,2.2.0rc1</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.IncomingFileMessage.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9138" opendate="2015-4-8 00:00:00" fixdate="2015-4-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BlacklistingCompactionsTest failing on test-compression target</summary>
+      <description>org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklistingWithSizeTieredCompactionStrategy and org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklistingWithLeveledCompactionStrategy are failing on 2.0-head with the test-compression ant target. I've tried bisecting, but I can't find a time they passed within 500 commits.The stack trace isjunit.framework.AssertionFailedError: expected:&lt;25&gt; but was:&lt;8&gt; at org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklisting(BlacklistingCompactionsTest.java:158) at org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklistingWithLeveledCompactionStrategy(BlacklistingCompactionsTest.java:69To reproduce run ant test-compression -Dtest.name=BlacklistingCompactionsTest</description>
+      <version>2.0.15,2.1.5,2.2.0beta1</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableScanner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9140" opendate="2015-4-8 00:00:00" fixdate="2015-4-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Scrub should handle corrupted compressed chunks</summary>
+      <description>Scrub can handle corruption within a row, but can't handle corruption of a compressed sstable that results in being unable to decompress a chunk. Since the majority of Cassandra users are probably running with compression enabled, it's important that scrub be able to handle this (likely more common) form of sstable corruption.</description>
+      <version>2.0.15,2.1.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.ScrubTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.Scrubber.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9180" opendate="2015-4-13 00:00:00" fixdate="2015-4-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Failed bootstrap/replace attempts persist entries in system.peers</summary>
+      <description>In working on CASSANDRA-8336, I discovered vanilla C* has this problem. Just start a bootstrap or replace and kill it during the ring info gathering phase. System.peers, the gift that keeps on giving.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9196" opendate="2015-4-15 00:00:00" fixdate="2015-4-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Do not rebuild indexes if no columns are actually indexed</summary>
+      <description>When rebuilding secondary indexes, the index task is executed regardless if the actual SecondaryIndex#indexes(ByteBuffer ) implementation of any index returns true for any column, meaning that the expensive task of going through all sstables and related rows will be executed even if in the end no column/row will be actually indexed.This is a huge performance hit when i.e. bootstrapping with large datasets on tables having custom secondary index implementations whose indexes() implementation might return false.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.index.PerRowSecondaryIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyStoreTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9234" opendate="2015-4-24 00:00:00" fixdate="2015-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disable single-sstable tombstone compactions for DTCS</summary>
+      <description>We should probably disable tombstone compactions by default for DTCS for these reasons: users should not do deletes with DTCS the only way we should get rid of data is by TTL - and then we don't want to trigger a single sstable compaction whenever an sstable is 20%+ expired, we want to drop the whole thing when it is fully expired</description>
+      <version>2.0.15,2.1.6,2.2.0beta1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.AbstractCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9235" opendate="2015-4-24 00:00:00" fixdate="2015-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Max sstable size in leveled manifest is an int, creating large sstables overflows this and breaks LCS</summary>
+      <description>nodetool compactionstatspending tasks: -222222228I can see negative numbers in 'pending tasks' on all 8 nodesit looks like -222222228 + real number of pending tasksfor example -222222128 for 100 real pending tasks</description>
+      <version>2.0.15,2.1.5,2.2.0beta1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9238" opendate="2015-4-24 00:00:00" fixdate="2015-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Race condition after shutdown gossip message</summary>
+      <description>CASSANDRA-8336 introduced a race condition causing gossip messages to be sent to shutdown nodes even if they have been already marked dead.That's because CASSANDRA-8336 changed (among other things) the way the SHUTDOWN gossip message is sent by moving it before the gossip task (the one sending SYN messages), and by putting a few secs wait between the two; this opens a race window by the receiving side between the time the SHUTDOWN message is received, causing the outbound sockets to be closed, and the moment the other side listening socket is actually closed, meaning that any SYN gossip message exchanged in such window will reopen the sockets and never close them again, as the node is already marked dead.</description>
+      <version>2.0.15,2.1.6,2.2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IncomingTcpConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IncomingStreamingConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.GossipDigestSynVerbHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9249" opendate="2015-4-27 00:00:00" fixdate="2015-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Resetting local schema can cause assertion error</summary>
+      <description>When a user resets their local schema the Schema class purges all CFmetadata and recreates it. If a compaction is going on this can cause an issue similar to CASSANDRA-8332The original intent of the assertion was to ensure if the setLiveMetadata was never called with different metadata instances since the schema is managed as a global reference. However I missed this reset method so it's probably just as well to remove this assert.</description>
+      <version>2.0.15,2.1.6,2.2.0beta1</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionParameters.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9281" opendate="2015-5-1 00:00:00" fixdate="2015-5-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Index selection during rebuild fails with certain table layouts.</summary>
+      <description>The 2.0 patch for CASSANDRA-9196 introduces a bug which can cause index rebuild operations to fail, including those which run as part of streaming operations. The issue is that SI#indexes actually expects a full cell name, rather than the CQL column name (so it's functionally the same as the 2.1 version). Passing a ColumnDefinition.name to certain implementations causes them to error, CompositesIndexOnRegular and KeysIndex}}s on tables with {{DynamicCompositeType columns for example. The right thing is to do what the 2.1 version does and check the ColumnDefinition from the base table appears in SI#getColumnDefs. If we pull that check into SIM#filterByColumn then the SI#indexes(ColumnDefinition) overload from the original 2.1 patch is redundant.</description>
+      <version>2.0.15,2.1.6</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.index.PerRowSecondaryIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyStoreTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9322" opendate="2015-5-7 00:00:00" fixdate="2015-5-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Possible overlap with LCS and including non-compacting sstables</summary>
+      <description>since CASSANDRA-7414 we are including high-level sstables in lower level compactions if we have not run compactions in the high level for a while.If the compaction candidates only contain a single partition this can cause overlap since first token in sstables == last token in sstables which we interpret as being "entire ring".</description>
+      <version>2.0.15,2.1.6,2.2.0beta1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9364" opendate="2015-5-12 00:00:00" fixdate="2015-5-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a warning when a high setting for rpc_max_threads is specified for HSHA</summary>
+      <description>In CASSANDRA-7594 we allowed configuring this. The problem is this was ignored for HSHA previously, so some people go through this scenario:1. start with sync and 4000 threads2. switch to HSHA, pre-75943. upgrade to a version after 7594, without changing this setting4. experience awful performance due to insane thread contention</description>
+      <version>2.0.15,2.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

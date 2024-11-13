@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  <bug fixdate="2016-1-31 01:00:00" id="16973" opendate="2016-10-31 00:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>Revisiting default value for hbase.client.scanner.caching</summary>
+      <description>We are observing below logs for a long-running scan:2016-10-30 08:51:41,692 WARN [B.defaultRpcServer.handler=50,queue=12,port=16020] ipc.RpcServer:(responseTooSlow-LongProcessTime): {"processingtimems":24329,"call":"Scan(org.apache.hadoop.hbase.protobuf.generated.ClientProtos$ScanRequest)","client":"11.251.157.108:50415","scandetails":"table: ae_product_image region: ae_product_image,494:,1476872321454.33171a04a683c4404717c43ea4eb8978.","param":"scanner_id: 5333521 number_of_rows: 2147483647close_scanner: false next_call_seq: 8 client_handles_partials: true client_handles_heartbeats: true","starttimems":1477788677363,"queuetimems":0,"class":"HRegionServer","responsesize":818,"method":"Scan"}From which we found the "number_of_rows" is as big as Integer.MAX_VALUEAnd we also observed a long filter list on the customized scan. After checking application code we confirmed that there's no Scan.setCaching or hbase.client.scanner.caching setting on client side, so it turns out using the default value the caching for Scan will be Integer.MAX_VALUE, which is really a big surprise.After checking code and commit history, I found it's HBASE-11544 which changes HConstants.DEFAULT_HBASE_CLIENT_SCANNER_CACHING from 100 to Integer.MAX_VALUE, and from the release note there I could see below notation:Scan caching default has been changed to Integer.Max_Value This value works together with the new maxResultSize value from HBASE-12976 (defaults to 2MB) Results returned from server on basis of size rather than number of rows Provides better use of network since row size varies amongst tablesAnd I'm afraid this lacks of consideration of the case of scan with filters, which may involve many rows but only return with a small result.What's more, we still have below comment/code in Scan.java /* * -1 means no caching */ private int caching = -1;But actually the implementation does not follow (instead of no caching, we are caching Integer.MAX_VALUE...).So here I'd like to bring up two points:1. Change back the default value of HConstants.DEFAULT_HBASE_CLIENT_SCANNER_CACHING to some small value like 1282. Reenforce the semantic of "no caching"</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.upgrading.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-11-1 01:00:00" id="16986" opendate="2016-11-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add note on how scanner caching has changed since 0.98 to refguid</summary>
+      <description>Add note on how scanner caching config changed from 0.98 to the refguide (see parent issue for discussion but basics are we used to have default of 100 but not have unlimited as default)</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.upgrading.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-11-11 01:00:00" id="17074" opendate="2016-11-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PreCommit job always fails because of OOM</summary>
+      <description>https://builds.apache.org/job/PreCommit-HBASE-Build/4434/artifact/patchprocess/patch-unit-hbase-server.txtException in thread "Thread-2369" java.lang.OutOfMemoryError: Java heap space at java.util.Arrays.copyOf(Arrays.java:3332) at java.lang.AbstractStringBuilder.ensureCapacityInternal(AbstractStringBuilder.java:124) at java.lang.AbstractStringBuilder.append(AbstractStringBuilder.java:596) at java.lang.StringBuffer.append(StringBuffer.java:367) at java.io.BufferedReader.readLine(BufferedReader.java:370) at java.io.BufferedReader.readLine(BufferedReader.java:389) at org.apache.maven.surefire.shade.org.apache.maven.shared.utils.cli.StreamPumper.run(StreamPumper.java:66)Exception in thread "Thread-2357" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2365" java.lang.OutOfMemoryError: Java heap spaceRunning org.apache.hadoop.hbase.filter.TestFuzzyRowFilterEndToEndRunning org.apache.hadoop.hbase.filter.TestFilterListOrOperatorWithBlkCntException in thread "Thread-2383" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2397" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2401" java.lang.OutOfMemoryError: Java heap spaceRunning org.apache.hadoop.hbase.TestHBaseTestingUtilityException in thread "Thread-2407" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2411" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2413" java.lang.OutOfMemoryError: Java heap spaceThe OOM happens in the surefire plugin when reading the stdout or stderr of the running test...</description>
+      <version>1.3.0,1.4.0,1.1.7,0.98.23,1.2.4,2.0.0</version>
+      <fixedVersion>1.3.0,1.2.5,0.98.24,1.1.8,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.docker.Dockerfile</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-11-22 01:00:00" id="17160" opendate="2016-11-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Undo unnecessary inter-module dependency; spark to hbase-it and hbase-it to shell</summary>
+      <description>Very minor untangling.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-spark.pom.xml</file>
+      <file type="M">hbase-it.pom.xml</file>
+      <file type="M">hbase-shell.pom.xml</file>
+      <file type="M">hbase-prefix-tree.pom.xml</file>
+      <file type="M">hbase-endpoint.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-12-30 01:00:00" id="17207" opendate="2016-11-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Arrays.asList() with too few arguments</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RegionStateStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RackManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.asyncfs.FanOutOneBlockAsyncDFSOutputSaslHelper.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.filter.FilterList.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.MultiAction.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.BufferedMutatorImpl.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2009-11-4 01:00:00" id="1744" opendate="2009-8-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Thrift server to match the new java api.</summary>
+      <description>This mutateRows, etc.. is a little confusing compared to the new cleaner java client.Thinking of ways to make a thrift client that is just as elegant. something like:void put(1:Bytes table, 2:TPut put) throws (1:IOError io)with:struct TColumn { 1:Bytes family, 2:Bytes qualifier, 3:i64 timestamp}struct TPut { 1:Bytes row, 2:map&lt;TColumn, Bytes&gt; values}This creates more verbose rpc than if the columns in TPut were just map&lt;Bytes, map&lt;Bytes, Bytes&gt;&gt;, but that is harder to fit timestamps into and still be intuitive from say python.Presumably the goal of a thrift gateway is to be easy first.</description>
+      <version>None</version>
+      <fixedVersion>0.94.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.docbkx.book.xml</file>
+      <file type="M">src.test.java.org.apache.hadoop.hbase.thrift2.TestThriftHBaseServiceHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.hbase</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-2-8 01:00:00" id="17611" opendate="2017-2-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Thrift 2 per-call latency metrics are capped at ~ 2 seconds</summary>
+      <description>Thrift 2 latency metrics are measured in nanoseconds. However, the duration used for per-method latencies is cast to an int, meaning the values are capped at 2.147 seconds. Let's use a long instead.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.3.1,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-thrift.src.test.java.org.apache.hadoop.hbase.thrift2.TestThriftHBaseServiceHandler.java</file>
+      <file type="M">hbase-thrift.src.main.java.org.apache.hadoop.hbase.thrift2.ThriftHBaseServiceHandler.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-2-21 01:00:00" id="17673" opendate="2017-2-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Monitored RPC Handler not shown in the WebUI</summary>
+      <description>This issue has been fixed once in HBASE-14674. But, I noticed that almost all RS in our production environment still have this problem. Strange thing is that newly started servers seems do not affected. Digging for a while, then I realize the CircularFifoBuffer introduced by HBASE-10312 is the root cause. The RPC hander's monitoredTask only create once, if the server is flooded with tasks, RPC monitoredTask can be purged by CircularFifoBuffer, and then never visible in WebUI.So my solution is creating a list for RPC monitoredTask separately. It is OK to do so since the RPC handlers remain in a fixed number. It won't increase or decrease during the lifetime of the server.</description>
+      <version>3.0.0-alpha-1,1.2.4,1.1.8,2.0.0</version>
+      <fixedVersion>1.4.0,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.monitoring.TestTaskMonitor.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.monitoring.TaskMonitor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-24 01:00:00" id="17691" opendate="2017-2-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add ScanMetrics support for async scan</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestRawAsyncTableScan.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestAsyncTableScan.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ScanResultConsumer.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ScannerCallable.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ReversedScannerCallable.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.RawScanResultConsumer.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ConnectionUtils.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ClientScanner.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncTableResultScanner.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncTableImpl.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncTableBase.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncScanSingleRegionRpcRetryingCaller.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncRpcRetryingCallerFactory.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncClientScanner.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+</bugrepository>

@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="5598" opendate="2013-5-29 00:00:00" fixdate="2013-11-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Need invalid exception when submitting a prepared statement with too many markers</summary>
+      <description>Binary protocol uses a short value so this places a limit of 16K on the number of bound variable, would be nice to see an InvalidException at prepared time if statement contains more markers than supported (thank you to pcmanus pointing this out on IRC channel). Currently, no error is given until you try to execute the query and get the following (which is misleading because the bound # is much smaller than the limit):com.datastax.driver.core.exceptions.InvalidQueryException: there were 135000 markers in CQL but 3928 bound variables</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6172" opendate="2013-10-9 00:00:00" fixdate="2013-11-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY TO command doesn&amp;#39;t escape single quote in collections</summary>
+      <description>CREATE TABLE test (key text PRIMARY KEY , testcollection set&lt;text&gt;) ;INSERT INTO test (key, testcollection ) VALUES ( 'test', {'foo''bar'});COPY test TO '/tmp/test.csv';COPY test FROM '/tmp/test.csv';Bad Request: line 1:73 mismatched character '&lt;EOF&gt;' expecting '''Aborting import at record #0 (line 1). Previously-inserted values still present.Content of generated '/tmp/test.csv':test,{'foo'bar'}Unfortunately, I didn't find workaround with any combination of COPY options</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6218" opendate="2013-10-18 00:00:00" fixdate="2013-12-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair should allow repairing particular data centers to reduce WAN usage</summary>
+      <description>The way we send out data that does not match over WAN can be improved. Example: Say there are four nodes(A,B,C,D) which are replica of a range we are repairing. A, B is in DC1 and C,D is in DC2. If A does not have the data which other replicas have, then we will have following streams1) A to B and back2) A to C and back(Goes over WAN)3) A to D and back(Goes over WAN)One of the ways of doing it to reduce WAN traffic is this.1) Repair A and B only with each other and C and D with each other starting at same time t. 2) Once these repairs have finished, A,B and C,D are in sync with respect to time t. 3) Now run a repair between A and C, the streams which are exchanged as a result of the diff will also be streamed to B and D via A and C(C and D behaves like a proxy to the streams).For a replication of DC1:2,DC2:2, the WAN traffic will get reduced by 50% and even more for higher replication factors.</description>
+      <version>2.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.AntiEntropyServiceTestAbstract.java</file>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairSession.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6268" opendate="2013-10-29 00:00:00" fixdate="2013-12-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Poor performance of Hadoop if any DC is using VNodes</summary>
+      <description>Some customers are complaining about huge number of splits in Hadoop caused by VNodes. Disabling vnodes only in Hadoop DC does not fix it. Splits are generated from the results of describe_ring, which returns a huge number of ranges anyways, and doesn't take into account that there will be huge number of consecutive ranges residing on the nodes we'd like the M/R job to be run.The proposed fix:1. allows for specifying the DC(s) the Hadoop job should be run in (in DSE - defaults to all Hadoop DCs)2. merges consecutive ranges before generating Hadoop splits, so we don't have artificial range splitting caused by vnodes in the other DCsFor non-DSE users this feature is turned off by default and doesn't change the old behaviour.</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.AbstractColumnFamilyInputFormat.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Constants.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.CfDef.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Cassandra.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6289" opendate="2013-11-2 00:00:00" fixdate="2013-11-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Murmur3Partitioner doesn&amp;#39;t yield proper ownership calculation</summary>
+      <description>In a new 1.2 install with Murmur3 as default, I setup a test cluster with N=RF=3 for the cluster size and RF for a keyspacebut when I look at the ring output (with the keyspace name), to my surprise it shows RF=2.Further investigate shows the "total replica" is an addition of the float value from the effectiveOwnership. But that results in &lt; 1 for the setup:#bean is set to org.apache.cassandra.db:type=StorageService$&gt;run effectiveOwnership Keyspace1#calling operation effectiveOwnership of mbean org.apache.cassandra.db:type=StorageService#operation returns: { /127.0.0.1 = 0.9999989; /127.0.0.2 = 0.9999989; /127.0.0.3 = 0.9999989; }$ ./bin/nodetool -h 0 -p 7100 ring Keyspace1Datacenter: datacenter1==========Replicas: 2Address Rack Status State Load Owns Token 3074457345618258602 127.0.0.1 rack1 Up Normal 1.02 GB 100.00% -9223372036854775808 127.0.0.2 rack1 Up Normal 996.38 MB 100.00% -3074457345618258603 127.0.0.3 rack1 Up Normal 980.55 MB 100.00% 3074457345618258602 Keyspace: Keyspace1: Replication Strategy: org.apache.cassandra.locator.SimpleStrategy Durable Writes: true Options: &amp;#91;replication_factor:3&amp;#93;The println would simply class the float value to int, so i guess that's round down.When using RandomPartitioner, the effectiveOwnership will return 1.0 So I guess the real question is, is the Murmur3 calculation correct? Or is it losing precision? If it is correct, then I guess we need to force the float -&gt; int to round up? (is that even the right thing to do?)</description>
+      <version>2.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6391" opendate="2013-11-21 00:00:00" fixdate="2013-11-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose a total memtable size metric for a CF</summary>
+      <description>We currently expose the size of the current memtable, but that metric doesn't included memtables that are pending a flush and the memtables for indexes. It would be nice to expose all of these as a single gauge metric to get a picture of a single column families heap usage.</description>
+      <version>2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.metrics.ColumnFamilyMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6409" opendate="2013-11-27 00:00:00" fixdate="2013-11-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gossip performance improvement at node startup</summary>
+      <description>With large clusters (&gt; 500 nodes) and num_tokens &gt; 255 we sometimes see a node have trouble starting up. CPU usage for one thread is pegged.We see this concurrent with Gossip flaps on the node trying to learn the ring topology. Other nodes on the ring, that are already at steady state do not seem to suffer. It is the node joining the large ring that has trouble.</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6410" opendate="2013-11-27 00:00:00" fixdate="2013-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gossip memory usage improvement</summary>
+      <description>It looks to me that any given node will need ~2 MB of Java VM heap for each other node in the ring. This was observed with num_tokens=512 but still seems excessive.</description>
+      <version>2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.VersionedValue.java</file>
+      <file type="M">conf.cassandra-env.sh</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6415" opendate="2013-11-27 00:00:00" fixdate="2013-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Snapshot repair blocks for ever if something happens to the "I made my snapshot" response</summary>
+      <description>The "snapshotLatch.await();" can be waiting for ever and block all repair operations indefinitely if something happens that another node doesn't respond. public void makeSnapshots(Collection&lt;InetAddress&gt; endpoints) { try { snapshotLatch = new CountDownLatch(endpoints.size()); IAsyncCallback callback = new IAsyncCallback() { public boolean isLatencyForSnitch() { return false; } public void response(MessageIn msg) { RepairJob.this.snapshotLatch.countDown(); } }; for (InetAddress endpoint : endpoints) MessagingService.instance().sendRR(new SnapshotCommand(tablename, cfname, sessionName, false).createMessage(), endpoint, callback); snapshotLatch.await(); snapshotLatch = null; } catch (InterruptedException e) { throw new RuntimeException(e); } }</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.SnapshotVerbHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6427" opendate="2013-12-1 00:00:00" fixdate="2013-12-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Counter writes shouldn&amp;#39;t be resubmitted after timeouts</summary>
+      <description>CASSANDRA-4753 made SP.counterWriteTask() return a LocalMutationRunnable instead of the usual DroppableRunnalbe, and LMR resubmits the original runnable in case of timing out instead of simply dropping it.For counters this is not the right option since it would lead to overcounting if the mutation got dropped-then-resubmitted and then retried by the user.</description>
+      <version>1.2.14,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6481" opendate="2013-12-12 00:00:00" fixdate="2013-12-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog endpoint candidates should be picked randomly, not sorted by proximity</summary>
+      <description>Batchlog endpoint candidates should be picked randomly, not sorted by proximity. I'll be lazy and just copy-paste some lines from IRC:&amp;#91;20:23:27&amp;#93; rbranson: is there an issue where batch logs tend to get written to a subset of the nodes?&amp;#91;20:28:04&amp;#93; rbranson: I mean all the write batches are going thru 10% of the nodes&amp;#91;20:28:16&amp;#93; rbranson: it means writes won't scale linearly w/the cluster sizeAttaching a trivial patch.</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6510" opendate="2013-12-19 00:00:00" fixdate="2013-12-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t drop local mutations without a hint</summary>
+      <description>SP.insertLocal() uses a regular DroppableRunnable, thus timed out local mutations get dropped without leaving a hint. SP.insertLocal() should be using LocalMutationRunnable instead.Note: hints are the context here, not consistency.</description>
+      <version>1.2.14,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6521" opendate="2013-12-22 00:00:00" fixdate="2013-12-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Thrift should validate SliceRange start and finish lengths</summary>
+      <description>To quote benbromhead:It appears that Cassandra does not check the length of a column name that is part of a range predicate for a *_slice query before it serialises the slice query to pass to the replicas. Names with a length greater than 0xFFFF cause an assertion error to occur in ByteBufferUtil.writeWithShortLength. This further causes subsequent reads on the node to fail until Cassandra is restarted</description>
+      <version>1.2.14,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6527" opendate="2013-12-26 00:00:00" fixdate="2013-12-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Random tombstones after adding a CF with sstableloader</summary>
+      <description>I've marked this bug as critical since it results in a data loss without any warnings.Here's the scenario: create a fresh one-node cluster with cassandra 1.2.11 add a sample row:CREATE KEYSPACE keyspace1 WITH replication = {'class':'SimpleStrategy', 'replication_factor':1};use keyspace1;create table table1 (key text primary key, value1 text);update table1 set value1 = 'some-value' where key = 'some-key'; flush, drain, shutdown the cluster - you should have a single sstable:root@l1:~# ls /var/lib/cassandra/data/keyspace1/table1/keyspace1-table1-ic-1-CompressionInfo.db keyspace1-table1-ic-1-Filter.db keyspace1-table1-ic-1-Statistics.db keyspace1-table1-ic-1-TOC.txtkeyspace1-table1-ic-1-Data.db keyspace1-table1-ic-1-Index.db keyspace1-table1-ic-1-Summary.dbwith a perfectly correct content:root@l1:~# sstable2json /var/lib/cassandra/data/keyspace1/table1/keyspace1-table1-ic-1-Data.db[{"key": "736f6d652d6b6579","columns": [["","",1387822268786000], ["value1","some-value",1387822268786000]]}] create a new cluster with 2.0.3 (we've used 3 nodes with replication=2, but I guess it doesn't matter) copy sstable from the machine in the old cluster to one of the machines in the new cluster (we do not want to use old sstableloader) load sstables with sstableloader:sstableloader -d 172.16.9.12 keyspace1/table1 analyze the content of newly loaded sstable:root@l13:~# sstable2json /var/lib/cassandra/data/keyspace1/table1/keyspace1-table1-jb-1-Data.db[{"key": "736f6d652d6b6579","metadata": {"deletionInfo": {"markedForDeleteAt":294205259775,"localDeletionTime":0}},"columns": [["","",1387824835597000], ["value1","some-value",1387824835597000]]}]There's a random tombstone inserted!We've hit this bug in production. We never use delete for this column family, but the tombstones appeared for each row. The timestamp looks random. In our case it was mostly in past, but sometimes (about 3% rows) it was in the future. That's even worse than missing a row. In that case you cannot simply add it again - tombstone from the future will hide it.Fortunately, we have noticed that quickly and canceled the migration. However, we were quite lucky. There are no warnings or errors during the whole process. Losing less than 3% of data may be hard to noticed at first sight for many kind of apps.</description>
+      <version>2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

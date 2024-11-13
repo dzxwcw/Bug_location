@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="1370" opendate="2010-8-8 00:00:00" fixdate="2010-12-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TokenMetaData.getPendingRangesMM() is unnecessarily synchronized</summary>
+      <description>TokenMetaData.getPendingRangesMM() is currently synchronized to avoid a race condition where multiple threads might create a multimap for the given table. However, the pendingRanges instance variable that's the subject of the race condition is already a ConcurrentHashMap, and the race condition can be avoided by using putIfAbsent, leaving the case where the table's map is already initialized lock-free: private Multimap&lt;Range, InetAddress&gt; getPendingRangesMM(String table) { Multimap&lt;Range, InetAddress&gt; map = pendingRanges.get(table); if (map == null) { map = HashMultimap.create(); Multimap&lt;Range, InetAddress&gt; fasterHorse = pendingRanges.putIfAbsent(table, map); if(fasterHorse != null) { //another thread beat us to creating the map, oh well. map = fasterHorse; } } return map; }</description>
+      <version>0.6.9,0.7.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.TokenMetadata.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1553" opendate="2010-9-28 00:00:00" fixdate="2010-11-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>warn of imbalanced ranges in nodetool ring</summary>
+      <description>I'd like to enhance nodetool ring to show the % of the token range that it is responsible for according to the partitioner (that is, before considering replication). For RandomParitioner this is easy. For OPP we can estimate using describe_splits. I'd also like to issue a warning if any node N has more than 25% more of the ring than another node M.(The reason we need to use the range for this instead of load, is load may include an arbitrary amount of data that no longer belongs to the node, pending removal by cleanup.)</description>
+      <version>0.6.9,0.7.0rc1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.RandomPartitioner.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.OrderPreservingPartitioner.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.LocalPartitioner.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.IPartitioner.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.CollatingOrderPreservingPartitioner.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.ByteOrderedPartitioner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1698" opendate="2010-11-2 00:00:00" fixdate="2010-11-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool cfhistograms</summary>
+      <description>we need a nodetool command that outputs columnfamilystore RecentReadLatencyHistogramMicros, RecentReadLatencyHistogramMicros, and (for 0.7) getRecentReadLatencyHistogramMicros.i'd like this to be in a vertical display with the histogram bucket values from EstimatedHistogram displayed. Like this:1 015 1 18 542 22 8091 79 198290 114 47248 850 114 1020 37etc</description>
+      <version>0.6.9,0.7.0rc1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStoreMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1700" opendate="2010-11-3 00:00:00" fixdate="2010-11-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>mapreduce support is broken</summary>
+      <description>Running from a vanilla download of beta3 src. Tried the word count example and it's broken. Attaching the stack trace.</description>
+      <version>0.6.9,0.7.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.StorageProxyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.Range.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.AbstractBounds.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1789" opendate="2010-11-30 00:00:00" fixdate="2010-11-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clean up (and make sane) key/row cache loading logspam</summary>
+      <description>//Start INFO 19:18:03,362 Heap size: 1935147008/1994063872 INFO 19:18:03,366 JNA not found. Native methods will be disabled. INFO 19:18:03,376 Loading settings from file:/home/hermes/work/c/cass7/conf/cassandra.yaml INFO 19:18:03,533 DiskAccessMode 'auto' determined to be mmap, indexAccessMode is mmap INFO 19:18:03,612 Creating new commitlog segment /var/lib/cassandra/commitlog/CommitLog-1291079883612.log//Keycache loading INFO 19:18:03,659 read 0 from saved key cache INFO 19:18:03,663 read 0 from saved key cache INFO 19:18:03,664 read 0 from saved key cache INFO 19:18:03,666 read 0 from saved key cache INFO 19:18:03,668 read 0 from saved key cache//Rowcache loading INFO 19:18:03,671 loading row cache for LocationInfo of system INFO 19:18:03,671 completed loading (0 ms; 0 keys) row cache for LocationInfo of system INFO 19:18:03,672 loading row cache for HintsColumnFamily of system INFO 19:18:03,672 completed loading (0 ms; 0 keys) row cache for HintsColumnFamily of system INFO 19:18:03,673 loading row cache for Migrations of system INFO 19:18:03,673 completed loading (0 ms; 0 keys) row cache for Migrations of system INFO 19:18:03,676 loading row cache for Schema of system INFO 19:18:03,676 completed loading (0 ms; 0 keys) row cache for Schema of system INFO 19:18:03,676 loading row cache for IndexInfo of system INFO 19:18:03,677 completed loading (0 ms; 0 keys) row cache for IndexInfo of system//The rest INFO 19:18:03,730 Couldn't detect any schema definitions in local storage. INFO 19:18:03,731 Found table data in data directories. Consider using JMX to call org.apache.cassandra.service.StorageService.loadSchemaFromYaml(). INFO 19:18:03,735 No commitlog files found; skipping replay INFO 19:18:03,783 Upgrading to 0.7. Purging hints if there are any. Old hints will be snapshotted. INFO 19:18:03,786 Cassandra version: 0.7.0-rc1-SNAPSHOT INFO 19:18:03,786 Thrift API version: 19.4.0 INFO 19:18:03,795 Loading persisted ring state INFO 19:18:03,796 Starting up server gossip INFO 19:18:03,803 switching in a fresh Memtable for LocationInfo at CommitLogContext(file='/var/lib/cassandra/commitlog/CommitLog-1291079883612.log', position=700) INFO 19:18:03,804 Enqueuing flush of Memtable-LocationInfo@1249086728(227 bytes, 4 operations) INFO 19:18:03,805 Writing Memtable-LocationInfo@1249086728(227 bytes, 4 operations) INFO 19:18:03,992 Completed flushing /var/lib/cassandra/data/system/LocationInfo-e-1-Data.db (473 bytes) WARN 19:18:04,058 Generated random token 109302658160365096146210744235544448283. Random tokens will result in an unbalanced ring; see http://wiki.apache.org/cassandra/Operations INFO 19:18:04,059 switching in a fresh Memtable for LocationInfo at CommitLogContext(file='/var/lib/cassandra/commitlog/CommitLog-1291079883612.log', position=996) INFO 19:18:04,060 Enqueuing flush of Memtable-LocationInfo@1940835386(53 bytes, 2 operations) INFO 19:18:04,060 Writing Memtable-LocationInfo@1940835386(53 bytes, 2 operations) INFO 19:18:04,258 Completed flushing /var/lib/cassandra/data/system/LocationInfo-e-2-Data.db (301 bytes) INFO 19:18:04,269 Will not load MX4J, mx4j-tools.jar is not in the classpath INFO 19:18:04,301 Binding thrift service to localhost/127.0.0.1:9160 INFO 19:18:04,304 Using TFramedTransport with a max frame size of 15728640 bytes. INFO 19:18:04,307 Listening for thrift clients...The logging here is annoying (and a bit schizophrenic).Either the keycache loading logging should include as much info as the rowcache loading (time duration, CF/KS names) or it should be a much smaller snippet for both.The best fix would probably be the line: INFO XX:XX:XX,XXX completed loading (time; keys) row/key cache for CF in KS. ...which would be a log line per CF per saved key/row cache (with more logging on error). I don't know if logging that "0 rows (key or row cache) successfully loaded" is worth it either, but I could be swayed by an argument for this.</description>
+      <version>0.6.9,0.7.0rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.Descriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

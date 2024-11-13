@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  <bug fixdate="2013-10-13 01:00:00" id="6190" opendate="2013-10-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra 2.0 won&amp;#39;t start up with Java 7u40 with Client JVM. (works on Server JVM, and both JVMs 7u25)</summary>
+      <description>Java 7u40 on some platforms do not recognize the the -XX:+UseCondCardMark JVM option. 7u40 on Macintosh works correctly, If I use the tarball 7u40 version of 7, we encounter the error below. I tried 7u25 (the previous release) and it functioned correctly.ubuntu@ubuntu:~$ Unrecognized VM option 'UseCondCardMark'Error: Could not create the Java Virtual Machine.Error: A fatal exception has occurred. Program will exit.</description>
+      <version>1.2.14,2.0.3</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2013-12-5 01:00:00" id="6453" opendate="2013-12-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve error message for invalid property values during parsing.</summary>
+      <description>Trivial change to the error message returned for invalid property values.Previously, it would just say "Invalid property value : ?". If you were constructing a large prepared statement, with multiple question marks, it was difficult to track down which one the server was complaining about. This enhancement tells you which one. =)</description>
+      <version>1.2.14</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2013-12-16 01:00:00" id="6491" opendate="2013-12-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Timeout can send confusing information as to what their cause is</summary>
+      <description>We can race between the time we "detect" a timeout and the time we build the actual exception, so that it's possible to have a timeout exception that pretends enough replica have actually acknowledged the operation, which is thus slightly confusing to the user as to why it got a timeout.That kind of race is rather unlikely in a healthy environment, but https://datastax-oss.atlassian.net/browse/JAVA-227 shows that it's at least possible to trigger in a test environment.Note that it's definitively not worth synchronizing to avoid that that, but it could maybe be simple enough to detect the race when building the exception and "correct" the ack count. Attaching simple patch to show what I have in mind.Note that I don't entirely disagree that it's not "perfect", but as said above, proper synchronization is just not worth it and it seems to me that it's not worth confusing users over that.</description>
+      <version>1.2.14</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractWriteResponseHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2013-12-22 01:00:00" id="6521" opendate="2013-12-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Thrift should validate SliceRange start and finish lengths</summary>
+      <description>To quote benbromhead:It appears that Cassandra does not check the length of a column name that is part of a range predicate for a *_slice query before it serialises the slice query to pass to the replicas. Names with a length greater than 0xFFFF cause an assertion error to occur in ByteBufferUtil.writeWithShortLength. This further causes subsequent reads on the node to fail until Cassandra is restarted</description>
+      <version>1.2.14,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2013-1-31 01:00:00" id="6535" opendate="2013-12-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prepared Statement on Defunct CF Can Impact Cluster Availability</summary>
+      <description>Synopsis: misbehaving clients can cause DoS on a cluster with a defunct prepared statementScenario: 1.) Create prepared INSERT statement on existing table X2.) Table X is dropped3.) Continue using prepared statement from (1)Result: a.) on coordinator node: COMMIT-LOG-WRITER + MutationStage errorsb.) on other nodes: "UnknownColumnFamilyException reading from socket; closing" --&gt; leads to thrashing inter-node connectionsc.) Other clients of the cluster suffer from I/O timeouts, presumably a result of (b)Other observations: On single-node clusters, clients return from insert without error because mutation errors are swallowed. On multiple-node clusters, clients receive a confounded 'read timeout' error because the closed internode connections do not propagate the error back. With prepared SELECT statements (as opposed to INSERT described above). A NullPointerException is caused on the server, and no meaninful error is returned to the client.Besides the obvious "don't do that" to the integrator, it would be good if the cluster could handle this error case more gracefully and avoid undue impact.</description>
+      <version>1.2.14</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-1-10 01:00:00" id="6569" opendate="2014-1-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog replays copy the entire batchlog table into the heap</summary>
+      <description>The current batchlog replay path will read the entire batchlog table into the heap. This is pretty bad. This was compounded by CASSANDRA-5762, which caused the SELECT statement used by the batchlog replay to bring the entire row into memory instead of just the selected columns.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+</bugrepository>

@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="FLINK">
+  <bug fixdate="2019-9-21 01:00:00" id="14896" opendate="2019-11-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Kinesis connector doesn&amp;#39;t shade jackson dependency</summary>
+      <description>flink-kinesis-connector depends on aws java sdk which is shaded to org.apache.flink.kinesis.shaded.com.amazonaws. However, the aws sdk has a transitive dependency to jackson wich is not shaded in the artifact. This creates problem when running flink on YARN: The aws sdk requires jackson-core v2.6 but hadoop pulls in 2.3. See here. If YARN uses the loads wrong jackson version from classpath. Jod fails with2019-11-20 17:23:11,563 ERROR org.apache.flink.runtime.webmonitor.handlers.JarRunHandler - Unhandled exception.org.apache.flink.client.program.ProgramInvocationException: The program caused an error:     at org.apache.flink.client.program.OptimizerPlanEnvironment.getOptimizedPlan(OptimizerPlanEnvironment.java:93)    at org.apache.flink.client.program.PackagedProgramUtils.createJobGraph(PackagedProgramUtils.java:80)    at org.apache.flink.runtime.webmonitor.handlers.utils.JarHandlerUtils$JarHandlerContext.toJobGraph(JarHandlerUtils.java:126)    at org.apache.flink.runtime.webmonitor.handlers.JarRunHandler.lambda$getJobGraphAsync$6(JarRunHandler.java:142)    at java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1590)    at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)    at java.lang.Thread.run(Thread.java:748)Caused by: java.lang.NoSuchMethodError: com.fasterxml.jackson.databind.ObjectMapper.enable([Lcom/fasterxml/jackson/core/JsonParser$Feature;)Lcom/fasterxml/jackson/databind/ObjectMapper;    at com.amazonaws.partitions.PartitionsLoader.&lt;clinit&gt;(PartitionsLoader.java:54)    at com.amazonaws.regions.RegionMetadataFactory.create(RegionMetadataFactory.java:30)    at com.amazonaws.regions.RegionUtils.initialize(RegionUtils.java:65)    at com.amazonaws.regions.RegionUtils.getRegionMetadata(RegionUtils.java:53)    at com.amazonaws.regions.RegionUtils.getRegion(RegionUtils.java:107)    at com.amazonaws.client.builder.AwsClientBuilder.getRegionObject(AwsClientBuilder.java:256)    at com.amazonaws.client.builder.AwsClientBuilder.setRegion(AwsClientBuilder.java:460)    at com.amazonaws.client.builder.AwsClientBuilder.configureMutableProperties(AwsClientBuilder.java:424)    at com.amazonaws.client.builder.AwsAsyncClientBuilder.build(AwsAsyncClientBuilder.java:80)...The flink-kinesis-connector should do as other connectors: shade jackson or use the flink-shaded-jackson core dependency</description>
+      <version>1.9.0,1.16.0,1.15.2</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-sql-connector-kinesis.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-sql-connector-kinesis.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2022-7-1 01:00:00" id="28355" opendate="2022-7-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Python Bash e2e tests don&amp;#39;t clean-up after they&amp;#39;ve ran, causing disk space issues</summary>
+      <description>The Bash based E2E tests that are used in Python aren't cleaned-up after they've ran. These cause disk space issues further downstream.See the CI run from https://github.com/apache/flink/pull/20114 for results, for example:&amp;#8211; When starting with the Bash e2e tests08:47:10 ##[group]Top 15 biggest directories in terms of used disk spaceJul 01 08:47:12 3983560 .Jul 01 08:47:12 1266692 ./flink-end-to-end-testsJul 01 08:47:12 624568 ./flink-distJul 01 08:47:12 624180 ./flink-dist/targetJul 01 08:47:12 500076 ./flink-dist/target/flink-1.16-SNAPSHOT-binJul 01 08:47:12 500072 ./flink-dist/target/flink-1.16-SNAPSHOT-bin/flink-1.16-SNAPSHOTJul 01 08:47:12 460812 ./flink-connectorsJul 01 08:47:12 392588 ./.gitJul 01 08:47:12 366396 ./.git/objectsJul 01 08:47:12 366388 ./.git/objects/packJul 01 08:47:12 349272 ./flink-tableJul 01 08:47:12 335592 ./.git/objects/pack/pack-38d46915823ebec2bc660fd160e5cfca5bc3e567.packJul 01 08:47:12 293044 ./flink-dist/target/flink-1.16-SNAPSHOT-bin/flink-1.16-SNAPSHOT/optJul 01 08:47:12 251272 ./flink-filesystemsJul 01 08:47:12 246596 ./flink-end-to-end-tests/flink-streaming-kinesis-testhttps://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=37425&amp;view=logs&amp;j=ef799394-2d67-5ff4-b2e5-410b80c9c0af&amp;t=860bfb5d-81b0-5968-f128-2a8b5362110d&amp;l=664&amp;#8211; After completing all Bash bashed e2e tests:2022-07-01T10:20:17.3594718Z Jul 01 10:20:17 ##[group]Top 15 biggest directories in terms of used disk space2022-07-01T10:20:18.7520631Z Jul 01 10:20:18 5425892 .2022-07-01T10:20:18.7521823Z Jul 01 10:20:18 1521472 ./flink-end-to-end-tests2022-07-01T10:20:18.7522566Z Jul 01 10:20:18 1242528 ./flink-python2022-07-01T10:20:18.7523244Z Jul 01 10:20:18 952336 ./flink-python/dev2022-07-01T10:20:18.7524159Z Jul 01 10:20:18 878764 ./flink-python/dev/.conda2022-07-01T10:20:18.7524870Z Jul 01 10:20:18 834200 ./flink-python/dev/.conda/lib2022-07-01T10:20:18.7525619Z Jul 01 10:20:18 726528 ./flink-python/dev/.conda/lib/python3.72022-07-01T10:20:18.7526397Z Jul 01 10:20:18 683256 ./flink-python/dev/.conda/lib/python3.7/site-packages2022-07-01T10:20:18.7527101Z Jul 01 10:20:18 624568 ./flink-dist2022-07-01T10:20:18.7527768Z Jul 01 10:20:18 624180 ./flink-dist/target2022-07-01T10:20:18.7528494Z Jul 01 10:20:18 500076 ./flink-dist/target/flink-1.16-SNAPSHOT-bin2022-07-01T10:20:18.7529298Z Jul 01 10:20:18 500072 ./flink-dist/target/flink-1.16-SNAPSHOT-bin/flink-1.16-SNAPSHOT2022-07-01T10:20:18.7530046Z Jul 01 10:20:18 460812 ./flink-connectors2022-07-01T10:20:18.7530546Z Jul 01 10:20:18 392588 ./.git2022-07-01T10:20:18.7531014Z Jul 01 10:20:18 366396 ./.git/objectshttps://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=37425&amp;view=logs&amp;j=ef799394-2d67-5ff4-b2e5-410b80c9c0af&amp;t=860bfb5d-81b0-5968-f128-2a8b5362110d&amp;l=9631</description>
+      <version>1.16.0,1.15.2,1.14.6</version>
+      <fixedVersion>1.16.0,1.15.2,1.14.6</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.dev.lint-python.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.pyflink.yarn.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.pyflink.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.kubernetes.pyflink.application.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2022-9-6 01:00:00" id="29207" opendate="2022-9-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pulsar message eventTime may be incorrectly set to a negative number</summary>
+      <description>We'd better judge that the timestamp is greater than 0, we should skip setting eventTime when timestamp less than or equal to 0, otherwise the pulsar client will throw an exception.</description>
+      <version>1.15.2</version>
+      <fixedVersion>1.16.0,1.15.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.main.java.org.apache.flink.connector.pulsar.sink.writer.PulsarWriter.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2022-10-30 01:00:00" id="29477" opendate="2022-9-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ClassCastException when collect primitive array to Python</summary>
+      <description>How to reproduce this bug:ds = env.from_collection([1, 2], type_info=Types.PRIMITIVE_ARRAY(Types.INT()))ds.execute_and_collect()got:java.lang.ClassCastException: class [I cannot be cast to class [Ljava.lang.Object</description>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.15.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.src.main.java.org.apache.flink.api.common.python.PythonBridgeUtils.java</file>
+      <file type="M">flink-python.pyflink.datastream.tests.test.data.stream.py</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2022-10-30 01:00:00" id="29483" opendate="2022-9-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>flink python udf arrow in thread model bug</summary>
+      <description/>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.17.0,1.15.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.common.CommonExecPythonCalc.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2022-10-4 01:00:00" id="29502" opendate="2022-10-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update the Hadoop implementation for filesystems to 3.3.4</summary>
+      <description>Flink currently uses Hadoop version 3.3.2 for the Flink filesystem implementations. Upgrading this to version 3.3.4 will resolve some CVEs like https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-25168 (which Flink is not affected by)</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-filesystems.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-base.pom.xml</file>
+      <file type="M">flink-filesystems.flink-oss-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-oss-fs-hadoop.pom.xml</file>
+      <file type="M">flink-filesystems.flink-gs-fs-hadoop.pom.xml</file>
+      <file type="M">flink-filesystems.flink-fs-hadoop-shaded.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-fs-hadoop-shaded.pom.xml</file>
+      <file type="M">flink-filesystems.flink-azure-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-azure-fs-hadoop.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2022-10-5 01:00:00" id="29511" opendate="2022-10-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Sort properties/schemas in OpenAPI spec</summary>
+      <description>The properties/schema order is currently based on whatever order they were looked up, which varies as the spec is being extended.Sort them by name to prevent this.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-docs.src.main.java.org.apache.flink.docs.rest.OpenApiSpecGenerator.java</file>
+      <file type="M">docs.static.generated.rest.v1.sql.gateway.yml</file>
+      <file type="M">docs.static.generated.rest.v1.dispatcher.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2022-11-13 01:00:00" id="29628" opendate="2022-10-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bump aws-java-sdk-s3 to 1.12.319</summary>
+      <description>As reported by Dependabot in https://github.com/apache/flink/pull/20285</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-base.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-12-4 01:00:00" id="2963" opendate="2015-11-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dependence on SerializationUtils#deserialize() should be avoided</summary>
+      <description>There is a problem with `SerializationUtils` from Apache CommonsLang. Here is an open issue where the class will throw a`ClassNotFoundException` even if the class is in the classpath in amultiple-classloader environment:https://issues.apache.org/jira/browse/LANG-1049 state = (HashMap&lt;String, Serializable&gt;) SerializationUtils.deserialize(bais);./flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/operators/windowing/NonKeyedWindowOperator.java state = (HashMap&lt;String, Serializable&gt;) SerializationUtils.deserialize(bais);./flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/operators/windowing/WindowOperator.java return SerializationUtils.deserialize(message);./flink-streaming-java/src/main/java/org/apache/flink/streaming/util/serialization/JavaDefaultStringSchema.java T copied = SerializationUtils.deserialize(SerializationUtils./flink-streaming-java/src/test/java/org/apache/flink/streaming/util/MockOutput.javaWe should move away from SerializationUtils.deserialize()</description>
+      <version>None</version>
+      <fixedVersion>1.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.maven.checkstyle.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2022-10-14 01:00:00" id="29638" opendate="2022-10-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update jackson bom because of CVE-2022-42003</summary>
+      <description>There is a CVE-2022-42003 fixed in 2.13.4.1 and 2.14.0-rc1https://nvd.nist.gov/vuln/detail/CVE-2022-42003P.S. It seems there will not be 2.14.0 release until end of October according to https://github.com/FasterXML/jackson-databind/issues/3590#issuecomment-1270363915</description>
+      <version>1.16.0,1.17.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.17.0,1.15.3</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-python.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-kubernetes.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-formats.flink-sql-avro.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-formats.flink-sql-avro-confluent-registry.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-fs-hadoop-shaded.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.resources.META-INF.NOTICE</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2022-11-3 01:00:00" id="29867" opendate="2022-11-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update maven-enforcer-plugin to 3.1.0</summary>
+      <description>We currently rely on 3.0.0-M1 but will have to skip 3.0.0 (final) due to MENFORCER-394 which hits Flink's current code base as well</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-11-12 01:00:00" id="3005" opendate="2015-11-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Commons-collections object deserialization remote command execution vulnerability</summary>
+      <description>http://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/TL;DR: If you have commons-collections on your classpath and accept and process Java object serialization data, then you may have an exploitable remote command execution vulnerability.Brief search in code base for ObjectInputStream reveals several places where the vulnerability exists.</description>
+      <version>None</version>
+      <fixedVersion>0.10.1,1.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2022-11-23 01:00:00" id="30167" opendate="2022-11-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade japicmp to 1.17.1</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2022-1-23 01:00:00" id="30169" opendate="2022-11-23 00:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>Adds version switcher in PyFlink API doc</summary>
+      <description>Adds version switcher in PyFlink API doc</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2022-1-28 01:00:00" id="30231" opendate="2022-11-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update to Fabric8 Kubernetes Client to a version that has automatic renewal of service account tokens</summary>
+      <description>The Fabric8 Kubernetes Client library was updated to account for Kubernetes configuration changes that result in service account tokens becoming bounded in duration, needing to be renewed after an hour. The AWS managed Kubernetes service (AWS EKS) currently has a configuration change that extends the one hour bounded duration for the account to 90 days but this will eventually be removed by AWS and  produces warnings.It appears that Fabric8 Kubernetes Client library version 5.12.4 is the closest version to 5.12.3 that is currently in use by the Apache Flink project to contain https://github.com/fabric8io/kubernetes-client/issues/2271.</description>
+      <version>1.15.2</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-kubernetes.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-kubernetes.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2022-12-10 01:00:00" id="30358" opendate="2022-12-10 00:00:00" resolution="Done">
+    <buginformation>
+      <summary>Show the task manager id on the exception history page</summary>
+      <description>At present, the web UI exception history page only displays the TM host and port. However, we generally need to search for problems according to the pod name or container ID.Therefore, it is more convenient to add resource id (pod name on k8s, container id on yarn) to the location column and a link to the task manager id to jump to the task manager page.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.exceptions.job-exceptions.component.ts</file>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.exceptions.job-exceptions.component.html</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfoWithHistoryTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfoWithHistoryNoRootTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.handler.job.JobExceptionsHandlerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfoWithHistory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfo.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.job.JobExceptionsHandler.java</file>
+      <file type="M">flink-runtime-web.src.test.resources.rest.api.v1.snapshot</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

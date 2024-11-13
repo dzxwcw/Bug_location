@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  <bug fixdate="2016-9-9 01:00:00" id="11332" opendate="2016-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodes connect to themselves when NTS is used</summary>
+      <description>I tested this with both the simple snitch and PFS. It's quite easy to repro, setup a cluster, start it. Mine looks like this:tcp 0 0 10.208.8.123:48003 10.208.8.63:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.8.63:40215 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:55559 10.208.35.225:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:33498 10.208.8.63:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.35.225:52530 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.35.225:53674 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:40846 10.208.35.225:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.8.63:48880 ESTABLISHED 26254/javaNo problems so far. Now create a keyspace using NTS with an rf of 3, and perform some writes. Now it looks like this:tcp 0 0 10.208.8.123:48003 10.208.8.63:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.123:35024 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:35024 10.208.8.123:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:47212 10.208.8.123:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.63:40215 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:55559 10.208.35.225:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:33498 10.208.8.63:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.35.225:52530 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.35.225:53674 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.123:47212 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:40846 10.208.35.225:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.63:48880 ESTABLISHED 26254/java I can't think of any reason for a node to connect to itself, and this can cause problems with PFS where you might only define the broadcast addresses, but now you need the internal addresses too because the node will need to look itself up when connecting to itself.</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.PropertyFileSnitch.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2016-8-2 01:00:00" id="11701" opendate="2016-5-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[windows] dtest failure in cqlsh_tests.cqlsh_copy_tests.CqlshCopyTest.test_reading_with_skip_and_max_rows</summary>
+      <description>looks to be an assertion problem, so could be test or cassandra related:e.g.:10000 != 331http://cassci.datastax.com/job/trunk_dtest_win32/404/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_reading_with_skip_and_max_rowsFailed on CassCI build trunk_dtest_win32 #404</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-7-20 01:00:00" id="11850" opendate="2016-5-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cannot use cql since upgrading python to 2.7.11+</summary>
+      <description>OS: Debian GNU/Linux stretch/sid Kernel: 4.5.0-2-amd64 #1 SMP Debian 4.5.4-1 (2016-05-16) x86_64 GNU/LinuxPython version: 2.7.11+ (default, May 9 2016, 15:54:33)&amp;#91;GCC 5.3.1 20160429&amp;#93;cqlsh --version: cqlsh 5.0.1cassandra -v: 3.5 (also occurs with 3.0.6)Issue:when running cqlsh, it returns the following error:cqlsh -u dbarpt_usr01Password: *****Connection error: ('Unable to connect to any servers', {'odbasandbox1': TypeError('ref() does not take keyword arguments',)})I cleared PYTHONPATH:python -c "import json; print dir(json); print json._version_"&amp;#91;&amp;#39;JSONDecoder&amp;#39;, &amp;#39;JSONEncoder&amp;#39;, &amp;#39;__all__&amp;#39;, &amp;#39;__author__&amp;#39;, &amp;#39;__builtins__&amp;#39;, &amp;#39;__doc__&amp;#39;, &amp;#39;__file__&amp;#39;, &amp;#39;__name__&amp;#39;, &amp;#39;__package__&amp;#39;, &amp;#39;__path__&amp;#39;, &amp;#39;__version__&amp;#39;, &amp;#39;_default_decoder&amp;#39;, &amp;#39;_default_encoder&amp;#39;, &amp;#39;decoder&amp;#39;, &amp;#39;dump&amp;#39;, &amp;#39;dumps&amp;#39;, &amp;#39;encoder&amp;#39;, &amp;#39;load&amp;#39;, &amp;#39;loads&amp;#39;, &amp;#39;scanner&amp;#39;&amp;#93;2.0.9Java based clients can connect to Cassandra with no issue. Just CQLSH and Python clients cannot.nodetool status also works.Thank you for your help.</description>
+      <version>2.1.16,2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.7.2-5d33cb4.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-6-30 01:00:00" id="12112" opendate="2016-6-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tombstone histogram not accounting for partition deletions</summary>
+      <description>we need to account for top level deletions in the tombstone histogram</description>
+      <version>2.1.16,2.2.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.CompactionsCQLTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-8-3 01:00:00" id="12371" opendate="2016-8-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>INSERT JSON - numbers not accepted for smallint and tinyint</summary>
+      <description>Contrary to what is written down on http://cassandra.apache.org/doc/latest/cql/json.html#json-encoding-of-cassandra-data-types, numbers are not an accepted format for tinyints and smallints.Steps to reproduce on CQLSH:&gt; create table default.test(id text PRIMARY KEY, small smallint, tiny tinyint);&gt; INSERT INTO default.test JSON '{"id":"123","small":11}';InvalidRequest: Error from server: code=2200 &amp;#91;Invalid query&amp;#93; message="Error decoding JSON value for small: Expected a short value, but got a Integer: 11"&gt; INSERT INTO default.test JSON '{"id":"123","tiny":11}';InvalidRequest: Error from server: code=2200 &amp;#91;Invalid query&amp;#93; message="Error decoding JSON value for tiny: Expected a byte value, but got a Integer: 11"The good news is that when you wrap the numeric values into strings - it works like a charm.</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ShortType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ByteType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-8-12 01:00:00" id="12449" opendate="2016-8-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Docs: Cassandra Development Section</summary>
+      <description>The new documentation already contains some user specific topics, but details on developing Cassandra are still missing. I'd like to create a new "Cassandra Development" section that would be initially created based on the following content: How to contribute (should probably be split up into sub pages) &amp;#91;~iamaleksey&amp;#93;'s On how to submit patches and have Cassandra committers like you (some overlapping content with "How to contribute" here) Code Style Running Cassandra in IDEA / Running Cassandra in Eclipse (needs to be reviewed for latest IDE versions)Additional content would be nice to have as well, e.g. on contributing documentation.</description>
+      <version>None</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source..templates.indexcontent.html</file>
+      <file type="M">doc.source.index.rst</file>
+      <file type="M">doc.source.bugs.rst</file>
+      <file type="M">doc.source.development.images.eclipse.debug6.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug5.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug4.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug3.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug2.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug1.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug0.png</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-8-17 01:00:00" id="12476" opendate="2016-8-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SyntaxException when COPY FROM Counter Table with Null value</summary>
+      <description>I have a simple counter table CREATE TABLE test ( a int PRIMARY KEY, b counter, c counter) ;I have updated b column value with UPDATE test SET b = b + 1 WHERE a = 1;Now I have export the data with COPY test TO 'test.csv';And Import it with COPY test FROM 'test.csv';I get this ErrorFailed to import 1 rows: SyntaxException - line 1:34 no viable alternative at input 'WHERE' (...=b+1,c=c+ [WHERE]...) - will retry later, attempt 1 of 5</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-9-17 01:00:00" id="12481" opendate="2016-8-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in cqlshlib.test.test_cqlsh_output.TestCqlshOutput.test_describe_keyspace_output</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-3.0_cqlsh_tests/29/testReport/cqlshlib.test.test_cqlsh_output/TestCqlshOutput/test_describe_keyspace_outputError Messageerrors={'127.0.0.1': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.1http://cassci.datastax.com/job/cassandra-3.0_cqlsh_tests/lastCompletedBuild/cython=no,label=ctool-lab/testReport/cqlshlib.test.test_cqlsh_output/TestCqlshOutput/test_describe_keyspace_output/</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Test/dtest/python</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.cassconnect.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-8-24 01:00:00" id="12528" opendate="2016-8-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix eclipse-warning problems</summary>
+      <description>The ant eclipse-warning target has accumulated some failures again. Locally, I'm seeing 3 errors on 2.2, 5 errors on 3.0, 23 errors on 3.9, and 33 errors on trunk.Depending on the amount of overlap between these errors, it may make sense to split this into sub-issues.</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.security.EncryptionUtils.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessageOut.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.TableMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.DataOutputBuffer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.ChecksummedRebufferer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.ChecksummedRandomAccessReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableTxnWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.plan.QueryController.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.disk.StaticTokenTreeBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.disk.PerSSTableIndexWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.UnfilteredSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegmentReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

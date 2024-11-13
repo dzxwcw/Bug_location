@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="4803" opendate="2012-10-13 00:00:00" fixdate="2012-12-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CFRR wide row iterators improvements</summary>
+      <description>public float getProgress() { // TODO this is totally broken for wide rows // the progress is likely to be reported slightly off the actual but close enough float progress = ((float) iter.rowsRead() / totalRowCount); return progress &gt; 1.0F ? 1.0F : progress; }The problem is iter.rowsRead() does not return the number of rows read from the wide row iterator, but returns number of columns (every row is counted multiple times).</description>
+      <version>1.1.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilySplit.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Constants.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Cassandra.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilyInputFormat.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilyRecordReader.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4996" opendate="2012-11-27 00:00:00" fixdate="2012-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>After changing the compaction strategy, compression_strategy always returning back to the "SnappyCompressor" through CQL 2.2.0</summary>
+      <description>faced very strange behaviour when changing compression_parameters of exisiting CF. After changing the compaction strategy, compression_strategy returning back to the "SnappyCompressor".Using cassandra version 1.1.5.&amp;#91;cqlsh 2.2.0 | Cassandra 1.1.5 | CQL spec 2.0.0 | Thrift protocol 19.32.0&amp;#93;I have one column family with following paramters:cqlsh &gt; describe columnfamily auditlog_01;CREATE TABLE auditlog_01 (lid text PRIMARY KEY,dscn text,asid text,soapa text) WITHcomment='' ANDcomparator=text ANDread_repair_chance=0.100000 ANDgc_grace_seconds=864000 ANDdefault_validation=text ANDmin_compaction_threshold=4 ANDmax_compaction_threshold=32 ANDreplicate_on_write='true' ANDcompaction_strategy_class='SizeTieredCompactionStrategy' ANDcompaction_strategy_options:sstable_size_in_mb='5' ANDcompression_parameters:sstable_compression='SnappyCompressor';Changing compression strategy to 'DeflateCompressorcqlsh&gt; ALTER TABLE auditlog_01 WITH compression_parameters:sstable_compression = 'DeflateCompressor' AND compression_parameters:chunk_length_kb = 64;cqlsh&gt; describe columnfamily auditlog_01;CREATE TABLE auditlog_01 (lid text PRIMARY KEY,dscn text,asid text,soapa text) WITH comment='' AND comparator=text AND read_repair_chance=0.100000 AND gc_grace_seconds=864000 AND default_validation=text AND min_compaction_threshold=4 AND max_compaction_threshold=32 AND replicate_on_write='true' AND compaction_strategy_class='SizeTieredCompactionStrategy' AND compaction_strategy_options:sstable_size_in_mb='5' AND compression_parameters:chunk_length_kb='64' AND compression_parameters:sstable_compression='DeflateCompressor';it's sucessfuly changed the compression strategy to 'DeflateCompressor, after that when i am trying to change the compaction strategy, compression strategy returing back to "SnappyCompressor".cqlsh&gt; alter table auditlog_01 with compaction_strategy_class='LeveledCompactionStrategy' AND compaction_strategy_options:sstable_size_in_mb=5;cqlsh&gt; describe columnfamily auditlog_01;CREATE TABLE auditlog_01 ( lid text PRIMARY KEY,dscn text,asid text,soapa text) WITH comment='' AND comparator=text AND read_repair_chance=0.100000 AND gc_grace_seconds=864000 AND default_validation=text AND min_compaction_threshold=4 AND max_compaction_threshold=32 AND replicate_on_write='true' AND compaction_strategy_class='SizeTieredCompactionStrategy' AND compaction_strategy_options:sstable_size_in_mb='5' AND compression_parameters:sstable_compression='SnappyCompressor';</description>
+      <version>1.1.8,1.2.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.CreateColumnFamilyStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.CFPropDefs.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateColumnFamilyStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.CFPropDefs.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5025" opendate="2012-12-4 00:00:00" fixdate="2012-12-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Schema push/pull race</summary>
+      <description>When a schema change is made, the coordinator pushes the delta to the other nodes in the cluster. This is more efficient than sending the entire schema. But the coordinator also announces the new schema version, so the other nodes' reception of the new version races with processing the delta, and usually seeing the new schema wins. So the other nodes also issue a pull to the coordinator for the entire schema.Thus, schema changes tend to become O in the number of KS and CF present.</description>
+      <version>1.1.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5026" opendate="2012-12-4 00:00:00" fixdate="2012-12-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce log spam from counter shard warnings</summary>
+      <description>The invalid counter shard warning we can get after unclean shutdown in periodic commitlog mode or after node movement (CASSANDRA-4071) can spam the log hard since it is logged once per read until compaction merges it away.</description>
+      <version>1.1.8,1.2.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.context.CounterContext.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5061" opendate="2012-12-13 00:00:00" fixdate="2012-12-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgraded cassandra loses all cfs on restart</summary>
+      <description>A bit dramatic summary, but hey;If you upgrade cassandra and then restart it, you lose all your CFs, but they come back if you restart again.This is due to fixSchemaNanoTimestamp not flushing the new data after truncating the CF and re-doing the mutations.</description>
+      <version>1.1.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.DefsTable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5066" opendate="2012-12-13 00:00:00" fixdate="2012-12-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compression params validation assumes SnappyCompressor</summary>
+      <description>This hasn't caused any issues yet since DeflateCompressor and SnappyCompressor have the same empty set for supportedOptions, but is a potential issue.Combined with CASSANDRA-4996 this also brings back CASSANDRA-4266.</description>
+      <version>1.1.8,1.2.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionParameters.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

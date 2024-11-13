@@ -1,0 +1,692 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  <bug fixdate="2013-9-6 01:00:00" id="5433" opendate="2013-4-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool - Human Readable</summary>
+      <description>Would be great to have a human readable option in nodetool to easily look stats without having to convert bytes to MB/GB etc in your head We have several internal scripts we use to parse the output to a more readable output, and would be useful for it to be part of nodetool itself.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2013-9-21 01:00:00" id="6075" opendate="2013-9-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The token function should allow column identifiers in the correct order only</summary>
+      <description>Given the following table:CREATE TABLE t1 (a int, b text, PRIMARY KEY ((a, b)));The following request returns an error in cqlsh as literal arguments order is incorrect:SELECT * FROM t1 WHERE token(a, b) &gt; token('s', 1);Bad Request: Type error: 's' cannot be passed as argument 0 of function token of type intBut surprisingly if we provide the column identifier arguments in the wrong order no error is returned:SELECT * FROM t1 WHERE token(a, b) &gt; token(1, 'a'); // correct order is validSELECT * FROM t1 WHERE token(b, a) &gt; token(1, 'a'); // incorrect order is valid as well</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.SelectWithTokenFunctionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2013-10-2 01:00:00" id="6430" opendate="2013-12-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DELETE with IF &lt;field&gt;=&lt;value&gt; clause doesn&amp;#39;t work properly if more then one row are going to be deleted</summary>
+      <description>CREATE TABLE test(key int, sub_key int, value text, PRIMARY KEY(key, sub_key) );INSERT INTO test(key, sub_key, value) VALUES(1,1, '1.1');INSERT INTO test(key, sub_key, value) VALUES(1,2, '1.2');INSERT INTO test(key, sub_key, value) VALUES(1,3, '1.3');SELECT * from test; key | sub_key | value----------------- 1 | 1 | 1.1 1 | 2 | 1.2 1 | 3 | 1.3DELETE FROM test WHERE key=1 IF value='1.2'; &amp;#91;applied&amp;#93;----------- False &lt;=============== I guess second row should be removedSELECT * from test; key | sub_key | value----------------- 1 | 1 | 1.1 1 | 2 | 1.2 1 | 3 | 1.3(3 rows) DELETE FROM test WHERE key=1;SELECT * from test;(0 rows) &lt;=========== all rows were removed: OK</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DeleteStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-10-17 01:00:00" id="6602" opendate="2014-1-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compaction improvements to optimize time series data</summary>
+      <description>There are some unique characteristics of many/most time series use cases that both provide challenges, as well as provide unique opportunities for optimizations.One of the major challenges is in compaction. The existing compaction strategies will tend to re-compact data on disk at least a few times over the lifespan of each data point, greatly increasing the cpu and IO costs of that write.Compaction exists to1) ensure that there aren't too many files on disk2) ensure that data that should be contiguous (part of the same partition) is laid out contiguously3) deleting data due to ttls or tombstonesThe special characteristics of time series data allow us to optimize away all three.Time series data1) tends to be delivered in time order, with relatively constrained exceptions2) often has a pre-determined and fixed expiration date3) Never gets deleted prior to TTL4) Has relatively predictable ingestion ratesNote that I filed CASSANDRA-5561 and this ticket potentially replaces or lowers the need for it. In that ticket, jbellis reasonably asks, how that compaction strategy is better than disabling compaction.Taking that to heart, here is a compaction-strategy-less approach that could be extremely efficient for time-series use cases that follow the above pattern.(For context, I'm thinking of an example use case involving lots of streams of time-series data with a 5GB per day ingestion rate, and a 1000 day retention with TTL, resulting in an eventual steady state of 5TB per node)1) You have an extremely large memtable (preferably off heap, if/when doable) for the table, and that memtable is sized to be able to hold a lengthy window of time. A typical period might be one day. At the end of that period, you flush the contents of the memtable to an sstable and move to the next one. This is basically identical to current behaviour, but with thresholds adjusted so that you can ensure flushing at predictable intervals. (Open question is whether predictable intervals is actually necessary, or whether just waiting until the huge memtable is nearly full is sufficient)2) Combine the behaviour with CASSANDRA-5228 so that sstables will be efficiently dropped once all of the columns have. (Another side note, it might be valuable to have a modified version of CASSANDRA-3974 that doesn't bother storing per-column TTL since it is required that all columns have the same TTL)3) Be able to mark column families as read/write only (no explicit deletes), so no tombstones.4) Optionally add back an additional type of delete that would delete all data earlier than a particular timestamp, resulting in immediate dropping of obsoleted sstables.The result is that for in-order delivered data, Every cell will be laid out optimally on disk on the first pass, and over the course of 1000 days and 5TB of data, there will "only" be 1000 5GB sstables, so the number of filehandles will be reasonable.For exceptions (out-of-order delivery), most cases will be caught by the extended (24 hour+) memtable flush times and merged correctly automatically. For those that were slightly askew at flush time, or were delivered so far out of order that they go in the wrong sstable, there is relatively low overhead to reading from two sstables for a time slice, instead of one, and that overhead would be incurred relatively rarely unless out-of-order delivery was the common case, in which case, this strategy should not be used.Another possible optimization to address out-of-order would be to maintain more than one time-centric memtables in memory at a time (e.g. two 12 hour ones), and then you always insert into whichever one of the two "owns" the appropriate range of time. By delaying flushing the ahead one until we are ready to roll writes over to a third one, we are able to avoid any fragmentation as long as all deliveries come in no more than 12 hours late (in this example, presumably tunable).Anything that triggers compactions will have to be looked at, since there won't be any. The one concern I have is the ramificaiton of repair. Initially, at least, I think it would be acceptable to just write one sstable per repair and not bother trying to merge it with other sstables.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-7-29 01:00:00" id="7111" opendate="2014-4-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include snippet of CQL query near error in SyntaxError messages</summary>
+      <description>When a SyntaxError is returned, including a snippet of the query close to the error would make a lot of error messages easier to understand. For example, if you did this with the python driver:session.execute(SELECT * FROM users WHERE username='%s', ['Joe Smith'])you would wind up with an extra set of single quotes (the driver automatically escapes and quotes input). If a snippet like ...WHERE username=''Joe Smith'' were included in the error message, this would be pretty easy to spot.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ErrorCollectorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CqlParserTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ErrorCollector.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-1 01:00:00" id="7131" opendate="2014-5-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add command line option for cqlshrc file path</summary>
+      <description>It would be nice if you could specify the cqlshrc file location on the command line, so you don't have to jump through hoops when running it from a service user or something.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-6 01:00:00" id="7173" opendate="2014-5-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make "nodetool [ring|status] system" return a message that ownership is nonsense</summary>
+      <description>The ownership column for the output for nodetool &amp;#91;ring|status&amp;#93; really doesn't make sense for the system keyspace since it's a special case and uses the LocalStrategy. We should return a message, perhaps like we do when not specifying a keyspace, that the ownership in the case of system is nonsense.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-10-28 01:00:00" id="7316" opendate="2014-5-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Windows: address potential JVM swapping</summary>
+      <description>Similar to mlockall() in CLibrary.java for linux, it would be nice to lock the virtual address space on Windows to prevent page faults.One option: Reference API: http://msdn.microsoft.com/en-us/library/windows/desktop/aa366895(v=vs.85).aspx</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>Local/StartupandShutdown</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-8-17 01:00:00" id="7405" opendate="2014-6-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Optimize cqlsh COPY TO and COPY FROM</summary>
+      <description>Now that we are using native proto via python-driver, we can, and should, at the very least:1. Use proto paging in COPY TO2. Use async writes in COPY FROM</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-21 01:00:00" id="7432" opendate="2014-6-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add new CMS GC flags to cassandra_env.sh for JVM later than 1.7.0_60</summary>
+      <description>The new flags in question are as follows:-XX:+CMSParallelInitialMarkEnabled-XX:+CMSEdenChunksRecordAlwaysGiven we already haveJVM_OPTS="$JVM_OPTS -XX:+UseParNewGC" JVM_OPTS="$JVM_OPTS -XX:+UseConcMarkSweepGC" JVM_OPTS="$JVM_OPTS -XX:+CMSParallelRemarkEnabled" JVM_OPTS="$JVM_OPTS -XX:+UseTLAB"if [ "$JVM_ARCH" = "64-Bit" ] ; then JVM_OPTS="$JVM_OPTS -XX:+UseCondCardMark"fiThe assumption would be that people are at least running on large number CPU cores/threadsI would therefore recommend defaulting these flags if available - the only two possible downsides for +CMSEdenChunksRecordAlways:1) There is a new very short (probably un-contended) lock in the "slow" (non TLAB) eden allocation path with +CMSEdenChunksRecordAlways. I haven't detected this timing wise - this is the "slow" path after all2) If you are running with -XX:-UseCMSCompactAtFullCollection (not the default) and you call System.gc() then +CMSEdenChunksRecordAlways will expose you to a possible seg fault: (seehttp://bugs.java.com/bugdatabase/view_bug.do?bug_id=8021809)</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-7-23 01:00:00" id="7435" opendate="2014-6-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add -D command-line parsing to Windows powershell launch scripts</summary>
+      <description>Looks like there was an undocumented ability to pass in -D params to the JVM in the linux environment I missed while porting the logic over to Windows.-D-D) properties="$properties -D$2" shift 2;;</description>
+      <version>2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cassandra.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-6-24 01:00:00" id="7444" opendate="2014-6-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Performance drops when creating large amount of tables</summary>
+      <description>We are creating 4000 tables from a script and using cqlsh to create the tables. As the tables are being created, the time taken grows exponentially and it becomes very slow and takes a lot of time.We read a file get the keyspace append a random number and then create keyspace with this new name example Airplane_12345678, Airplane_123575849... then fed into cqlsh via scriptSimilarly each table is created via script use Airplane_12345678; create table1...table25 , then use Airplane_123575849; create table1...create table25It is all done in singleton fashion, doing one after the other in a loop.We tested using the following bash script#!/bin/bashSEED=0ITERATIONS=20while [ ${SEED} -lt ${ITERATIONS} ]; do COUNT=0 KEYSPACE=t10789_${SEED} echo "CREATE KEYSPACE ${KEYSPACE} WITH replication = { 'class': 'NetworkTopologyStrategy', 'Cassandra': '1' };" &gt; ${KEYSPACE}.ddl echo "USE ${KEYSPACE};" &gt;&gt; ${KEYSPACE}.ddl while [ ${COUNT} -lt 25 ]; do echo "CREATE TABLE user_colors${COUNT} (user_id int PRIMARY KEY, colors list&lt;ascii&gt; );" &gt;&gt; ${KEYSPACE}.ddl ((COUNT++)) done ((SEED++)) time cat ${KEYSPACE}.ddl | cqlsh if [ "$?" -gt 0 ]; then echo "[ERROR] Failure at ${KEYSPACE}" exit 1 else echo "[OK] Created ${KEYSPACE}" fi echo "===============================" sleep 3done#EOFThe timing we got on an otherwise idle system were inconsistentreal 0m42.649suser 0m0.332ssys 0m0.092s[OK] Created t10789_0===============================real 1m22.211suser 0m0.332ssys 0m0.096s[OK] Created t10789_1===============================real 2m45.907suser 0m0.304ssys 0m0.124s[OK] Created t10789_2===============================real 3m24.098suser 0m0.340ssys 0m0.108s[OK] Created t10789_3===============================real 2m38.930suser 0m0.324ssys 0m0.116s[OK] Created t10789_4===============================real 3m4.186suser 0m0.336ssys 0m0.104s[OK] Created t10789_5===============================real 2m55.391suser 0m0.344ssys 0m0.092s[OK] Created t10789_6===============================real 2m14.290suser 0m0.328ssys 0m0.108s[OK] Created t10789_7===============================real 2m44.880suser 0m0.344ssys 0m0.092s[OK] Created t10789_8===============================real 1m52.785suser 0m0.336ssys 0m0.128s[OK] Created t10789_9===============================real 1m18.404suser 0m0.344ssys 0m0.108s[OK] Created t10789_10===============================real 2m20.681suser 0m0.348ssys 0m0.104s[OK] Created t10789_11===============================real 1m11.860suser 0m0.332ssys 0m0.096s[OK] Created t10789_12===============================real 1m37.887suser 0m0.324ssys 0m0.100s[OK] Created t10789_13===============================real 1m31.616suser 0m0.316ssys 0m0.132s[OK] Created t10789_14===============================real 1m12.103suser 0m0.360ssys 0m0.088s[OK] Created t10789_15===============================real 0m36.378suser 0m0.340ssys 0m0.092s[OK] Created t10789_16===============================real 0m40.883suser 0m0.352ssys 0m0.096s[OK] Created t10789_17===============================real 0m40.661suser 0m0.332ssys 0m0.096s[OK] Created t10789_18===============================real 0m44.943suser 0m0.324ssys 0m0.104s[OK] Created t10789_19===============================</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DefsTables.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2014-9-8 01:00:00" id="7514" opendate="2014-7-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support paging in cqlsh</summary>
+      <description>Once we've switch cqlsh to use the python driver 2.x (CASSANDRA-7506), we should also make it use paging. Currently cqlsh adds an implicit limit which is kind of ugly. Instead we should use some reasonably small page size (100 is probably fine) and display one page at a time, adding some "NEXT" command to query/display following pages.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.test.cqlsh.completion.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-7-8 01:00:00" id="7516" opendate="2014-7-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Configurable client timeout for cqlsh</summary>
+      <description>Here's a patch for cqlsh to set the default client timeout.10s is usually a good default, but this is useful for testing specific timeout related bugs, especially where you've intentionally set the C* timeouts higher.Configurable in ~/.cassandra/cqlshrc:[connection]client_timeout = 20# Can also be set to None to disable:# client_timeout = None</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-8-19 01:00:00" id="7577" opendate="2014-7-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: CTRL-R history search not working on OSX</summary>
+      <description>recursive-history-search via ctrl-R does not work in cqlsh. The history itself works via cursor up/down.It works on Linux (and I guess on Windows with cygwin) but not on my Mac.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-7-22 01:00:00" id="7588" opendate="2014-7-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh error for query against collection index - list index out of range</summary>
+      <description>This worked in 2.1 RC1Connected to Test Cluster at 127.0.0.1:9042.[cqlsh 5.0.1 | Cassandra 2.1.0-rc1-SNAPSHOT | CQL spec 3.1.7 | Native protocol v3]Use HELP for help.cqlsh&gt; use k1;cqlsh:k1&gt; SELECT id, description FROM products WHERE categories CONTAINS 'hdtv'; id | description-------+----------------------------- 29412 | 32-inch LED HDTV (black) 34134 | 120-inch 1080p 3D plasma TV(2 rows)But fails on 2.1:Connected to Test Cluster at 127.0.0.1:9042.[cqlsh 5.0.1 | Cassandra 2.1.0-rc4-SNAPSHOT | CQL spec 3.2.0 | Native protocol v3]Use HELP for help.cqlsh&gt; use k1;cqlsh:k1&gt; SELECT id, description FROM products WHERE categories CONTAINS 'hdtv';list index out of rangecqlsh:k1&gt;This is using the example from the blog post http://www.datastax.com/dev/blog/cql-in-2-1A more complete repro:cqlsh:k1&gt;cqlsh:k1&gt; CREATE KEYSPACE cat_index_test ... WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};cqlsh:k1&gt; USE cat_index_test;cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; CREATE TABLE IF NOT EXISTS products ( ... id int PRIMARY KEY, ... description text, ... price int, ... categories set&lt;text&gt;, ... features map&lt;text, text&gt; ... );cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; CREATE INDEX IF NOT EXISTS cat_index ON products(categories);cqlsh:cat_index_test&gt; CREATE INDEX IF NOT EXISTS feat_index ON products(features);cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; INSERT INTO products(id, description, price, categories, features) ... VALUES (34134, ... '120-inch 1080p 3D plasma TV', ... 9999, ... {'tv', '3D', 'hdtv'}, ... {'screen' : '120-inch', 'refresh-rate' : '400hz', 'techno' : 'plasma'});cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; INSERT INTO products(id, description, price, categories, features) ... VALUES (29412, ... '32-inch LED HDTV (black)', ... 929, ... {'tv', 'hdtv'}, ... {'screen' : '32-inch', 'techno' : 'LED'});cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; INSERT INTO products(id, description, price, categories, features) ... VALUES (38471, ... '32-inch LCD TV', ... 110, ... {'tv', 'used'}, ... {'screen' : '32-inch', 'techno' : 'LCD'});cqlsh:cat_index_test&gt; SELECT id, description FROM products WHERE categories CONTAINS 'hdtv';list index out of rangecqlsh:cat_index_test&gt; SELECT id, description FROM products WHERE features CONTAINS '32-inch';list index out of rangecqlsh:cat_index_test&gt; DROP INDEX feat_index;cqlsh:cat_index_test&gt; CREATE INDEX feat_key_index ON products(KEYS(features));cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; SELECT id, description ... FROM products ... WHERE features CONTAINS KEY 'refresh-rate';list index out of rangeThis appears to be a cqlsh issue, since these queries still work when executed using DevCenter.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-7-24 01:00:00" id="7611" opendate="2014-7-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>incomplete CREATE/DROP USER help and tab completion</summary>
+      <description>IF NOT EXISTS/IF EXISTS doesn't appear in the online help and tab completion.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-24 01:00:00" id="7613" opendate="2014-7-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Error when tracing query with 2.1 cqlsh</summary>
+      <description>cqlsh isn't working for me in 2.1 when executing a query with TRACING ON; I get the following errormyformat_colname() takes exactly 3 arguments (2 given)</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-24 01:00:00" id="7616" opendate="2014-7-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablesplit creates new sstable when size is less than split size</summary>
+      <description>If you run sstablesplit on an sstable that is smaller than the split size, it still creates a new (duplicate) sstable. It should just leave the existing sstable in place and do nothing.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneSplitter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-29 01:00:00" id="7641" opendate="2014-7-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh should automatically disable tracing when selecting from system_traces</summary>
+      <description>Nobody needs to trace their traces while they're tracing.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-8-31 01:00:00" id="7659" opendate="2014-7-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: DESCRIBE KEYSPACE should order types according to cross-type dependencies</summary>
+      <description>Since UDTs may use other UDTs for fields, DESCRIBE KEYSPACE should list types in an order that handles the dependencies. This was recently done in the python driver here: https://github.com/datastax/python-driver/pull/165. We can either update to the latest python driver, or copy that code for cqlsh.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-1 01:00:00" id="7671" opendate="2014-8-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: Error when printing results of conditional updates</summary>
+      <description>cqlsh&gt; INSERT INTO demo.kv (key, value) VALUES (1, 1) IF NOT EXISTS;print_static_result() takes exactly 3 arguments (2 given)</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.pylexotron.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-8-7 01:00:00" id="7714" opendate="2014-8-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add new CMS GC flags to Windows startup scripts for JVM later than 1.7.0_60</summary>
+      <description>Replicate changes from CASSANDRA-7432.Relevant patch contents: # note: bash evals '1.7.x' as &gt; '1.7' so this is really a &gt;= 1.7 jvm check+if { [ "$JVM_VERSION" \&gt; "1.7" ] &amp;&amp; [ "$JVM_VERSION" \&lt; "1.8.0" ] &amp;&amp; [ "$JVM_PATCH_VERSION" -ge "60" ]; } || [ "$JVM_VERSION" \&gt; "1.8" ] ; then+ JVM_OPTS="$JVM_OPTS -XX:+CMSParallelInitialMarkEnabled -XX:+CMSEdenChunksRecordAlways"+fi</description>
+      <version>2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-9-11 01:00:00" id="7748" opendate="2014-8-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Get Windows command-line flags in-line with linux</summary>
+      <description>linux was here first. In the PowerShell launch scripts, -v is verbose right now as I missed that it's used for 'version' on linux. Add version print functionality to Windows launch using -v and find another sane flag to use for verbose env output printing.</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cassandra.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-11 01:00:00" id="7749" opendate="2014-8-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Windows cqlsh: prompt for install of pyreadline if missing during cqlsh init</summary>
+      <description>Windows python doesn't come with readline functionality by default and tab completion in cqlsh is silently unavailable due to this. Installing pyreadline is an easy fix - it would be nice to prompt users to install this dependency if it's not available on Windows.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-13 01:00:00" id="7761" opendate="2014-8-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade netty and enable epoll event loop</summary>
+      <description>Latest netty contains the proper fix for CASSANDRA-7695 plus some of the performance patches benedict contributed. We should upgrade to this following extensive burn in testing.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">lib.netty-all-4.0.20.Final.jar</file>
+      <file type="M">lib.licenses.netty-all-4.0.20.Final.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-8-16 01:00:00" id="7785" opendate="2014-8-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh - display the current logged-in user.</summary>
+      <description>Currently, a user in cqlsh cannot see which user they are logged-in as. When you have a cqlsh that has been open for a few hours, sometimes it is helpful to be able to type a quick command and see your current user.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-18 01:00:00" id="7789" opendate="2014-8-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY Command should display progress</summary>
+      <description>While CASSANDRA-7405 is on its way to make the COPY command much faster, it's still likely to hang for many minutes when transferring a large amount of data. This gives the feeling to the newcomers that something went wrong. Even if the user expect cqlsh to hang for a long moment, it's not very convenient as you have no idea of when the copy will be complete.I believe it would be very pleasant if the COPY command could display an in-place progress output while it's executed with probably: Rows copied avg Rows/s CSV File R/W MB avg CSV File R/W MB/s</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.async.insert.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-20 01:00:00" id="7804" opendate="2014-8-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Confusing error message when condition is set on primary key column</summary>
+      <description>If you set a CAS condition on a primary key column, you'll get an error that's somewhat confusing:cqlsh:ks1&gt; CREATE TABLE mytable (a int PRIMARY KEY, b int);cqlsh:ks1&gt; UPDATE mytable SET b = 0 WHERE a = 0 IF a = 0;code=2200 [Invalid query] message="PRIMARY KEY part a found in SET part"</description>
+      <version>2.1.1</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-21 01:00:00" id="7815" opendate="2014-8-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM cannot be interrupted with ctrl-c</summary>
+      <description>The changes in CASSANDRA-7405 caused the import process to not be interruptable with ctrl-c.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.async.insert.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-9-25 01:00:00" id="7824" opendate="2014-8-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh completion for triggers</summary>
+      <description>It appears cqlsh doesn't have completion for the trigger related statements and we should probably add it.Triggers are also not documented by the cql.textile file. I could swear we already had a ticket for fixing the doc, but can't find it right now, so unless someone remembers which ticket that is, let's maybe handle this here too.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-9-30 01:00:00" id="7851" opendate="2014-8-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* PID file should be readable by mere users</summary>
+      <description>automaton@i-175d594e9:~$ service cassandra status * Cassandra is not runningautomaton@i-175d594e9:~$ sudo service cassandra status * Cassandra is runningautomaton@i-175d594e9:~$ ls -la /var/run/cassandra/ls: cannot open directory /var/run/cassandra/: Permission deniedautomaton@i-175d594e9:~$ sudo ls -la /var/run/cassandra/total 4drwxr-x--- 2 cassandra cassandra 60 Aug 30 01:21 .drwxr-xr-x 15 root root 700 Aug 30 01:21 ..-rw-r--r-- 1 cassandra cassandra 4 Aug 30 01:21 cassandra.pid</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-2 01:00:00" id="7864" opendate="2014-9-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair should do less work when RF=1</summary>
+      <description>When the total RF for a keyspace is &lt;= 1, repair still calculates neighbors for each range and does some unneccessary work. We could short-circuit this earlier.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-9-5 01:00:00" id="7891" opendate="2014-9-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Select an element inside a UDT throws an index error</summary>
+      <description>Create the following data model:CREATE TYPE address (street text,city text,zip_code int,phones set&lt;text&gt; ); CREATE TYPE fullname (firstname text,lastname text);CREATE TABLE users (id uuid PRIMARY KEY,name FROZEN &lt;fullname&gt;,addresses map&lt;text, FROZEN &lt;address&gt;&gt;);INSERT INTO users (id, name) VALUES (62c36092-82a1-3a00-93d1-46196ee77204, {firstname: 'Marie-Claude', lastname: 'Josset'});When trying to select a sub-field in the name type:SELECT name.lastname FROM users WHERE id=62c36092-82a1-3a00-93d1-46196ee77204;You get the following error:list index out of range</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-5 01:00:00" id="7895" opendate="2014-9-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ALTER TYPE &lt;name&gt; RENAME TO &lt;name&gt; no longer parses as valid cql</summary>
+      <description>Type renaming seems to be broken. The error looks like perhaps the syntax has changed or there's a problem parsing the cql.cqlsh:test&gt; create type foo (somefield int);cqlsh:test&gt; alter type foo rename to bar;&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:22 no viable alternative at input 'to' (alter type foo rename [to] bar...)"&gt;</description>
+      <version>2.1.0,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-9-12 01:00:00" id="7913" opendate="2014-9-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t try to set repairedAt on old sstables</summary>
+      <description>When using the tool sstablerepairedset we don't care if the sstable actually supports having the repairedAt set</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableRepairedAtSetter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-9-16 01:00:00" id="7941" opendate="2014-9-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix bin/cassandra cassandra.logdir option in debian package</summary>
+      <description>Cassandra writes logs to $CASSANDRA_HOME/logs by default, and the debian package needs to write to /var/log/cassandra.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.patches.00list</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-10-17 01:00:00" id="7956" opendate="2014-9-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"nodetool compactionhistory" crashes because of low heap size (GC overhead limit exceeded)</summary>
+      <description>]# nodetool compactionhistoryCompaction History:Exception in thread "main" java.lang.OutOfMemoryError: GC overhead limit exceeded at java.io.ObjectStreamClass.newInstance(ObjectStreamClass.java:967) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1782) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.readObject(ObjectInputStream.java:370) at java.util.HashMap.readObject(HashMap.java:1180) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1017) at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:1893) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1798) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:1990) at java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:500) at javax.management.openmbean.TabularDataSupport.readObject(TabularDataSupport.java:912) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1017) at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:1893) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1798) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.readObject(ObjectInputStream.java:370) at sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:325) at sun.rmi.server.UnicastRef.invoke(UnicastRef.java:174) at com.sun.jmx.remote.internal.PRef.invoke(Unknown Source) at javax.management.remote.rmi.RMIConnectionImpl_Stub.getAttribute(Unknown Source) at javax.management.remote.rmi.RMIConnector$RemoteMBeanServerConnection.getAttribute(RMIConnector.java:906) at javax.management.MBeanServerInvocationHandler.invoke(MBeanServerInvocationHandler.java:267) at com.sun.proxy.$Proxy3.getCompactionHistory(Unknown Source)nodetool starts with -Xmx32m. This seems to be not enough at least in my case to show the history. I am not sure what would the appropriate amount be but increasing it to 128m definitely solves the problem. Output from modified nodetool attached.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.nodetool</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-17 01:00:00" id="7967" opendate="2014-9-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include schema_triggers CF in readable system resources</summary>
+      <description>SCHEMA_TRIGGERS_CF is missing from readable system resources.This makes tools, which attempt to read schema information, fail when authorization is enabled.Patch attached.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-9-18 01:00:00" id="7972" opendate="2014-9-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add "CREATE INDEX ... ON ..(KEYS())" syntax to cqlsh and CQL.textile</summary>
+      <description>http://www.datastax.com/documentation/cql/3.1/cql/cql_reference/create_index_r.html?scroll=reference_ds_eqm_nmd_xj__CreatIdxCollKey</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-19 01:00:00" id="7977" opendate="2014-9-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow invalidating permissions cache</summary>
+      <description>After CASSANDRA-7968 we should also allow invalidating the cache.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.auth.AuthMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.auth.Auth.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-22 01:00:00" id="7988" opendate="2014-9-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>2.1 broke cqlsh for IPv6</summary>
+      <description>cqlsh in 2.1 switched to the cassandra-driver Python library, which only recently added IPv6 support. The version bundled with 2.1.0 does not include a sufficiently recent version, so cqlsh is unusable for those of us running IPv6 (us? me...?)The fix is to simply upgrade the bundled version of the Python cassandra-driver to at least version 2.1.1</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.1.0.post.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-23 01:00:00" id="7993" opendate="2014-9-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fat client nodes dont schedule schema pull on connect</summary>
+      <description>So they cannot connect for a long time</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-23 01:00:00" id="7995" opendate="2014-9-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablerepairedset should take more that one sstable as an argument</summary>
+      <description>Given that a c* node can have a number of sstables in the 10s (100s?) of thousands of sstables on it, sstablerepairedset should be taking a list of sstables to mark as repaired rather than a single sstable.Running any command 10s of thousands of times isn't really good let alone one that spins up a jvm.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableRepairedAtSetter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-10-29 01:00:00" id="8021" opendate="2014-9-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve cqlsh autocomplete for alter keyspace</summary>
+      <description>Cqlsh autocomplete stops giving suggestions for the statementALTER KEYSPACE k WITH REPLICATION { 'class' : 'SimpleStrategy', 'replication_factor' : 1'}; after the word "WITH".</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2014-10-10 01:00:00" id="8101" opendate="2014-10-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Invalid ASCII and UTF-8 chars not rejected in CQL string literals</summary>
+      <description>When processing CQL string literals, we ultimately use String.getBytes(Charset), which has the following note:This method always replaces malformed-input and unmappable-character sequences with this charset's default replacement byte array. The CharsetEncoder class should be used when more control over the encoding process is required.So, if we insert a non-ASCII character into an ascii string literal, it will be replaced with a ? char. Something similar happens for UTF-8.For example:cqlsh:ks1&gt; create table badstrings (a int primary key, b ascii);cqlsh:ks1&gt; insert into badstrings (a, b) VALUES ( 0, 'ΎΔδϠ');cqlsh:ks1&gt; select * from badstrings; a | b---+------ 0 | ????</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.CBUtil.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AsciiType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-12 01:00:00" id="8105" opendate="2014-10-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NPE for null embedded UDT inside set</summary>
+      <description>An NPE is thrown parsing an INSERT statement when a embedded UDT inside another UDT is set to null inside a set.This sounds very convoluted, but the examples below will hopefully make it clear...With the following definitions:CREATE TYPE ut1 (a int, b int);CREATE TYPE ut2 (j frozen&lt;ut1&gt;, k int);CREATE TYPE ut3 (i int, j frozen&lt;ut1&gt;);CREATE TABLE tab1 (x int PRIMARY KEY, y set&lt;frozen&lt;ut2&gt;&gt;);CREATE TABLE tab2 (x int PRIMARY KEY, y list&lt;frozen&lt;ut2&gt;&gt;);CREATE TABLE tab3 (x int PRIMARY KEY, y set&lt;frozen&lt;ut3&gt;&gt;);This query throws a NullPointerException:INSERT INTO tab1 (x, y) VALUES (1, { { k: 1 } });These however doesn't:INSERT INTO tab2 (x, y) VALUES (1, [ { k: 1 } ]);INSERT INTO tab3 (x, y) VALUES (1, { { i: 1 } });So, the bug seems to be triggered only when the UDT is in a set, lists are fine. If the embedded UDT is after the value specified in the query, the bug doesn't seem to trigger.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.UserTypesTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.TupleType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-10-13 01:00:00" id="8113" opendate="2014-10-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Gossip should ignore generation numbers too far in the future</summary>
+      <description>If a node sends corrupted gossip, it could set the generation numbers for other nodes to arbitrarily large values. This is dangerous since one bad node (e.g. with bad memory) could in theory bring down the cluster. Nodes should refuse to accept generation numbers that are too far in the future.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+</bugrepository>

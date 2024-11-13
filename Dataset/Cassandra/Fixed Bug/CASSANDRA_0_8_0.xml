@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2419" opendate="2011-4-5 00:00:00" fixdate="2011-5-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Risk of counter over-count when recovering commit log</summary>
+      <description>When a memtable was flush, there is a small delay before the commit log replay position gets updated. If the node fails during this delay, all the updates of this memtable will be replay during commit log recovery and will end-up being over-counts.</description>
+      <version>0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RecoveryManager2Test.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.CompactionsPurgeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.commitlog.CommitLogHeaderTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.CommitLogTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTable.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.Descriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.IFlushable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegment.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogHeader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BinaryMemtable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2566" opendate="2011-4-26 00:00:00" fixdate="2011-5-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL: Batch Updates: some consistency levels not working</summary>
+      <description>Testing the batch updates, and running into some issues with different consistency levelsSummary UNTESTED: CONSISTENCY ANY PASS: CONSISTENCY ONE PASS: CONSISTENCY QUORUM PASS: CONSISTENCY ALL CQL ERROR: CONSISTENCY LOCAL_QUORUM CQL ERROR: CONSISTENCY EACH_QUORUMTest SetupCREATE KEYSPACE cqldb with strategy_class = 'org.apache.cassandra.locator.SimpleStrategy' and strategy_options:replication_factor=1;use cqldb;CREATE COLUMNFAMILY users (KEY varchar PRIMARY KEY, password varchar, gender varchar, session_token varchar, state varchar, birth_year bigint);INSERT INTO users (KEY, password, gender, state, birth_year) VALUES ('user1', 'ch@ngem3', 'f', 'CA', '1971');INSERT INTO users (KEY, password, gender, state, birth_year) VALUES ('user2', 'ch@ngem3', 'f', 'CA', '1972');INSERT INTO users (KEY, password, gender, state, birth_year) VALUES ('user3', 'ch@ngem3', 'f', 'CA', '1973');Bug DetailsCONSISTENCY LOCAL_QUORUMBEGIN BATCH USING CONSISTENCY LOCAL_QUORUMUPDATE users SET state = 'UT' WHERE KEY = 'user1';UPDATE users SET state = 'UT' WHERE KEY = 'user2';UPDATE users SET state = 'UT' WHERE KEY = 'user3';APPLY BATCHcqlsh&gt; Bad Request: line 1:31 mismatched input 'LOCAL_QUORUM' expecting K_LEVELCONSISTENCY EACH_QUORUMBEGIN BATCH USING CONSISTENCY EACH_QUORUMUPDATE users SET state = 'TX' WHERE KEY = 'user1';UPDATE users SET state = 'TX' WHERE KEY = 'user2';UPDATE users SET state = 'TX' WHERE KEY = 'user3';APPLY BATCHcqlsh&gt; Bad Request: line 1:31 mismatched input 'EACH_QUORUM' expecting K_LEVEL</description>
+      <version>0.8.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2581" opendate="2011-4-29 00:00:00" fixdate="2011-5-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rebuffer called excessively during seeks</summary>
+      <description>When doing an strace tonight, I noticed during memtable flushes that we were only writing 1KB per every write() system call...After diving more into it, it's because of a bug in the seek() code. if (newPosition &gt;= bufferOffset + validBufferBytes || newPosition &lt; bufferOffset)vs.if (newPosition &gt; (bufferOffset + validBufferBytes) || newPosition &lt; bufferOffset)Two things I noticed, we shouldn't need to rebuffer if newPosition is equal to bufferOffset + validBufferBytes, second the evaluation was doing (newPosition &gt;= bufferOffset) + validBufferBytes which always seemed to be true.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.BufferedRandomAccessFile.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2596" opendate="2011-5-3 00:00:00" fixdate="2011-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>include indexes in snapshots</summary>
+      <description>CFS.snapshot should include index sstables as well. Since flushing the parent CF (which we do as part of snapshot) also flushes index CFs consistently w/ the parent data this should work as expected.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2605" opendate="2011-5-4 00:00:00" fixdate="2011-5-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Merkle tree splitting can exit early</summary>
+      <description>There was a small bug introduced by CASSANDRA-2324 that, depending on the key sample token, can make the merkle tree splitting process exit early, potentially resulting in a unnecessary imprecise tree.</description>
+      <version>0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.MerkleTree.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2612" opendate="2011-5-5 00:00:00" fixdate="2011-5-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disable compaction throttling during bootstrap</summary>
+      <description>Disable compaction throttling during bootstrap, doesn't make sense since the node is not getting traffic. Plus it makes it faster to bootstrap a node into ring.</description>
+      <version>0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.CompactionIterator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2613" opendate="2011-5-6 00:00:00" fixdate="2011-5-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL test failures</summary>
+      <description>FAIL: delete columns from a row----------------------------------------------------------------------Traceback (most recent call last): File "/Library/Python/2.6/site-packages/nose-0.11.3-py2.6.egg/nose/case.py", line 186, in runTest self.test(*self.arg) File "/Users/jonathan/projects/cassandra/svn-0.8/test/system/test_cql.py", line 360, in test_delete_columns assert ['kd', None, None] == r, rAssertionError: [u'kd']======================================================================FAIL: delete columns from multiple rows----------------------------------------------------------------------Traceback (most recent call last): File "/Library/Python/2.6/site-packages/nose-0.11.3-py2.6.egg/nose/case.py", line 186, in runTest self.test(*self.arg) File "/Users/jonathan/projects/cassandra/svn-0.8/test/system/test_cql.py", line 379, in test_delete_columns_multi_rows assert ['kc', None] == r, rAssertionError: [u'kc']======================================================================FAIL: delete entire rows----------------------------------------------------------------------Traceback (most recent call last): File "/Library/Python/2.6/site-packages/nose-0.11.3-py2.6.egg/nose/case.py", line 186, in runTest self.test(*self.arg) File "/Users/jonathan/projects/cassandra/svn-0.8/test/system/test_cql.py", line 397, in test_delete_rows assert ['kd', None, None] == r, rAssertionError: [u'kd']======================================================================FAIL: retrieve multiple columns----------------------------------------------------------------------Traceback (most recent call last): File "/Library/Python/2.6/site-packages/nose-0.11.3-py2.6.egg/nose/case.py", line 186, in runTest self.test(*self.arg) File "/Users/jonathan/projects/cassandra/svn-0.8/test/system/test_cql.py", line 149, in test_select_columns assert ['Row Key', 'ca1', 'col', 'cd1'] == [col_dscptn[0] for col_dscptn in d], dAssertionError: [('Row Key', 'org.apache.cassandra.db.marshal.UTF8Type', None, None, None, None, None, False), ('col', 'org.apache.cassandra.db.marshal.AsciiType', None, None, None, None, True), ('cd1', 'org.apache.cassandra.db.marshal.AsciiType', None, None, None, None, True)]======================================================================FAIL: range should not fail when keys were not set----------------------------------------------------------------------Traceback (most recent call last): File "/Library/Python/2.6/site-packages/nose-0.11.3-py2.6.egg/nose/case.py", line 186, in runTest self.test(*self.arg) File "/Users/jonathan/projects/cassandra/svn-0.8/test/system/test_cql.py", line 252, in test_select_range_with_single_column_results assert len(r) == 2AssertionError</description>
+      <version>0.8.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">drivers.py.cql.decoders.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2615" opendate="2011-5-6 00:00:00" fixdate="2011-5-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>in cassandra-cli, the help command output on validation types should be updated</summary>
+      <description>from cassandra-cli, say type "help assume"you will find: Supported values are: AsciiType BytesType CounterColumnType (distributed counter column) IntegerType (a generic variable-length integer type) LexicalUUIDType LongType UTF8Typeok now:&amp;#91;default@cfs&amp;#93; assume inode comparator as UTF8Type; Type 'UTF8Type' was not found. Available: bytes, integer, long, lexicaluuid, timeuuid, utf8, ascii.so looks like the "supported type list should be update by taking away the "Type" post-fix..however, on the other hand, you can't really use it:&amp;#91;default@cfs&amp;#93; update column family inode; Unable to find abstract-type class 'org.apache.cassandra.db.marshal.utf8'looks like from the update, you still need the "Type" (case insensitive?)</description>
+      <version>0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.cli.CliHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2623" opendate="2011-5-7 00:00:00" fixdate="2011-5-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CLI escaped single quote parsing gives errors</summary>
+      <description>Escaping quotes in cli commands causes parsing errors.some examples::::No need to create columns etc, it doesn't get through parsing the expression::cassandra-cli1. set column&amp;#91;&amp;#39;KEY+vals&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL\'' ;Syntax error at position 41: mismatched character '&lt;EOF&gt;' expecting '''2.set column&amp;#91;&amp;#39;KEY+val\&amp;#39;s&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL' ;Syntax error at position 41: mismatched character '&lt;EOF&gt;' expecting '''3.set column&amp;#91;&amp;#39;KEY+vals\&amp;#39;&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL\'' ;Syntax error at position 38: unexpected "\" for `set column&amp;#91;&amp;#39;KEY+vals\&amp;#39;&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL\'' ;`.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.RangeSliceResponseResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.IResponseResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DatacenterReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractRowResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.Cli.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2624" opendate="2011-5-8 00:00:00" fixdate="2011-5-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SimpleStrategy w/o replication_factor</summary>
+      <description>It is possible to create a new keyspace using SimpleStrategy without specifying the replication_factor option. Things get more interesting if you shut the node down, since it will refuse to restart (throwing a ConfigurationException).</description>
+      <version>0.8.0</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2627" opendate="2011-5-9 00:00:00" fixdate="2011-5-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t allow {LOCAL|EACH}_QUORUM unless strategy is NTS</summary>
+      <description>There is not check when {LOCAL|EACH}_QUORUM is used than we do use NTS, hence using such CL with simpleStrategy for instance result inERROR [pool-1-thread-1] 2011-05-09 10:44:29,728 Cassandra.java (line 2960) Internal error processing insertjava.lang.ClassCastException: org.apache.cassandra.locator.SimpleStrategy cannot be cast to org.apache.cassandra.locator.NetworkTopologyStrategy...</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2628" opendate="2011-5-9 00:00:00" fixdate="2011-5-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Empty Result with Secondary Index Queries with "limit 1"</summary>
+      <description>Empty result is returned by secondary index queries with "limit 1". Cassandra returns correct result for other numbers than "1" (e.g. limit 2, limit 3, etc.). You can reproduce the problem with programs attached on CASSANDRA-2406. 1. Start Cassandra cluster. It consists of 3 cassandra nodes and distributes data by ByteOrderedPartitioner. Initial tokens of those nodes are &amp;#91;"31", "32", "33"&amp;#93;. 2. Create keyspace and column family, according to "create_table.cli", 3. Execute "secondary_index_insertv2.py", inserting a few hundred columns to cluster 4. Here, when you first use cassandra-cli and execute following lines, you can get correct result.% bin/cassandra-cli&amp;#91;default@unknown&amp;#93; connect localhost/9160;&amp;#91;default@unknown&amp;#93; use SampleKS;&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' limit 3; -------------------RowKey: 150=&gt; (column=date, value=150, timestamp=1304937931)=&gt; (column=up, value=up, timestamp=1304937931)-------------------RowKey: 151=&gt; (column=date, value=151, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)-------------------RowKey: 152=&gt; (column=date, value=152, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)3 Rows Returned. On the other hand, if you set limit to "1", you can reproduce the problem.&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' and date &gt; 150 limit 1;0 Row Returned.There are two factors to cause this problem: 1. scanned first column doesn't match at specified clause like "date &gt; 150". 2. "limit 1"Only one factor doesn't cause problem. For example, I can get correct data when I specify as following: "limit 1" -&gt; "limit 2"&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' and date &gt; 150 limit 2;-------------------RowKey: 151=&gt; (column=date, value=151, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)-------------------RowKey: 152=&gt; (column=date, value=152, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)2 Rows Returned. "date &gt; 150" -&gt; "date &gt;= 150"&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' and date &gt;= 150 limit 1;-------------------RowKey: 150=&gt; (column=date, value=150, timestamp=1304937931)=&gt; (column=up, value=up, timestamp=1304937931)1 Row Returned.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyStoreTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2638" opendate="2011-5-11 00:00:00" fixdate="2011-5-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Migrations announce on startup attempts to set local gossip state before gossiper is started.</summary>
+      <description>AbstractCassandraDemon calls MigrationManager.applyMigrations() before the gossiper is initialized (via SS.initServer()).MM.applyMigrations tries to set the local gossip state before it is initialized via G.start().</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractCassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2642" opendate="2011-5-12 00:00:00" fixdate="2011-5-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CounterColumn Increments lost after restart</summary>
+      <description>While testing the 0.8.0-rc1; I've come across this problem. In order to reproduce please follow the steps: create a ColumnFamily named Counters do a few increments on a column get column value kill cassandra start cassandra get the column valueplease see the cli-history.txt or pastebin http://pastebin.com/9jYdDiRY</description>
+      <version>0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RecoveryManagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RowMutation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2649" opendate="2011-5-13 00:00:00" fixdate="2011-6-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>work-around schema disagreements from cqlsh</summary>
+      <description>It is handy to be able to put CQL statements in a flat-file and load them by redirecting to cqlsh stdin, but this can fail on a cluster when executing statements that modify schema.The attached patch works around this problem by retrying up to 3 times, with a progressive delay after each attempt. A better solution would probably be to compare schema versions, but this seems to work well enough, and is better than not handling it at all.</description>
+      <version>0.8.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">drivers.py.cqlsh</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

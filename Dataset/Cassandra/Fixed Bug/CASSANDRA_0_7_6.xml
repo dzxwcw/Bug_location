@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2404" opendate="2011-3-30 00:00:00" fixdate="2011-4-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>if out of disk space reclaim compacted SSTables during memtable flush</summary>
+      <description>During compaction if there is not enough disk space we invoke GC to reclaim unused space.During memtable and binary memtable flush we just error out if there is not enough disk space to flush the table. Can we make cfs.createFlushWriter() use the same logic as Table.getDataFileLocation() to reclaim space if needed?</description>
+      <version>0.7.6,0.8.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.DefsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamIn.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BinaryMemtable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2536" opendate="2011-4-21 00:00:00" fixdate="2011-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Schema disagreements when using connections to multiple hosts</summary>
+      <description>If you have two thrift connections open to different nodes and you create a KS using the first, then a CF in that KS using the second, you wind up with a schema disagreement even if you wait/sleep after creating the KS.The attached script reproduces the issue using pycassa (1.0.6 should work fine, although it has the 0.7 thrift-gen code). It's also reproducible by hand with two cassandra-cli sessions.</description>
+      <version>0.7.6,0.8.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.migration.Migration.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2552" opendate="2011-4-25 00:00:00" fixdate="2011-4-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ReadResponseResolver Race</summary>
+      <description>When receiving a response, ReadResponseResolver uses a 3 step process to decide whether to trigger the condition that enough responses have arrived: Add new response Check response set size Check that data is presentI think that these steps must have been reordered by the compiler in some cases, because I was able to reproduce a case for a QUORUM read where the condition is not properly triggered:INFO [RequestResponseStage:15] 2011-04-25 00:26:53,514 ReadResponseResolver.java (line 87) post append for 1087367065: hasData=false in 2 messagesINFO [RequestResponseStage:8] 2011-04-25 00:26:53,514 ReadResponseResolver.java (line 87) post append for 1087367065: hasData=true in 1 messagesINFO [pool-1-thread-54] 2011-04-25 00:27:03,516 StorageProxy.java (line 623) Read timeout: java.util.concurrent.TimeoutException: ReadResponseResolver@1087367065(/10.34.131.109=false,/10.34.132.122=true,)The last line shows that both results were present, and that one of them was holding data.</description>
+      <version>0.7.6,0.8.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.RepairCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.RangeSliceResponseResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.IResponseResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DatacenterReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AsyncRepairCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractRowResolver.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2554" opendate="2011-4-25 00:00:00" fixdate="2011-4-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move gossip heartbeats [back] to its own thread</summary>
+      <description>Gossip heartbeat really needs to run every 1s or other nodes may mark us down. But gossip currently shares an executor thread with other tasks.I see at least two of these could cause blocking: hint cleanup post-delivery and flush-expired-memtables, both of which call forceFlush which will block if the flush queue + threads are full.We've run into this before (CASSANDRA-2253); we should move Gossip back to its own dedicated executor or it will keep happening whenever someone accidentally puts something on the "shared" executor that can block.</description>
+      <version>0.7.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2556" opendate="2011-4-25 00:00:00" fixdate="2011-4-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DatacenterReadResolver not triggering repair</summary>
+      <description>DatacenterReadResolver only calls maybeResolveForRepair for local reads.</description>
+      <version>0.7.6,0.8.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DatacenterReadCallback.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2562" opendate="2011-4-26 00:00:00" fixdate="2011-4-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Parent POM does not get deployed to the maven repository</summary>
+      <description>The parent pom does not get deployed to the Maven Central(for 0.7.5 I am fixing this by hand)</description>
+      <version>0.7.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2578" opendate="2011-4-28 00:00:00" fixdate="2011-4-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>stress performance is artificially limited</summary>
+      <description>With stress I only get about 7k inserts/s against a single server, and the load and cpu usage from stress is higher than the server. Pystress gets 15-20k inserts/s against the same machine. Stress isn't cpu-limited however, so there must be something else holding it back.</description>
+      <version>0.7.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">contrib.stress.src.org.apache.cassandra.contrib.stress.operations.Inserter.java</file>
+      <file type="M">contrib.stress.src.org.apache.cassandra.contrib.stress.operations.IndexedRangeSlicer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2581" opendate="2011-4-29 00:00:00" fixdate="2011-5-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rebuffer called excessively during seeks</summary>
+      <description>When doing an strace tonight, I noticed during memtable flushes that we were only writing 1KB per every write() system call...After diving more into it, it's because of a bug in the seek() code. if (newPosition &gt;= bufferOffset + validBufferBytes || newPosition &lt; bufferOffset)vs.if (newPosition &gt; (bufferOffset + validBufferBytes) || newPosition &lt; bufferOffset)Two things I noticed, we shouldn't need to rebuffer if newPosition is equal to bufferOffset + validBufferBytes, second the evaluation was doing (newPosition &gt;= bufferOffset) + validBufferBytes which always seemed to be true.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.BufferedRandomAccessFile.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2596" opendate="2011-5-3 00:00:00" fixdate="2011-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>include indexes in snapshots</summary>
+      <description>CFS.snapshot should include index sstables as well. Since flushing the parent CF (which we do as part of snapshot) also flushes index CFs consistently w/ the parent data this should work as expected.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2623" opendate="2011-5-7 00:00:00" fixdate="2011-5-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CLI escaped single quote parsing gives errors</summary>
+      <description>Escaping quotes in cli commands causes parsing errors.some examples::::No need to create columns etc, it doesn't get through parsing the expression::cassandra-cli1. set column&amp;#91;&amp;#39;KEY+vals&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL\'' ;Syntax error at position 41: mismatched character '&lt;EOF&gt;' expecting '''2.set column&amp;#91;&amp;#39;KEY+val\&amp;#39;s&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL' ;Syntax error at position 41: mismatched character '&lt;EOF&gt;' expecting '''3.set column&amp;#91;&amp;#39;KEY+vals\&amp;#39;&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL\'' ;Syntax error at position 38: unexpected "\" for `set column&amp;#91;&amp;#39;KEY+vals\&amp;#39;&amp;#39;&amp;#93;&amp;#91;VALUE&amp;#93; = 'VAL\'' ;`.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.RangeSliceResponseResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.IResponseResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DatacenterReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractRowResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.Cli.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2627" opendate="2011-5-9 00:00:00" fixdate="2011-5-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t allow {LOCAL|EACH}_QUORUM unless strategy is NTS</summary>
+      <description>There is not check when {LOCAL|EACH}_QUORUM is used than we do use NTS, hence using such CL with simpleStrategy for instance result inERROR [pool-1-thread-1] 2011-05-09 10:44:29,728 Cassandra.java (line 2960) Internal error processing insertjava.lang.ClassCastException: org.apache.cassandra.locator.SimpleStrategy cannot be cast to org.apache.cassandra.locator.NetworkTopologyStrategy...</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2628" opendate="2011-5-9 00:00:00" fixdate="2011-5-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Empty Result with Secondary Index Queries with "limit 1"</summary>
+      <description>Empty result is returned by secondary index queries with "limit 1". Cassandra returns correct result for other numbers than "1" (e.g. limit 2, limit 3, etc.). You can reproduce the problem with programs attached on CASSANDRA-2406. 1. Start Cassandra cluster. It consists of 3 cassandra nodes and distributes data by ByteOrderedPartitioner. Initial tokens of those nodes are &amp;#91;"31", "32", "33"&amp;#93;. 2. Create keyspace and column family, according to "create_table.cli", 3. Execute "secondary_index_insertv2.py", inserting a few hundred columns to cluster 4. Here, when you first use cassandra-cli and execute following lines, you can get correct result.% bin/cassandra-cli&amp;#91;default@unknown&amp;#93; connect localhost/9160;&amp;#91;default@unknown&amp;#93; use SampleKS;&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' limit 3; -------------------RowKey: 150=&gt; (column=date, value=150, timestamp=1304937931)=&gt; (column=up, value=up, timestamp=1304937931)-------------------RowKey: 151=&gt; (column=date, value=151, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)-------------------RowKey: 152=&gt; (column=date, value=152, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)3 Rows Returned. On the other hand, if you set limit to "1", you can reproduce the problem.&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' and date &gt; 150 limit 1;0 Row Returned.There are two factors to cause this problem: 1. scanned first column doesn't match at specified clause like "date &gt; 150". 2. "limit 1"Only one factor doesn't cause problem. For example, I can get correct data when I specify as following: "limit 1" -&gt; "limit 2"&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' and date &gt; 150 limit 2;-------------------RowKey: 151=&gt; (column=date, value=151, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)-------------------RowKey: 152=&gt; (column=date, value=152, timestamp=1304937932)=&gt; (column=up, value=up, timestamp=1304937932)2 Rows Returned. "date &gt; 150" -&gt; "date &gt;= 150"&amp;#91;default@SampleKS&amp;#93; get SampleCF where up = 'up' and date &gt;= 150 limit 1;-------------------RowKey: 150=&gt; (column=date, value=150, timestamp=1304937931)=&gt; (column=up, value=up, timestamp=1304937931)1 Row Returned.</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyStoreTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2631" opendate="2011-5-10 00:00:00" fixdate="2011-5-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replaying a commitlog entry from a dropped keyspace will cause an error</summary>
+      <description></description>
+      <version>0.7.6,0.8.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2637" opendate="2011-5-11 00:00:00" fixdate="2011-5-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>bloom filter true positives not counted unless key cache is enabled</summary>
+      <description></description>
+      <version>0.7.6,0.8.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2638" opendate="2011-5-11 00:00:00" fixdate="2011-5-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Migrations announce on startup attempts to set local gossip state before gossiper is started.</summary>
+      <description>AbstractCassandraDemon calls MigrationManager.applyMigrations() before the gossiper is initialized (via SS.initServer()).MM.applyMigrations tries to set the local gossip state before it is initialized via G.start().</description>
+      <version>0.7.6,0.8.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractCassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="FLINK">
+  <bug fixdate="2016-1-27 01:00:00" id="5394" opendate="2016-12-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>the estimateRowCount method of DataSetCalc didn&amp;#39;t work in TableAPI</summary>
+      <description>The estimateRowCount method of DataSetCalc didn't work now. If I run the following code,Table table = tableEnv .fromDataSet(data, "a, b, c") .where("a == 1") .groupBy("a") .select("a, a.avg, b.sum, c.count");the cost of every node in Optimized node tree is :DataSetAggregate(groupBy=[a], select=[a, AVG(a) AS TMP_0, SUM(b) AS TMP_1, COUNT(c) AS TMP_2]): rowcount = 1000.0, cumulative cost = {3000.0 rows, 5000.0 cpu, 28000.0 io} DataSetCalc(select=[a, b, c], where=[=(a, 1)]): rowcount = 1000.0, cumulative cost = {2000.0 rows, 2000.0 cpu, 0.0 io} DataSetScan(table=[[_DataSetTable_0]]): rowcount = 1000.0, cumulative cost = {1000.0 rows, 1000.0 cpu, 0.0 io}We expect the input rowcount of DataSetAggregate less than 1000, however the actual input rowcount is still 1000 because the the estimateRowCount method of DataSetCalc didn't work. There are two reasons caused to this:1. Didn't provide custom metadataProvider yet. So when DataSetAggregate calls RelMetadataQuery.getRowCount(DataSetCalc) to estimate its input rowcount which would dispatch to RelMdRowCount.2. DataSetCalc is subclass of SingleRel. So previous function call would match getRowCount(SingleRel rel, RelMetadataQuery mq) which would never use DataSetCalc.estimateRowCount.The question would also appear to all Flink RelNodes which are subclass of SingleRel.I plan to resolve this problem by adding a FlinkRelMdRowCount which contains specific getRowCount of Flink RelNodes.</description>
+      <version>None</version>
+      <fixedVersion>1.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetSort.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.FlinkRelBuilder.scala</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-1-29 01:00:00" id="5399" opendate="2016-12-29 00:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Add more information to checkpoint result of TriggerSavepointSuccess</summary>
+      <description>Add checkpointId and triggerTime to TriggerSavepointSuccessWe can record the history of trigger checkpoint out of Flink System.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.messages.JobManagerMessages.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.jobmanager.JobManager.scala</file>
+      <file type="M">flink-clients.src.test.java.org.apache.flink.client.CliFrontendSavepointTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-1-12 01:00:00" id="5467" opendate="2017-1-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Stateless chained tasks set legacy operator state</summary>
+      <description>I discovered this while trying to rescale a job with a Kafka source with a chained stateless operator.Looking into it, it turns out that this fails, because the checkpointed state contains legacy operator state for the chained operator although it is state less./cc aljoscha You mentioned that this might be a possible duplicate?</description>
+      <version>None</version>
+      <fixedVersion>1.2.0,1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.RescalingITCase.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.AbstractUdfStreamOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-17 01:00:00" id="5524" opendate="2017-1-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support early out for code generated conjunctive conditions</summary>
+      <description>Currently, all nested conditions for a conjunctive predicate are evaluated before the conjunction is checked.A condition like (v1 == v2) &amp;&amp; (v3 &lt; 5) would be compiled intoboolean res1;if (v1 == v2) { res1 = true;} else { res1 = false;}boolean res2;if (v3 &lt; 5) { res2 = true;} else { res2 = false;}boolean res3;if (res1 &amp;&amp; res2) { res3 = true;} else { res3 = false;}if (res3) { // emit something}It would be better to leave the generated code as early as possible, e.g., with a return instead of res1 = false. The code generator needs a bit of context information for that.</description>
+      <version>1.1.4,1.2.0,1.3.0</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.utils.UserDefinedScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.ScalarOperatorsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.ScalarOperators.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-1-23 01:00:00" id="5609" opendate="2017-1-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add last update time to docs</summary>
+      <description>Add a small text to the start page stating when the docs was last updated.</description>
+      <version>None</version>
+      <fixedVersion>1.2.0,1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-1-23 01:00:00" id="5610" opendate="2017-1-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rename Installation and Setup to Project Setup</summary>
+      <description>With the recent refactorings of the documentation, the high level section "Installation and Setup" could more aptly be named "Project Structure" because it mostly groups pages about project setup like IDE setup etc.</description>
+      <version>None</version>
+      <fixedVersion>1.2.0,1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.start.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-1-25 01:00:00" id="5639" opendate="2017-1-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clarify License implications of RabbitMQ Connector</summary>
+      <description>The RabbitMQ Connector has a Maven dependency under MPL 1.1.The ASF legal FAQ (https://www.apache.org/legal/resolved) classifies that as "may be included in binary form within an Apache product if the inclusion is appropriately labeled".Because we neither include sources nor binaries (but only define a Maven dependency) it is probably not relevant to Flink. But to be on the safe side for the project and users, we should add a notice as blow to the docs and the project:# License of the Rabbit MQ ConnectorFlink's RabbitMQ connector defines a Maven dependency on the"RabbitMQ AMQP Java Client", licensed under theMozilla Public License v1.1 (MPL 1.1).Flink itself neither reuses source code from the "RabbitMQ AMQP Java Client"nor packages binaries from the "RabbitMQ AMQP Java Client".Users that create and publish derivative work based on Flink'sRabbitMQ connector (thereby re-distributing the "RabbitMQ AMQP Java Client")must be aware that this may be subject to conditions declaredin the Mozilla Public License v1.1 (MPL 1.1).</description>
+      <version>1.1.4,1.2.0</version>
+      <fixedVersion>1.1.5,1.2.1,1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.connectors.rabbitmq.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-2-25 01:00:00" id="5640" opendate="2017-1-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>configure the explicit Unit Test file suffix</summary>
+      <description>There are four types of Unit Test file: *ITCase.java, *Test.java, *ITSuite.scala, *Suite.scalaFile name ending with "IT.java" is integration test. File name ending with "Test.java" is unit test.It's clear for Surefire plugin of default-test execution to declare that "Test." is Java Unit Test.The test file statistics below: Suite total: 10 ITCase total: 378 Test total: 1008 ITSuite total: 14</description>
+      <version>None</version>
+      <fixedVersion>1.2.1,1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-10-31 01:00:00" id="5690" opendate="2017-1-31 00:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>protobuf is not shaded properly</summary>
+      <description>Currently distributive contains com/google/protobuf package. Without proper shading client code could fail with:Caused by: java.lang.IllegalAccessError: tried to access method com.google.protobuf.XXXXSteps to reproduce: create job class "com.google.protobuf.TestClass" call com.google.protobuf.TextFormat.escapeText(String) method from this class deploy job to flink cluster (usign web console for example) run job. In logs IllegalAccessError.Issue in package protected method and different classloaders. TestClass loaded by FlinkUserCodeClassLoader, but TextFormat class loaded by sun.misc.Launcher$AppClassLoader</description>
+      <version>1.1.4,1.3.0</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.monitoring.debugging.classloading.md</file>
+      <file type="M">docs.monitoring.best.practices.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-2-6 01:00:00" id="5721" opendate="2017-2-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add FoldingState to State Documentation</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.2.1,1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.stream.state.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-14 01:00:00" id="5794" opendate="2017-2-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>update the documentation about “UDF/UDTF" support have parameters constructor.</summary>
+      <description>Depends on FLINK-5792 .</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.api.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-2-14 01:00:00" id="5795" opendate="2017-2-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve UDF&amp;UDTF to support constructor with parameter</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.utils.UserDefinedTableFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.datastream.DataStreamCorrelateITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.dataset.DataSetCorrelateITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.utils.UserDefinedScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.CompositeFlatteningTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.scala.stream.table.UserDefinedTableFunctionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.scala.batch.table.UserDefinedTableFunctionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.scala.batch.table.FieldProjectionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.logical.operators.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.utils.UserDefinedFunctionUtils.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.UserDefinedFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.expressions.call.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.CodeGenerator.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-22 01:00:00" id="5881" opendate="2017-2-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ScalarFunction(UDF) should support variable types and variable arguments</summary>
+      <description>As a sub-task of FLINK-5826. We would like to support the ScalarFunction first and make the review a little bit easier.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.utils.UserDefinedScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.UserDefinedScalarFunctionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.java.org.apache.flink.table.api.java.utils.UserDefinedScalarFunctions.java</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.utils.UserDefinedFunctionUtils.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.utils.ScalarSqlFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.ScalarFunctionCallGen.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-22 01:00:00" id="5882" opendate="2017-2-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TableFunction (UDTF) should support variable types and variable arguments</summary>
+      <description>It's the second approach of FLINK-5826.We would like to make table functions (UDTF) of Flink support variable arguments.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.utils.UserDefinedTableFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.datastream.DataStreamUserDefinedFunctionITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.dataset.DataSetUserDefinedFunctionITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.TableFunctionCallGen.scala</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-4-1 01:00:00" id="6242" opendate="2017-4-1 00:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>codeGen DataSet Goupingwindow Aggregates</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.aggregate.BoundedProcessingOverRangeProcessFunctionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.scala.batch.table.AggregationsITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.GeneratedAggregations.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetWindowAggMapFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetTumbleTimeWindowAggReduceGroupFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetTumbleTimeWindowAggReduceCombineFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetTumbleCountWindowAggReduceGroupFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetSlideWindowAggReduceGroupFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetSlideWindowAggReduceCombineFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetSlideTimeWindowAggReduceGroupFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetSessionWindowAggregatePreProcessor.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetSessionWindowAggReduceGroupFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetPreAggFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetFinalAggFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetAggFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.AggregateUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetWindowAggregate.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetAggregate.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.CodeGenerator.scala</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

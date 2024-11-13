@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  
+  <bug fixdate="2016-3-20 01:00:00" id="12676" opendate="2016-9-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Message coalescing regression</summary>
+      <description>The default in 2.2+ was to enable TIMEHORIZON message coalescing. After reports of performance regressions after upgrading from 2.1 to 2.2/3.0 we have discovered the issue to be this default.We need to re-test our assumptions on this feature but in the meantime we should default back to disabled.Here is a performance run with and without message coalescing</description>
+      <version>3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">NEWS.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-5-27 01:00:00" id="12847" opendate="2016-10-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh DESCRIBE output doesn&amp;#39;t properly quote index names</summary>
+      <description>CASSANDRA-8365 fixed the CQL grammar so that quoting index names preserves case. The output of DESCRIBE in cqlsh wasn't updated however so this doesn't round-trip properly.</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-3.5.0.post0-d8d0456.zip</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">lib.cassandra-driver-internal-only-3.7.0.post0-2481531.zip</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-2-3 01:00:00" id="12876" opendate="2016-11-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Negative mean write latency</summary>
+      <description>The mean write latency returned by JMX turns negative every 30 minutes. As the attached screenshots show, the value turns negative every 30 minutes after the startup of the node.We did not experience this behavior in 2.1.16.</description>
+      <version>2.2.9,3.0.11,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.metrics.DecayingEstimatedHistogramReservoirTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.DecayingEstimatedHistogramReservoir.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-12-2 01:00:00" id="12983" opendate="2016-12-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NoReplicationTokenAllocator should work with zero replication factor as well.</summary>
+      <description>In our production env, when we expand an existing cluster to a new DC, we are doing following steps:1. set replication factor to be 0 for the new DC.2. bootstrap all nodes in the new DC.3. set the replication factor to be 1 and start the rebuild.I find the NoReplicationTokenAllocator does not work with replication factor 0, and this patch will fix it.</description>
+      <version>3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.long.org.apache.cassandra.dht.tokenallocator.NoReplicationTokenAllocatorTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.tokenallocator.TokenAllocatorFactory.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-3-16 01:00:00" id="13053" opendate="2016-12-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>GRANT/REVOKE on table without keyspace performs permissions check incorrectly</summary>
+      <description>When a GRANT or REVOKE statement is executed on a table without specifying the keyspace, we attempt to use the client session's keyspace to qualify the resource. This is done when validating the statement, which occurs after checking that the user executing the statement has sufficient permissions. This means that the permissions checking uses an incorrect resource, namely a table with a null keyspace. If that user is a superuser, then no error is encountered as superuser privs implicitly grants all permissions. If the user is not a superuser, then the GRANT or REVOKE fails with an ugly error, regardless of which keyspace the client session is bound to:Unauthorized: Error from server: code=2100 [Unauthorized] message="User admin has no AUTHORIZE permission on &lt;table null.t1&gt; or any of its parents"</description>
+      <version>2.2.10,3.0.13,3.11.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.PermissionsManagementStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-22 01:00:00" id="13071" opendate="2016-12-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh copy-from should error out when csv contains invalid data for collections</summary>
+      <description>If the csv file contains invalid data for collection types, at the moment the data is imported incorrectly, an error would be a better behavior.For example this table:CREATE TABLE test.test (key text, value frozen&lt;set&lt;text&gt;&gt;, PRIMARY KEY (key)); with this data:"key1","{'test1', 'test2'}""Key2","not_a_set"will be imported by COPY test.test FROM 'test.csv'; without errors but will result in the following data:cqlsh&gt; select * from test.test; key | value------+-------------------- key1 | {'test1', 'test2'} Key2 | {'ot_a_se'}(2 rows)The second row should have been rejected. The reason is that the split function assumes that the first and last characters of the string passed in are parentheses, without actually checking it.</description>
+      <version>3.0.12,3.11.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2017-2-11 01:00:00" id="13117" opendate="2017-1-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dump threads when unit test times out</summary>
+      <description>It would be nice to get a thread dump when unit tests time out</description>
+      <version>3.0.11,3.11.0</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-3-17 01:00:00" id="13130" opendate="2017-1-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Strange result of several list updates in a single request</summary>
+      <description>Let's assume that we have a row with the 'listColumn' column and value {1,2,3,4}.For me it looks logical to expect that the following two pieces of code will ends up with the same result but it isn't so.Code1:UPDATE t SET listColumn[2] = 7, listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,7,8,4}Code2:UPDATE t SET listColumn[2] = 7 WHERE id = 1;UPDATE t SET listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,8,4}So the question is why Code1 and Code2 give different results?Looks like Code1 should give the same result as Code2.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2017-1-27 01:00:00" id="13160" opendate="2017-1-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>batch documentation should note the single partition optimization</summary>
+      <description/>
+      <version>3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source.cql.dml.rst</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-2-31 01:00:00" id="13173" opendate="2017-1-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reloading logback.xml does not work</summary>
+      <description>Regression of CASSANDRA-12535Reloading of logback.xml is broken by CASSANDRA-12535 because the delegate ReconfigureOnChangeFilter is not properly initialized.(Broken in 3.0.11 + 3.10)</description>
+      <version>3.0.11,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.ThreadAwareSecurityManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-2-2 01:00:00" id="13177" opendate="2017-2-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstabledump doesn&amp;#39;t handle non-empty partitions with a partition-level deletion correctly</summary>
+      <description>If a partition has a partition-level deletion, but still contains rows (with timestamps higher than the deletion), sstabledump will only show the deletion and not the rows.</description>
+      <version>3.0.11,3.11.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.JsonTransformer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-2-3 01:00:00" id="13185" opendate="2017-2-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY doesn&amp;#39;t support dates before 1900 or after 9999</summary>
+      <description>Although we fixed this problem for standard queries in CASSANDRA-10625, it still exists for COPY. In CASSANDRA-10625, we replaced datetimes outside of the supported time range with a simple milliseconds-since-epoch long. We may not want to use the same solution for COPY, because we wouldn't be able to load the same data back in through COPY. Having consistency in the format of values and support for loading exported data seems more important for COPY.</description>
+      <version>3.0.12,3.11.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-2-9 01:00:00" id="13205" opendate="2017-2-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hint related logging should include the IP address of the destination in addition to host ID</summary>
+      <description>After the hint rewrite in 3.0, many of the hint related logs now use hostId UUIDs rather than endpoint addresses. This complicates debugging unnecessarily. We should include both.</description>
+      <version>3.0.11,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hints.HintVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsDispatchExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-6-10 01:00:00" id="13209" opendate="2017-2-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>test failure in cqlsh_tests.cqlsh_copy_tests.CqlshCopyTest.test_bulk_round_trip_blogposts_with_max_connections</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-2.1_dtest/528/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_bulk_round_trip_blogposts_with_max_connectionsError Messageerrors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------dtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6jdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}dtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6jdtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directorydtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuWdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}cassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodescassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovereddtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------Stacktrace File "/usr/lib/python2.7/unittest/case.py", line 329, in run testMethod() File "/home/automaton/cassandra-dtest/dtest.py", line 1090, in wrapped f(obj) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2571, in test_bulk_round_trip_blogposts_with_max_connections copy_from_options={'NUMPROCESSES': 2}) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2500, in _test_bulk_round_trip num_records = create_records() File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2473, in create_records ret = rows_to_list(self.session.execute(count_statement))[0][0] File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 1998, in execute return self.execute_async(query, parameters, trace, custom_payload, timeout, execution_profile, paging_state).result() File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 3784, in result raise self._final_exception"errors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4\n-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6j\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ndtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6j\ndtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directory\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuW\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ncassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodes\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovered\ndtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml\n--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------"</description>
+      <version>2.2.10,3.0.14,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2017-3-22 01:00:00" id="13253" opendate="2017-2-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>include a search on the doc home</summary>
+      <description>Current doc homepage doesn't have a search. http://cassandra.apache.org/doc/latest/</description>
+      <version>None</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source..templates.indexcontent.html</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-27 01:00:00" id="13274" opendate="2017-2-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix code to not exchange schema across major versions</summary>
+      <description>A rolling upgrade from 3.* to 4.0 (messaging version 11) unveils a regression caused by CASSANDRA-11128.Generally, we store all possible options/attributes including the default values in the schema. This causes (expected) schema-version-mismatches during rolling upgrades and therefore we prevent schema pulls/pushes in this situation, which has been broken by CASSANDRA-11128.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-27 01:00:00" id="13276" opendate="2017-2-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression on CASSANDRA-11416: can&amp;#39;t load snapshots of tables with dropped columns</summary>
+      <description>I'm running Cassandra 3.10 and running into the exact same issue described in CASSANDRA-11416: 1. A table is created with columns 'a' and 'b'2. Data is written to the table3. Drop column 'b'4. Take a snapshot5. Drop the table6. Run the snapshot schema.cql to recreate the table and the run the alter7. Try to restore the snapshot data using sstableloadersstableloader yields the error:java.lang.RuntimeException: Unknown column b during deserialization</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.NativeSSTableLoaderClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2017-3-9 01:00:00" id="13317" opendate="2017-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Default logging we ship will incorrectly print "?:?" for "%F:%L" pattern due to includeCallerData being false by default no appender</summary>
+      <description>We specify the logging pattern as "%-5level &amp;#91;%thread&amp;#93; %date{ISO8601} %F:%L - %msg%n". %F:%L is intended to print the Filename:Line Number. For performance reasons logback (like log4j2) disables tracking line numbers as it requires the entire stack to be materialized every time.This causes logs to look like:WARN &amp;#91;main&amp;#93; 2017-03-09 13:27:11,272 ?:? - Protocol Version 5/v5-beta not supported by java driverINFO &amp;#91;main&amp;#93; 2017-03-09 13:27:11,813 ?:? - No commitlog files found; skipping replayINFO &amp;#91;main&amp;#93; 2017-03-09 13:27:12,477 ?:? - Initialized prepared statement caches with 14 MBINFO &amp;#91;main&amp;#93; 2017-03-09 13:27:12,727 ?:? - Initializing system.IndexInfoWhen instead you'd expect something like:INFO &amp;#91;main&amp;#93; 2017-03-09 13:23:44,204 ColumnFamilyStore.java:419 - Initializing system.available_rangesINFO &amp;#91;main&amp;#93; 2017-03-09 13:23:44,210 ColumnFamilyStore.java:419 - Initializing system.transferred_rangesINFO &amp;#91;main&amp;#93; 2017-03-09 13:23:44,215 ColumnFamilyStore.java:419 - Initializing system.views_builds_in_progressThe fix is to add "&lt;includeCallerData&gt;true&lt;/includeCallerData&gt;" to the appender config to enable the line number and stack tracing.</description>
+      <version>3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.conf.logback-test.xml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-14 01:00:00" id="13326" opendate="2017-3-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support unaligned memory access for AArch64</summary>
+      <description>ARMv8 (AArch64) supports unaligned memory access. The patch will enable it and will improve performance on AArch64</description>
+      <version>3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Observability,Legacy/Testing</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.Architecture.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-16 01:00:00" id="13340" opendate="2017-3-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bugs handling range tombstones in the sstable iterators</summary>
+      <description>There is 2 bugs in the way sstable iterators handle range tombstones: empty range tombstones can be returned due to a strict comparison that shouldn't be. the sstable reversed iterator can actually return completely bogus results when range tombstones are spanning multiple index blocks.The 2 bugs are admittedly separate but as they both impact the same area of code and are both range tombstones related, I suggest just fixing both here (unless something really really mind).Marking the ticket critical mostly for the 2nd bug: it can truly make use return bad results on reverse queries.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.DeleteTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnfilteredDeserializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableReversedIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ClusteringPrefix.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-5-22 01:00:00" id="13369" opendate="2017-3-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>If there are multiple values for a key, CQL grammar choses last value. This should not be silent or should not be allowed.</summary>
+      <description>If through CQL, multiple values are specified for a key, grammar parses the map and last value for the key wins. This behavior is bad.e.g. CREATE KEYSPACE Excalibur WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'dc1': 2, 'dc1': 5};Parsing this statement, 'dc1' gets RF = 5. This can be catastrophic, may even result in loss of data. This behavior should not be silent or not be allowed at all.</description>
+      <version>3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.CreateTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CqlParserTest.java</file>
+      <file type="M">src.antlr.Parser.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-5-3 01:00:00" id="13399" opendate="2017-4-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>UDA fails without input rows</summary>
+      <description>When creating the following user defined AGGREGATION and FUNCTION:init.cqlCREATE FUNCTION state_group_and_total(state map&lt;uuid, int&gt;, type uuid) RETURNS NULL ON NULL INPUT RETURNS map&lt;uuid, int&gt; LANGUAGE java AS ' Integer count = (Integer) state.get(type); count = (count == null ? 1 : count + 1); state.put(type, count); return state; ';CREATE OR REPLACE AGGREGATE group_and_total(uuid) SFUNC state_group_and_total STYPE map&lt;uuid, int&gt; INITCOND {};And creating a statement like:SELECT group_and_total("id") FROM mytable;When mytable is empty, it throws the following null assertionERROR [Native-Transport-Requests-1] 2017-04-03 07:25:09,787 Message.java:623 - Unexpected exception during request; channel = [id: 0xd7d9159b, L:/172.19.0.2:9042 - R:/172.19.0.3:43444]java.lang.AssertionError: null at org.apache.cassandra.cql3.functions.UDAggregate$2.compute(UDAggregate.java:189) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.selection.AggregateFunctionSelector.getOutput(AggregateFunctionSelector.java:53) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.selection.Selection$SelectionWithProcessing$1.getOutputRow(Selection.java:592) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.selection.Selection$ResultSetBuilder.getOutputRow(Selection.java:430) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.selection.Selection$ResultSetBuilder.build(Selection.java:424) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.statements.SelectStatement.process(SelectStatement.java:763) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.statements.SelectStatement.processResults(SelectStatement.java:400) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.statements.SelectStatement.execute(SelectStatement.java:378) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.statements.SelectStatement.execute(SelectStatement.java:251) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.statements.SelectStatement.execute(SelectStatement.java:79) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.QueryProcessor.processStatement(QueryProcessor.java:217) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.QueryProcessor.process(QueryProcessor.java:248) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.cql3.QueryProcessor.process(QueryProcessor.java:233) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.transport.messages.QueryMessage.execute(QueryMessage.java:116) ~[apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.transport.Message$Dispatcher.channelRead0(Message.java:517) [apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.transport.Message$Dispatcher.channelRead0(Message.java:410) [apache-cassandra-3.10.jar:3.10] at io.netty.channel.SimpleChannelInboundHandler.channelRead(SimpleChannelInboundHandler.java:105) [netty-all-4.0.39.Final.jar:4.0.39.Final] at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:366) [netty-all-4.0.39.Final.jar:4.0.39.Final] at io.netty.channel.AbstractChannelHandlerContext.access$600(AbstractChannelHandlerContext.java:35) [netty-all-4.0.39.Final.jar:4.0.39.Final] at io.netty.channel.AbstractChannelHandlerContext$7.run(AbstractChannelHandlerContext.java:357) [netty-all-4.0.39.Final.jar:4.0.39.Final] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) [na:1.8.0_121] at org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService$FutureTask.run(AbstractLocalAwareExecutorService.java:162) [apache-cassandra-3.10.jar:3.10] at org.apache.cassandra.concurrent.SEPWorker.run(SEPWorker.java:109) [apache-cassandra-3.10.jar:3.10] at java.lang.Thread.run(Thread.java:745) [na:1.8.0_121]Even if my FUNCTION only returns state, it creates that assertion null.Thank you in advance.</description>
+      <version>3.11.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-4 01:00:00" id="13410" opendate="2017-4-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool upgradesstables/scrub/compact ignores system tables</summary>
+      <description>CASSANDRA-11627 changed the behavior of nodetool commands that work across all keyspaces. Sometimes it's OK (not compacting system.peers when you call compact probably isn't going to anger anyone), but sometimes it's not (disableautocompaction, flush, upgradesstables, etc).</description>
+      <version>3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-5 01:00:00" id="13417" opendate="2017-4-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Illegal unicode character breaks compilation on Chinese env OS</summary>
+      <description>Creating JIRA for tracking GH issue https://github.com/apache/cassandra/pull/104Fix is contained within a comment block, so skipping CI.</description>
+      <version>3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.analyzer.StandardTokenizerImpl.jflex</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-12 01:00:00" id="13434" opendate="2017-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add PID file directive in /etc/init.d/cassandra</summary>
+      <description>As mentioned in CASSANDRA-10920, we should add directive for pid file in header that allows creating a unit file with the correct PIDFile=.. entry. Else systemd won't be able to tell if Cassandra is still running.# pidfile: /var/run/cassandra/cassandra.pid</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-12 01:00:00" id="13435" opendate="2017-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect status check use when stopping Cassandra</summary>
+      <description>Function status from /etc/rc.d/init.d/functions will delegate to systemctl status and we can't keep using the output to determine the status result. This should be changed to match the return value instead, which is supposed to return 3 for non-running processes</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-12 01:00:00" id="13441" opendate="2017-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Schema version changes for each upgraded node in a rolling upgrade, causing migration storms</summary>
+      <description>In versions &lt; 3.0, during a rolling upgrade (say 2.0 -&gt; 2.1), the first node to upgrade to 2.1 would add the new tables, setting the new 2.1 version ID, and subsequently upgraded hosts would settle on that version.When a 3.0 node upgrades and writes its own new-in-3.0 system tables, it'll write the same tables that exist in the schema with brand new timestamps. As written, this will cause all nodes in the cluster to change schema (to the version with the newest timestamp). On a sufficiently large cluster with a non-trivial schema, this could cause (literally) millions of migration tasks to needlessly bounce across the cluster.</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-5-3 01:00:00" id="13493" opendate="2017-5-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RPM Init: Service startup ordering</summary>
+      <description>Currently, Cassandra is setup to start before network and name services come up, and setup to be town down after them, dangerously close to the final shutdown call.A service daemon which may use network-based storage, and serves requests over a network needs to start clearly after network and network mounts, and come down clearly after.</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+</bugrepository>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="22618" opendate="2019-6-22 00:00:00" fixdate="2019-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>added the possibility to load custom cost functions</summary>
+      <description>Hi,We wouls like to open the discussion about bringing the possibility to have regions deployed on Heterogeneous deployment, i.e Hbase cluster running different kind of hardware.Why? Cloud deployments means that we may not be able to have the same hardware throughout the years Some tables may need special requirements such as SSD whereas others should be using hard-drives  in our usecase(single table, dedicated HBase and Hadoop tuned for our usecase, good key distribution), the number of regions per RS was the real limit for us.Our usecaseWe found out that in our usecase(single table, dedicated HBase and Hadoop tuned for our usecase, good key distribution), the number of regions per RS was the real limit for us.Over the years, due to historical reasons and also the need to benchmark new machines, we ended-up with differents groups of hardware: some servers can handle only 180 regions, whereas the biggest can handle more than 900. Because of such a difference, we had to disable the LoadBalancing to avoid the roundRobinAssigmnent. We developed some internal tooling which are responsible for load balancing regions across RegionServers. That was 1.5 year ago.Our Proof-of-conceptWe did work on a Proof-of-concept here, and some early tests here, here, and here. We wrote the balancer for our use-case, which means that: there is one table there is no region-replica good key dispersion there is no regions on masterA rule file is loaded before balancing. It contains lines of rules. A rule is composed of a regexp for hostname, and a limit. For example, we could have: rs&amp;#91;0-9&amp;#93; 200rs1&amp;#91;0-9&amp;#93; 50 RegionServers with hostname matching the first rules will have a limit of 200, and the others 50. If there's no match, a default is set.Thanks to the rule, we have two informations: the max number of regions for this cluster, and the rules for each servers. HeterogeneousBalancer will try to balance regions according to their capacity.Let's take an example. Let's say that we have 20 RS: 10 RS, named through rs0 to rs9 loaded with 60 regions each, and each can handle 200 regions. 10 RS, named through rs10 to rs19 loaded with 60 regions each, and each can support 50 regions.Based on the following rules: rs&amp;#91;0-9&amp;#93; 200rs1&amp;#91;0-9&amp;#93; 50 The second group is overloaded, whereas the first group has plenty of space.We know that we can handle at maximum 2500 regions (200*10 + 50*10) and we have currently 1200 regions (60*20). HeterogeneousBalancer will understand that the cluster is full at 48.0% (1200/2500). Based on this information, we will then try to put all the RegionServers to ~48% of load according to the rules. In this case, it will move regions from the second group to the first.The balancer will: compute how many regions needs to be moved. In our example, by moving 36 regions on rs10, we could go from 120.0% to 46.0% select regions with lowest data-locality try to find an appropriate RS for the region. We will take the lowest available RS.Other implementations and ideasClay Baenziger proposed this idea on the dev ML:Could it work to have the stochastic load balancer use pluggable cost functions instead of this static list of cost functions? Then, could this type of a load balancer be implemented simply as a new cost function which folks could choose to load and mix with the others?I think this could be an interesting way to include user-functions in the mix. As you know your hardawre and the pattern access, you can easily know which metrics is important for balancing, for us, it will only be the number of regions, but we could mix-it with the incoming writes! bhupendra.jain proposed also the ideas of "labels" Internally, we are also having discussion to develop similar solution. In our approach, We were also thinking of adding "RS Label" Feature similar to Hadoop Node Label feature. Each RS can have a label to denote its capabilities / resources . When user create table, there can be extra attributes with its descriptor. The balancer can decide to host region of table based on RS label and these attributes further.   With RS label feature, Balancer can be more intelligent.  Example tables with high read load needs more cache backed by SSDs , So such table regions should be hosted on RS having SSDs ... I love the idea, but I think Clay's idea is better for a better and faster first set of commits on the subject! What do you think?</description>
+      <version>3.0.0-alpha-1,2.2.0,2.2.1,2.1.6,1.4.11,2.1.7</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.balancer.TestStochasticLoadBalancer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.balancer.StochasticLoadBalancer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2262" opendate="2010-2-24 00:00:00" fixdate="2010-2-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ZKW.ensureExists should check for existence</summary>
+      <description>The fact that ZKW.ensureExists relies on KeeperException.NodeExistsException creates a lot of chatter in HBase and Zookeeper logs and also confuses users. We should use ZooKeeper.exists instead.</description>
+      <version>None</version>
+      <fixedVersion>0.20.4,0.90.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.java.org.apache.hadoop.hbase.zookeeper.ZooKeeperWrapper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22689" opendate="2019-7-13 00:00:00" fixdate="2019-7-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Line break for fix version in documentation</summary>
+      <description>The section describing the policy for the fix version in JIRA is missing line breaks.</description>
+      <version>3.0.0-alpha-1,1.5.0,2.3.0,2.0.6,2.2.1,2.1.6,1.3.6,1.4.11</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0,2.0.6,2.2.1,2.1.6,1.3.6,1.4.11</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.developer.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22800" opendate="2019-8-6 00:00:00" fixdate="2019-8-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add mapreduce dependencies to hbase-shaded-testing-util</summary>
+      <description>MiniMRCluster is missing from the generated hbase-shaded-testing-util artifact.</description>
+      <version>3.0.0-alpha-1,2.2.1,2.1.6</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.2.1,2.1.6</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-shaded.hbase-shaded-testing-util.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22801" opendate="2019-8-6 00:00:00" fixdate="2019-8-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Maven build issue on Github PRs</summary>
+      <description>PreCommit job for GitHub pull requests started to fail frequently with maven issues.[ERROR] Failed to execute goal org.apache.maven.plugins:maven-install-plugin:2.5.2:install (default-install) on project hbase-http: Failed to install metadata org.apache.hbase:hbase-http/maven-metadata.xml: Could not parse metadata /home/jenkins/.m2/repository/org/apache/hbase/hbase-http/maven-metadata-local.xml: in epilog non whitespace content is not allowed but got a (position: END_TAG seen ...&lt;/metadata&gt;\na... @12:2) -&gt; [Help 1]The local .m2 repository might be used by concurrent builds.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0,2.0.6,2.2.1,2.1.6,1.3.6,1.4.11</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile.GitHub</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23012" opendate="2019-9-10 00:00:00" fixdate="2019-12-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Release 1.3.6</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.3.6</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.site.xdoc.downloads.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23014" opendate="2019-9-11 00:00:00" fixdate="2019-9-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Should not show split parent regions in hbck report UI</summary>
+      <description>Now the split parent region is showed in Inconsistent Regions and Region Holes. Attached a screen for this.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.1.7,2.2.2</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestHRegionInfo.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.assignment.TestHbckChore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HbckChore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.CatalogJanitor.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.RegionInfo.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23035" opendate="2019-9-17 00:00:00" fixdate="2019-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Retain region to the last RegionServer make the failover slower</summary>
+      <description>Now if one RS crashed, the regions will try to use the old location for the region deploy. But one RS only have 3 threads to open region by default. If a RS have hundreds of regions, the failover is very slower. Assign to same RS may have good locality if the Datanode is deploied on same host. But slower failover make the availability worse. And the locality is not big deal when deploy HBase on cloud.This was introduced by HBASE-18946.</description>
+      <version>3.0.0-alpha-1,2.3.0,2.2.1,2.1.6</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.1.7,2.2.2</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestRegionReplicasWithRestartScenarios.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestRetainAssignmentOnRestartSplitWithoutZk.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestRetainAssignmentOnRestart.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestMasterOperationsForRegionReplicas.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.procedure.TestSCPBase.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.procedure.ServerCrashProcedure.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.assignment.TransitRegionStateProcedure.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23334" opendate="2019-11-23 00:00:00" fixdate="2019-11-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The table-lock node of zk is not needed since HBASE-16786</summary>
+      <description>The table-lock znode still be created when init,and it may cause confusion.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.2.3</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-zookeeper.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKWatcher.java</file>
+      <file type="M">hbase-client.src.test.java.org.apache.hadoop.hbase.zookeeper.TestZNodePaths.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZNodePaths.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

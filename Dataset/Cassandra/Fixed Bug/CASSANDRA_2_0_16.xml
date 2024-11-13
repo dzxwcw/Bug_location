@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="7212" opendate="2014-5-12 00:00:00" fixdate="2014-5-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow to switch user within CQLSH session</summary>
+      <description>Once a user is logged into CQLSH, it is not possible to switch to another user without exiting and relaunchThis is a feature offered in postgres and probably other databases:http://secure.encivasolutions.com/knowledgebase.php?action=displayarticle&amp;id=1126 Perhaps this could be implemented on CQLSH as part of the "USE" directive:USE &lt;Keyspace&gt; &amp;#91;USER&amp;#93; &amp;#91;password&amp;#93;</description>
+      <version>2.0.16,2.1.6,2.2.0beta1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7559" opendate="2014-7-16 00:00:00" fixdate="2014-8-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Switch Stress from using math3.pair because it is unserializable</summary>
+      <description>Stress uses org.apache.commons.math3.util.Pair to hold information in settings because eventually it is used in commons.math3.distributions. This makes the settings unserializable so we can't run with StressDemon./bin/cassandra-stress user no_warmup "ops(insert=1)" n=10000 profile=cqlstress-example.yaml -sendto 127.0.0.1Exception in thread "main" java.io.NotSerializableException: org.apache.commons.math3.util.Pair at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1183) at java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:347)at java.util.ArrayList.writeObject(ArrayList.java:742) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at java.io.ObjectStreamClass.invokeWriteObject(ObjectStreamClass.java:988) at java.io.ObjectOutputStream.writeSerialData(ObjectOutputStream.java:1495) at java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1431) at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1177) at java.io.ObjectOutputStream.defaultWriteFields(ObjectOutputStream.java:1547) at java.io.ObjectOutputStream.writeSerialData(ObjectOutputStream.java:1508) at java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1431) at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1177) at java.io.ObjectOutputStream.defaultWriteFields(ObjectOutputStream.java:1547) at java.io.ObjectOutputStream.writeSerialData(ObjectOutputStream.java:1508) at java.io.ObjectOutputStream.writeOrdinaryObject(ObjectOutputStream.java:1431) at java.io.ObjectOutputStream.writeObject0(ObjectOutputStream.java:1177) at java.io.ObjectOutputStream.writeObject(ObjectOutputStream.java:347) at org.apache.cassandra.stress.Stress.main(Stress.java:78)Control-C caught. Canceling running action and shutting down...To fix this we can pass around serializable pairs and convert to commons.math3 pairs before we actually pass the objects to the distribution code.</description>
+      <version>None</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandUser.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandPreDefinedMixed.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionEnumProbabilities.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionAnyProbabilities.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8502" opendate="2014-12-17 00:00:00" fixdate="2014-5-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Static columns returning null for pages after first</summary>
+      <description>When paging is used for a query containing a static column, the first page contains the right value for the static column, but subsequent pages have null null for the static column instead of the expected value.Repro steps: Create a table with a static column Create a partition with 500 cells Using cqlsh, query that partitionActual result: You will see that first, the static column appears as expected, but if you press a key after "--MORE--", the static columns will appear as null.See the attached file for a repro of the output.I am using a single node cluster.</description>
+      <version>2.0.16,2.1.6,2.2.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.pager.AbstractQueryPagerTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.SliceQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeSliceQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SliceFromReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ExtendedFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ColumnCounter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataRange.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8940" opendate="2015-3-10 00:00:00" fixdate="2015-5-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inconsistent select count and select distinct</summary>
+      <description>When performing select count( * ) from ... I expect the results to be consistent over multiple query executions if the table at hand is not written to / deleted from in the mean time. However, in my set-up it is not. The counts returned vary considerable (several percent). The same holds for select distinct partition-key-columns from ....I have a table in a keyspace with replication_factor = 1 which is something like:CREATE TABLE tbl ( id frozen&lt;id_type&gt;, bucket bigint, offset int, value double, PRIMARY KEY ((id, bucket), offset))The frozen udt is:CREATE TYPE id_type ( tags map&lt;text, text&gt;);The table contains around 35k rows (I'm not trying to be funny here ...). The consistency level for the queries was ONE.</description>
+      <version>2.0.16,2.1.6</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.RangeSliceCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.PagedRangeCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9310" opendate="2015-5-5 00:00:00" fixdate="2015-5-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Table change response returns as keyspace change response</summary>
+      <description>When an index is dropped, its existence is still persisted across the keyspace metadata. This happens because the response to drop the index from the metadata is never received, as a keyspace change response is (incorrectly) received by the driver instead of a table change response. Related to PYTHON-241: https://datastax-oss.atlassian.net/browse/PYTHON-241Test:self.session.execute("CREATE TABLE %s (k int PRIMARY KEY, a int)" % self.table_name)ks_meta = self.cluster.metadata.keyspaces[self.keyspace_name]table_meta = ks_meta.tables[self.table_name]self.assertNotIn('a_idx', ks_meta.indexes)self.assertNotIn('b_idx', ks_meta.indexes)self.assertNotIn('a_idx', table_meta.indexes)self.assertNotIn('b_idx', table_meta.indexes)self.session.execute("CREATE INDEX a_idx ON %s (a)" % self.table_name)self.session.execute("ALTER TABLE %s ADD b int" % self.table_name)self.session.execute("CREATE INDEX b_idx ON %s (b)" % self.table_name)ks_meta = self.cluster.metadata.keyspaces[self.keyspace_name]table_meta = ks_meta.tables[self.table_name]self.assertIsInstance(ks_meta.indexes['a_idx'], IndexMetadata)self.assertIsInstance(ks_meta.indexes['b_idx'], IndexMetadata)self.assertIsInstance(table_meta.indexes['a_idx'], IndexMetadata)self.assertIsInstance(table_meta.indexes['b_idx'], IndexMetadata)# both indexes updated when index droppedself.session.execute("DROP INDEX a_idx")ks_meta = self.cluster.metadata.keyspaces[self.keyspace_name]table_meta = ks_meta.tables[self.table_name]self.assertNotIn('a_idx', ks_meta.indexes)Output:AssertionError: 'a_idx' unexpectedly found in {u'b_idx': &lt;cassandra.metadata.IndexMetadata object at 0x7f2dd87d4590&gt;, u'a_idx': &lt;cassandra.metadata.IndexMetadata object at 0x7f2dd87d4a10&gt;}Debug log:cassandra.connection: DEBUG: Message pushed from server: &lt;EventMessage(stream_id=-1, event_type=u'SCHEMA_CHANGE', event_args={'keyspace': u'index_map_tests', 'change_type': u'CREATED', 'table': u''}, trace_id=None)&gt;cassandra.cluster: DEBUG: Refreshing schema in response to schema change. Keyspace: index_map_tests; Table: , Type: Nonecassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Fetched keyspace info for index_map_tests, rebuilding metadatacassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched keyspace info for index_map_tests, rebuilding metadatacassandra.connection: DEBUG: Message pushed from server: &lt;EventMessage(stream_id=-1, event_type=u'SCHEMA_CHANGE', event_args={'keyspace': u'index_map_tests', 'change_type': u'CREATED', 'table': u'test_index_updates'}, trace_id=None)&gt;cassandra.cluster: DEBUG: Refreshing schema in response to schema change. Keyspace: index_map_tests; Table: test_index_updates, Type: Nonecassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched table info for index_map_tests.test_index_updates, rebuilding metadatacassandra.connection: DEBUG: Message pushed from server: &lt;EventMessage(stream_id=-1, event_type=u'SCHEMA_CHANGE', event_args={'keyspace': u'index_map_tests', 'change_type': u'UPDATED', 'table': u'test_index_updates'}, trace_id=None)&gt;cassandra.cluster: DEBUG: Ignoring schedule_unique for already-scheduled task: (&lt;bound method ControlConnection.refresh_schema of &lt;cassandra.cluster.ControlConnection object at 0x7f9c6864fc90&gt;&gt;, (u'index_map_tests', u'test_index_updates', None))cassandra.cluster: DEBUG: Refreshing schema in response to schema change. Keyspace: index_map_tests; Table: test_index_updates, Type: Nonecassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched table info for index_map_tests.test_index_updates, rebuilding metadatacassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched table info for index_map_tests.test_index_updates, rebuilding metadatacassandra.connection: DEBUG: Message pushed from server: &lt;EventMessage(stream_id=-1, event_type=u'SCHEMA_CHANGE', event_args={'keyspace': u'index_map_tests', 'change_type': u'UPDATED', 'table': u'test_index_updates'}, trace_id=None)&gt;cassandra.cluster: DEBUG: Refreshing schema in response to schema change. Keyspace: index_map_tests; Table: test_index_updates, Type: Nonecassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched table info for index_map_tests.test_index_updates, rebuilding metadatacassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched table info for index_map_tests.test_index_updates, rebuilding metadatacassandra.cluster: DEBUG: Refreshing schema in response to schema change. Keyspace: index_map_tests; Table: test_index_updates, Type: Nonecassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.connection: DEBUG: Message pushed from server: &lt;EventMessage(stream_id=-1, event_type=u'SCHEMA_CHANGE', event_args={'keyspace': u'index_map_tests', 'change_type': u'UPDATED', 'table': u'test_index_updates'}, trace_id=None)&gt;cassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched table info for index_map_tests.test_index_updates, rebuilding metadatacassandra.cluster: DEBUG: [control connection] Fetched table info for index_map_tests.test_index_updates, rebuilding metadatacassandra.connection: DEBUG: Message pushed from server: &lt;EventMessage(stream_id=-1, event_type=u'SCHEMA_CHANGE', event_args={'keyspace': u'index_map_tests', 'change_type': u'UPDATED', 'table': u'test_index_updates'}, trace_id=None)&gt;cassandra.cluster: DEBUG: Refreshing schema in response to schema change. Keyspace: index_map_tests; Table: , Type: Nonecassandra.cluster: DEBUG: [control connection] Waiting for schema agreementcassandra.cluster: DEBUG: [control connection] Schemas mismatched, trying againcassandra.cluster: DEBUG: [control connection] Schemas matchcassandra.cluster: DEBUG: [control connection] Fetched keyspace info for index_map_tests, rebuilding metadata</description>
+      <version>2.0.16,2.1.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropIndexStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9411" opendate="2015-5-18 00:00:00" fixdate="2015-5-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bound statement executions fail after adding a collection-type column</summary>
+      <description>After adding a collection-type column to an existing table, executions of statements that are already prepared result in server error (error code 0), with the error message java.lang.ArrayIndexOutOfBoundsException.To reproduce it.session.execute("CREATE TABLE tbl1 (a text, b text, c text, PRIMARY KEY (a, b))");//prepare initiallyPreparedStatement ps = session.prepare("SELECT a, b, c FROM tbl1");//insert some datasession.execute("INSERT INTO tbl1 (a, b, c) VALUES ('a1', 'b1', 'c1')");//Executes successfully as expectedsession.execute(ps.bind());//Add a column of a collection typesession.execute("ALTER TABLE tbl1 ADD d set&lt;text&gt;");//All following executions failsession.execute(ps.bind());Some notes: This only occurs for SELECT with fields (not with SELECT *) This only occurs with C* 2.0. Probably because CASSANDRA-7910 was applied for 2.1+ This only occurs if the column added is a collection type (list / set / map) This occurs with all SELECT statements using that column family, that were already prepared.Repreparing it on all hosts fixes the issue, but for that, the user should normally restart existing application (even if the existing apps/apps versions don't handle this new field).</description>
+      <version>2.0.16</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9436" opendate="2015-5-20 00:00:00" fixdate="2015-6-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose rpc_address and broadcast_address of each Cassandra node</summary>
+      <description>When running Cassandra nodes with collocated Spark nodes and accessing such cluster from remote, to get data-locality right, we need to tell Spark the locations of the Cassandra nodes and they should match the addresses that Spark nodes bind to. Therefore in cloud environments we need to use private IPs for that. Unfortunately, the client which connects from remote would know only the broadcast rpc_addresses which are different.Can we have the IP/hostname that every C* node binds to exposed in a system table? system.peers table contains that information, but it doesn't contain that information for the local node.So can we have broadcast_address and rpc_address added to the system.local table?</description>
+      <version>2.0.16,2.1.6,2.2.0rc1</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.data.serialization.2.0.db.RowMutation.bin</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9479" opendate="2015-5-26 00:00:00" fixdate="2015-6-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve trace messages</summary>
+      <description>Currently, tracing only records lines likeEnqueuing response to / Processing response from orSending message to / Message received from.It would help if these messages also contain some information about the verb and (if easily accessible) about kind of content.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.RowDataResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractReadExecutor.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.OutboundTcpConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9529" opendate="2015-6-2 00:00:00" fixdate="2015-6-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Standardize quoting in Unix scripts</summary>
+      <description>$CLASSPATH and $JAVA are quoted in some scripts and not quoted in other scripts. Since it's best practice to use quotes, we should update the scripts without quotes around these variables.</description>
+      <version>2.0.16,2.1.7,2.2.0rc2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.bin.sstableofflinerelevel</file>
+      <file type="M">tools.bin.sstablemetadata</file>
+      <file type="M">tools.bin.sstablelevelreset</file>
+      <file type="M">tools.bin.cassandra-stressd</file>
+      <file type="M">tools.bin.cassandra-stress</file>
+      <file type="M">examples.hadoop.word.count.bin.word.count.setup</file>
+      <file type="M">examples.hadoop.word.count.bin.word.count.counters</file>
+      <file type="M">examples.hadoop.word.count.bin.word.count</file>
+      <file type="M">examples.hadoop.cql3.word.count.bin.word.count.setup</file>
+      <file type="M">examples.hadoop.cql3.word.count.bin.word.count.counters</file>
+      <file type="M">examples.hadoop.cql3.word.count.bin.word.count</file>
+      <file type="M">examples.client.only.bin.client.only</file>
+      <file type="M">bin.sstableupgrade</file>
+      <file type="M">bin.sstablesplit</file>
+      <file type="M">bin.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9564" opendate="2015-6-8 00:00:00" fixdate="2015-6-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Backport CASSANDRA-9057 to 2.0</summary>
+      <description>It seems that the issue described in CASSANDRA-9057 also manifests on the 2.0 branch, so we should backport the fix from 2.1.</description>
+      <version>2.0.16</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.thrift.ThriftValidationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.SecondaryIndexColumnSizeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.IndexedValuesValidationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.PerRowSecondaryIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.PerColumnSecondaryIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.AbstractSimplePerColumnSecondaryIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.UpdateStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9572" opendate="2015-6-10 00:00:00" fixdate="2015-6-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DateTieredCompactionStrategy fails to combine SSTables correctly when TTL is used.</summary>
+      <description>DateTieredCompaction works correctly when data is dumped for a certain time period in short SSTables in time manner and then compacted together. However, if TTL is applied to the data columns the DTCS fails to compact files correctly in timely manner. In our opinion the problem is caused by two issues:A) During the DateTieredCompaction process the getFullyExpiredSStables is called twice. First from the DateTieredCompactionStrategy class and second time from the CompactionTask class. On the first time the target is to find out fully expired SStables that are not overlapping with any non-fully expired SSTables. That works correctly. When the getFullyExpiredSSTables is called second time from CompactionTask class the selection of fully expired SSTables is modified compared to the first selection.B) The minimum timestamp of the new SSTables created by combining together fully expired SSTable and files from the most interesting bucket is not correct.These two issues together cause problems for the DTCS process when it combines together SSTables having overlap in time and TTL for the column. This is demonstrated by generating test data first without compactions and showing the timely distribution of files. When the compaction is enabled the DCTS combines files together, but the end result is not something to be expected. This is demonstrated in the file motivation_jira.txtAttachments contain following material: Motivation_jira.txt: Practical examples how the DTCS behaves with TTL Explanation_jira.txt: gives more details, explains test cases and demonstrates the problems in the compaction process Logfile file for the compactions in the first test case (compaction_stage_test01_jira.log) Logfile file for the compactions in the seconnd test case (compaction_stage_test02_jira.log) source code zip file for version 2.1.5 with additional comment statements (src_2.1.5_with_debug.zip) Python script to generate test data (datagen.py) Python script to read metadata from SStables (cassandra_sstable_metadata_reader.py) Python script to generate timeline representation of SSTables (cassandra_sstable_timespan_graph.py)</description>
+      <version>2.0.16,2.1.7,2.2.0rc2,3.0alpha1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="22123" opendate="2019-3-28 00:00:00" fixdate="2019-3-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>REST gateway reports Insufficient permissions exceptions as 404 Not Found</summary>
+      <description>When a row access is denied due to insufficient permissions, the error thrown to the client is 404 Not Found, instead of the proper 403 Forbidden exception.</description>
+      <version>2.0.5</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0,2.0.6,2.1.5</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-rest.src.main.java.org.apache.hadoop.hbase.rest.RowResultGenerator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2217" opendate="2010-2-12 00:00:00" fixdate="2010-7-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>VM OPTS for shell only</summary>
+      <description>Over in hbase-2177 Ryan goes on how enabling gc logging, it shows on stdout when you fire the shell:so one problem with this is the irb then logs all GC to stdout, which is ugly. I do something like this in my scripts:export HBASE_OPTS=""export HBASE_LOG_DIR=&lt;somewhere&gt;export SERVER_GC_OPTS="$HBASE_OPTS -verbose:gc -XX:+PrintGCApplicationStoppedTime -XX:+PrintGCDateStamps -XX:+PrintGCDetails -Xloggc:$HBASE_HOME/logs/gc-hbase.log"export JMX_OPTS="-Dcom.sun.management.jmxremote.authenticate=true -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.password.file=$HBASE_HOME/conf/jmxremote.password -Dcom.sun.management.jmxremote"export HBASE_MASTER_OPTS="$SERVER_GC_OPTS -Xloggc:$HBASE_LOG_DIR/logs/gc-master.log"export HBASE_REGIONSERVER_OPTS="$SERVER_GC_OPTS -Xloggc:$HBASE_LOG_DIR/gc-hbase.log -Dcom.sun.management.jmxremote.port=10102 $JMX_OPTS"export HBASE_THRIFT_OPTS="-Xmx1000m $SERVER_GC_OPTS -Xloggc:$HBASE_LOG_DIR/gc-hbase-thrift.log -Dcom.sun.management.jmxremote.port=10103 $JMX_OPTS"export HBASE_ZOOKEEPER_OPTS="-Xmx1000m $SERVER_GC_OPTS -Xloggc:$HBASE_LOG_DIR/gc-zk.log -Dcom.sun.management.jmxremote.port=10104 $JMX_OPTS"now you get remote JMX with logging to whatever directory (we have to log to our large data partition since logs... can be big). Also the shell doesnt log GC to stdout, and you can get separate GC logs for hmaster, hrs, thrift, zookeeper.Need to make an OPTS for the shell to use.... or do the above.</description>
+      <version>None</version>
+      <fixedVersion>0.99.0,0.96.3,0.98.5,0.94.22</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.hbase</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22285" opendate="2019-4-22 00:00:00" fixdate="2019-3-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>A normalizer which merges very small size regions with adjacent regions.(MergeToNormalize)</summary>
+      <description>There are scenarios where we have seen around 5% of total regions with a size of 0 bytes and another 5-6 % regions with size in a few bytes. These kinds of regions increase with time considering we have TTL over the rows. After exploring the option of RegionNormalizer and doing some quick runs we found that that is not suitable considering it also splits the regions and merges to normalize. What we really want is to split as per Split policy and merge very small regions with adjacent regions to make sure we reduce 0-byte regions.We can plugin this normalizer using the property "hbase.master.normalizer.class"</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.normalizer.SimpleRegionNormalizer.java</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22380" opendate="2019-5-8 00:00:00" fixdate="2019-10-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>break circle replication when doing bulkload</summary>
+      <description>when enabled master-master bulkload replication, HFiles will be replicated circularly between two clusters</description>
+      <version>3.0.0-alpha-1,1.5.0,2.2.0,1.4.10,2.0.5,2.3.0,2.1.5,1.3.5</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.1.7,2.2.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.TestReplicationBase.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.tool.BulkLoadHFilesTool.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSink.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.HFileReplicator.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.SecureBulkLoadManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.AsyncClusterConnectionImpl.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.AsyncClusterConnection.java</file>
+      <file type="M">hbase-protocol-shaded.src.main.protobuf.WAL.proto</file>
+      <file type="M">hbase-protocol-shaded.src.main.protobuf.Client.proto</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.shaded.protobuf.RequestConverter.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.tool.TestBulkLoadHFilesSplitRecovery.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22384" opendate="2019-5-8 00:00:00" fixdate="2019-5-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Formatting issues in administration section of book</summary>
+      <description>The administration section in the book (64.3.2. Administration) has some formatting issues. Due to that issues the list count is not accurate, as well as the indentation of some code snippets.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,1.4.10,2.3.0,2.0.6,2.1.5,1.3.5</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.security.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22442" opendate="2019-5-18 00:00:00" fixdate="2019-5-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nightly build is failing with hadoop 3.x</summary>
+      <description>[ERROR] Found artifact with unexpected contents: '/testptch/hbase/hbase-shaded/hbase-shaded-client/target/hbase-shaded-client-2.2.1-SNAPSHOT.jar' Please check the following and either correct the build or update the allowed list with reasoning. javax/ javax/servlet/ javax/servlet/annotation/ javax/servlet/annotation/HandlesTypes.class javax/servlet/annotation/HttpConstraint.class javax/servlet/annotation/HttpMethodConstraint.class javax/servlet/annotation/MultipartConfig.class javax/servlet/annotation/package.html javax/servlet/annotation/ServletSecurity$EmptyRoleSemantic.class javax/servlet/annotation/ServletSecurity$TransportGuarantee.class javax/servlet/annotation/ServletSecurity.class javax/servlet/annotation/WebFilter.class javax/servlet/annotation/WebInitParam.class javax/servlet/annotation/WebListener.class javax/servlet/annotation/WebServlet.class javax/servlet/AsyncContext.class javax/servlet/AsyncEvent.class javax/servlet/AsyncListener.class javax/servlet/descriptor/ javax/servlet/descriptor/JspConfigDescriptor.class javax/servlet/descriptor/JspPropertyGroupDescriptor.class javax/servlet/descriptor/package.html javax/servlet/descriptor/TaglibDescriptor.class javax/servlet/DispatcherType.class javax/servlet/Filter.class javax/servlet/FilterChain.class javax/servlet/FilterConfig.class javax/servlet/FilterRegistration$Dynamic.class javax/servlet/FilterRegistration.class javax/servlet/GenericServlet.class javax/servlet/http/ javax/servlet/http/Cookie.class javax/servlet/http/HttpServlet.class javax/servlet/http/HttpServletRequest.class javax/servlet/http/HttpServletRequestWrapper.class javax/servlet/http/HttpServletResponse.class javax/servlet/http/HttpServletResponseWrapper.class javax/servlet/http/HttpSession.class javax/servlet/http/HttpSessionActivationListener.class javax/servlet/http/HttpSessionAttributeListener.class javax/servlet/http/HttpSessionBindingEvent.class javax/servlet/http/HttpSessionBindingListener.class javax/servlet/http/HttpSessionContext.class javax/servlet/http/HttpSessionEvent.class javax/servlet/http/HttpSessionIdListener.class javax/servlet/http/HttpSessionListener.class javax/servlet/http/HttpUpgradeHandler.class javax/servlet/http/HttpUtils.class javax/servlet/http/LocalStrings.properties javax/servlet/http/LocalStrings_es.properties javax/servlet/http/LocalStrings_fr.properties javax/servlet/http/LocalStrings_ja.properties javax/servlet/http/NoBodyOutputStream.class javax/servlet/http/NoBodyResponse.class javax/servlet/http/package.html javax/servlet/http/Part.class javax/servlet/http/WebConnection.class javax/servlet/HttpConstraintElement.class javax/servlet/HttpMethodConstraintElement.class javax/servlet/LocalStrings.properties javax/servlet/LocalStrings_fr.properties javax/servlet/LocalStrings_ja.properties javax/servlet/MultipartConfigElement.class javax/servlet/package.html javax/servlet/ReadListener.class javax/servlet/Registration$Dynamic.class javax/servlet/Registration.class javax/servlet/RequestDispatcher.class javax/servlet/Servlet.class javax/servlet/ServletConfig.class javax/servlet/ServletContainerInitializer.class javax/servlet/ServletContext.class javax/servlet/ServletContextAttributeEvent.class javax/servlet/ServletContextAttributeListener.class javax/servlet/ServletContextEvent.class javax/servlet/ServletContextListener.class javax/servlet/ServletException.class javax/servlet/ServletInputStream.class javax/servlet/ServletOutputStream.class javax/servlet/ServletRegistration$Dynamic.class javax/servlet/ServletRegistration.class javax/servlet/ServletRequest.class javax/servlet/ServletRequestAttributeEvent.class javax/servlet/ServletRequestAttributeListener.class javax/servlet/ServletRequestEvent.class javax/servlet/ServletRequestListener.class javax/servlet/ServletRequestWrapper.class javax/servlet/ServletResponse.class javax/servlet/ServletResponseWrapper.class javax/servlet/ServletSecurityElement.class javax/servlet/SessionCookieConfig.class javax/servlet/SessionTrackingMode.class javax/servlet/SingleThreadModel.class javax/servlet/UnavailableException.class javax/servlet/WriteListener.class com/ com/sun/ com/sun/jersey/ com/sun/jersey/api/ com/sun/jersey/api/core/ com/sun/jersey/api/core/servlet/ com/sun/jersey/api/core/servlet/WebAppResourceConfig.class com/sun/jersey/server/ com/sun/jersey/server/impl/ com/sun/jersey/server/impl/cdi/ com/sun/jersey/server/impl/cdi/AbstractBean.class com/sun/jersey/server/impl/cdi/AnnotatedCallableImpl.class com/sun/jersey/server/impl/cdi/AnnotatedConstructorImpl.class com/sun/jersey/server/impl/cdi/AnnotatedFieldImpl.class com/sun/jersey/server/impl/cdi/AnnotatedImpl.class com/sun/jersey/server/impl/cdi/AnnotatedMemberImpl.class com/sun/jersey/server/impl/cdi/AnnotatedMethodImpl.class com/sun/jersey/server/impl/cdi/AnnotatedParameterImpl.class com/sun/jersey/server/impl/cdi/AnnotatedTypeImpl.class com/sun/jersey/server/impl/cdi/BeanGenerator$1.class com/sun/jersey/server/impl/cdi/BeanGenerator.class com/sun/jersey/server/impl/cdi/CDIComponentProviderFactory$1.class com/sun/jersey/server/impl/cdi/CDIComponentProviderFactory$2.class com/sun/jersey/server/impl/cdi/CDIComponentProviderFactory$ComponentProviderDestroyable.class com/sun/jersey/server/impl/cdi/CDIComponentProviderFactory.class com/sun/jersey/server/impl/cdi/CDIComponentProviderFactoryInitializer.class com/sun/jersey/server/impl/cdi/CDIExtension$1.class com/sun/jersey/server/impl/cdi/CDIExtension$2.class com/sun/jersey/server/impl/cdi/CDIExtension$3.class com/sun/jersey/server/impl/cdi/CDIExtension$ContextAnnotationLiteral.class com/sun/jersey/server/impl/cdi/CDIExtension$InjectAnnotationLiteral.class com/sun/jersey/server/impl/cdi/CDIExtension$JNDIContextDiver.class com/sun/jersey/server/impl/cdi/CDIExtension$ParameterBean.class com/sun/jersey/server/impl/cdi/CDIExtension$PatchInformation.class com/sun/jersey/server/impl/cdi/CDIExtension$PredefinedBean.class com/sun/jersey/server/impl/cdi/CDIExtension$SyntheticQualifierAnnotationImpl.class com/sun/jersey/server/impl/cdi/CDIExtension.class com/sun/jersey/server/impl/cdi/DiscoveredParameter.class com/sun/jersey/server/impl/cdi/InitializedLater.class com/sun/jersey/server/impl/cdi/ProviderBasedBean.class com/sun/jersey/server/impl/cdi/SyntheticQualifier.class com/sun/jersey/server/impl/cdi/Utils.class com/sun/jersey/server/impl/container/ com/sun/jersey/server/impl/container/servlet/ com/sun/jersey/server/impl/container/servlet/Include.class com/sun/jersey/server/impl/container/servlet/JSPTemplateProcessor.class com/sun/jersey/server/impl/container/servlet/JerseyServletContainerInitializer.class com/sun/jersey/server/impl/container/servlet/PerSessionFactory$1.class com/sun/jersey/server/impl/container/servlet/PerSessionFactory$AbstractPerSession.class com/sun/jersey/server/impl/container/servlet/PerSessionFactory$PerSesson.class com/sun/jersey/server/impl/container/servlet/PerSessionFactory$PerSessonInstantiated.class com/sun/jersey/server/impl/container/servlet/PerSessionFactory$PerSessonProxied.class com/sun/jersey/server/impl/container/servlet/PerSessionFactory$SessionMap.class com/sun/jersey/server/impl/container/servlet/PerSessionFactory.class com/sun/jersey/server/impl/container/servlet/RequestDispatcherWrapper.class com/sun/jersey/server/impl/container/servlet/ServletAdaptor$1$1.class com/sun/jersey/server/impl/container/servlet/ServletAdaptor$1.class com/sun/jersey/server/impl/container/servlet/ServletAdaptor.class com/sun/jersey/server/impl/container/servlet/Wrapper.class com/sun/jersey/server/impl/ejb/ com/sun/jersey/server/impl/ejb/EJBComponentProviderFactory$EJBManagedComponentProvider.class com/sun/jersey/server/impl/ejb/EJBComponentProviderFactory.class com/sun/jersey/server/impl/ejb/EJBComponentProviderFactoryInitilizer.class com/sun/jersey/server/impl/ejb/EJBExceptionMapper.class com/sun/jersey/server/impl/ejb/EJBInjectionInterceptor$1.class com/sun/jersey/server/impl/ejb/EJBInjectionInterceptor.class com/sun/jersey/server/impl/ejb/EJBRequestDispatcherProvider$1.class com/sun/jersey/server/impl/ejb/EJBRequestDispatcherProvider.class com/sun/jersey/server/impl/managedbeans/ com/sun/jersey/server/impl/managedbeans/ManagedBeanComponentProviderFactory$ManagedBeanComponentProvider.class com/sun/jersey/server/impl/managedbeans/ManagedBeanComponentProviderFactory.class com/sun/jersey/server/impl/managedbeans/ManagedBeanComponentProviderFactoryInitilizer.class com/sun/jersey/spi/ com/sun/jersey/spi/container/ com/sun/jersey/spi/container/servlet/ com/sun/jersey/spi/container/servlet/PerSession.class com/sun/jersey/spi/container/servlet/ServletContainer$ContextInjectableProvider.class com/sun/jersey/spi/container/servlet/ServletContainer$InternalWebComponent.class com/sun/jersey/spi/container/servlet/ServletContainer.class com/sun/jersey/spi/container/servlet/WebComponent$1.class com/sun/jersey/spi/container/servlet/WebComponent$2.class com/sun/jersey/spi/container/servlet/WebComponent$3.class com/sun/jersey/spi/container/servlet/WebComponent$4.class com/sun/jersey/spi/container/servlet/WebComponent$ContextInjectableProvider.class com/sun/jersey/spi/container/servlet/WebComponent$Writer.class com/sun/jersey/spi/container/servlet/WebComponent.class com/sun/jersey/spi/container/servlet/WebConfig$ConfigType.class com/sun/jersey/spi/container/servlet/WebConfig.class com/sun/jersey/spi/container/servlet/WebFilterConfig.class com/sun/jersey/spi/container/servlet/WebServletConfig.class com/sun/jersey/spi/scanning/ com/sun/jersey/spi/scanning/servlet/ com/sun/jersey/spi/scanning/servlet/WebAppResourcesScanner$1.class com/sun/jersey/spi/scanning/servlet/WebAppResourcesScanner$2.class com/sun/jersey/spi/scanning/servlet/WebAppResourcesScanner.class[ERROR] Command execution failed.org.apache.commons.exec.ExecuteException: Process exited with an error: 1 (Exit value: 1) at org.apache.commons.exec.DefaultExecutor.executeInternal (DefaultExecutor.java:404) at org.apache.commons.exec.DefaultExecutor.execute (DefaultExecutor.java:166) at org.codehaus.mojo.exec.ExecMojo.executeCommandLine (ExecMojo.java:804) at org.codehaus.mojo.exec.ExecMojo.executeCommandLine (ExecMojo.java:751) at org.codehaus.mojo.exec.ExecMojo.execute (ExecMojo.java:313) at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo (DefaultBuildPluginManager.java:137) at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:208) at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:154) at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:146) at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:117) at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:81) at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build (SingleThreadedBuilder.java:56) at org.apache.maven.lifecycle.internal.LifecycleStarter.execute (LifecycleStarter.java:128) at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:305) at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:192) at org.apache.maven.DefaultMaven.execute (DefaultMaven.java:105) at org.apache.maven.cli.MavenCli.execute (MavenCli.java:954) at org.apache.maven.cli.MavenCli.doMain (MavenCli.java:288) at org.apache.maven.cli.MavenCli.main (MavenCli.java:192) at sun.reflect.NativeMethodAccessorImpl.invoke0 (Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke (NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke (DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke (Method.java:498) at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced (Launcher.java:289) at org.codehaus.plexus.classworlds.launcher.Launcher.launch (Launcher.java:229) at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode (Launcher.java:415) at org.codehaus.plexus.classworlds.launcher.Launcher.main (Launcher.java:356)</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0,2.1.5</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-client.pom.xml</file>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22443" opendate="2019-5-18 00:00:00" fixdate="2019-5-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add hbase-vote script details to documentation</summary>
+      <description>In HBASE-21963 taklwu provided hbase-vote.sh which helps with verification of new release. Adding it to the documentation will help anyone who would like to understand the verification process.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.developer.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22539" opendate="2019-6-4 00:00:00" fixdate="2019-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>WAL corruption due to early DBBs re-use when Durability.ASYNC_WAL is used</summary>
+      <description>SummaryWe had been chasing a WAL corruption issue reported on one of our customers deployments running release 2.1.1 (CDH 6.1.0). After providing a custom modified jar with the extra sanity checks implemented by HBASE-21401 applied on some code points, plus additional debugging messages, we believe it is related to DirectByteBuffer usage, and Unsafe copy from offheap memory to on-heap array triggered here, such as when writing into a non ByteBufferWriter type, as done here.More details on the following comment. </description>
+      <version>2.2.0,2.0.5,2.1.5</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.0.6,2.2.1,2.1.6</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.TestFSHLog.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.TestAsyncFSWAL.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.AbstractTestWALReplay.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.FSWALEntry.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.FSHLog.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.AsyncFSWAL.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.AbstractFSWAL.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.ServerCall.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22828" opendate="2019-8-10 00:00:00" fixdate="2019-8-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Log a region close journal</summary>
+      <description>We already track region close activity with a MonitoredTask. Enable the status journal and dump it at DEBUG log level so if for some reasons region closes are taking a long time we have a timestamped journal of the activity and how long each step took.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.2.1,2.1.6,1.3.6,1.4.11</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

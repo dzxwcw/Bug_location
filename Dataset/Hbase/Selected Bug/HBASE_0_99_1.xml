@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  
+  
+  
+  
+  
+  <bug fixdate="2009-2-23 01:00:00" id="1210" opendate="2009-2-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow truncation of output for scan and get commands in shell</summary>
+      <description>Allow to chop the output of the values to be able to scan a table for specific rows and columns but without having the shell dump all the content of the cell value as it can potentially be very large. I suggest a hash called MAXLENGTH that can be added to the commands. For example:get 'docs', 'ABCDE', { COLUMNS =&gt; 'contents:', MAXLENGTH =&gt; 150 }and scan 'docs', { COLUMNS =&gt; 'contents:', MAXLENGTH =&gt; 150 }</description>
+      <version>None</version>
+      <fixedVersion>0.20.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.HBase.rb</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-10-2 01:00:00" id="12160" opendate="2014-10-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make Surefire&amp;#39;s argLine configurable in the command line</summary>
+      <description>On tests machines with larger sets of ram it can really help to reduce test time to run with larger heaps. Lets make that a property so that mvn command line can set it.</description>
+      <version>0.99.1,0.98.6.1,2.0.0</version>
+      <fixedVersion>0.98.7,0.99.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-13 01:00:00" id="12239" opendate="2014-10-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document hedged reads</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.docbkx.performance.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-13 01:00:00" id="12241" opendate="2014-10-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The crash of regionServer when taking deadserver&amp;#39;s replication queue breaks replication</summary>
+      <description>When a regionserver crash, another regionserver will try to take over the replication hlogs queue and help the the the dead regionserver to finish the replcation.See NodeFailoverWorker in ReplicationSourceManagerCurrently hbase.zookeeper.useMulti is false in default configuration. The operation of taking over replication queue is not atomic. The ReplicationSourceManager firstly lock the replication node of dead regionserver and then copy the replication queue, and delete replication node of dead regionserver at last. The operation of the lockOtherRS just creates a persistent zk node named "lock" which prevent other regionserver taking over the replication queue.See: public boolean lockOtherRS(String znode) { try { String parent = ZKUtil.joinZNode(this.rsZNode, znode); if (parent.equals(rsServerNameZnode)) { LOG.warn("Won't lock because this is us, we're dead!"); return false; } String p = ZKUtil.joinZNode(parent, RS_LOCK_ZNODE); ZKUtil.createAndWatch(this.zookeeper, p, Bytes.toBytes(rsServerNameZnode)); } catch (KeeperException e) { ... return false; } return true; }But if a regionserver crashed after creating this "lock" zk node and before coping the replication queue to its replication queue, the "lock" zk node will be left forever andno other regionserver can take over the replication queue.In out production cluster, we encounter this problem. We found the replication queue was there and no regionserver took over it and a "lock" zk node left there.hbase.32561.log:2014-09-24,14:09:28,790 INFO org.apache.hadoop.hbase.replication.ReplicationZookeeper: Won't transfer the queue, another RS took care of it because of: KeeperErrorCode = NoNode for /hbase/hhsrv-micloud/replication/rs/hh-hadoop-srv-st09.bj,12610,1410937824255/lockhbase.32561.log:2014-09-24,14:14:45,148 INFO org.apache.hadoop.hbase.replication.ReplicationZookeeper: Won't transfer the queue, another RS took care of it because of: KeeperErrorCode = NoNode for /hbase/hhsrv-micloud/replication/rs/hh-hadoop-srv-st10.bj,12600,1410937795685/lockA quick solution is that the lock operation just create an ephemeral "lock" zookeeper node and when the lock node is deleted, other regionserver will be notified to check if there are replication queue left.Suggestions are welcomed! Thanks.</description>
+      <version>None</version>
+      <fixedVersion>0.99.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2014-10-29 01:00:00" id="12379" opendate="2014-10-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Try surefire 2.18-SNAPSHOT</summary>
+      <description>Hopefully has a fix for:&amp;#91;ERROR&amp;#93; Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:2.17:test (secondPartTestsExecution) on project hbase-server: ExecutionException: java.lang.RuntimeException: java.lang.RuntimeException: java.io.IOException: Stream Closed -&gt; &amp;#91;Help 1&amp;#93;eclark says its been working for him and crew.</description>
+      <version>None</version>
+      <fixedVersion>0.99.2</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-11-3 01:00:00" id="12409" opendate="2014-11-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add actual tunable parameters for finding optimal # of regions per RS</summary>
+      <description>http://hbase.apache.org/book/ops.capacity.html#ops.capacity.regions.count should mention:HBase 0.94:(RS Xmx)(hbase.regionserver.global.memstore.upperLimit)/((hbase.hregion.memstore.flush.size)(# column families))HBase 0.98+: replace upperLimit with hbase.regionserver.global.memstore.size</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.docbkx.ops.mgt.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2009-5-5 01:00:00" id="1241" opendate="2009-3-5 00:00:00" resolution="Invalid">
+    <buginformation>
+      <summary>HBase additions to ZooKeeper</summary>
+      <description>This issue is to batch all of the edits and additions we make to ZooKeeper for its use in HBase. Rather than wasting lots of our (and ZK's) time with little edit patches, we will send them batch patches from here when things stabilize.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.org.apache.hadoop.hbase.MiniZooKeeperCluster.java</file>
+      <file type="M">lib.zookeeper-3.0.1.jar</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-2-3 01:00:00" id="12412" opendate="2014-11-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>update the ref guide(currently Example 10.2) to show "update an existing CF" with the new API modifyFamily in master</summary>
+      <description>In the new implementation of HTableDescriptor, updating an existing CF doesn't use the addFamily any more(An IllegalArgumentException is thrown in such a case.), the new API modifyFamily is used instead.We need to update the ref guide (currently Example 10.2) to show "update an existing CF" with the new API modifyFamily in master.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.hbase.apis.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  
+</bugrepository>

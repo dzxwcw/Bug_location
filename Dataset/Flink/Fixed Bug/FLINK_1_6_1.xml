@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="10263" opendate="2018-8-30 00:00:00" fixdate="2018-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User-defined function with LITERAL paramters yields CompileException</summary>
+      <description>When using a user-defined scalar function only with literal parameters, a CompileException is thrown. For exampleSELECT myFunc(CAST(40.750444 AS FLOAT), CAST(-73.993475 AS FLOAT))public class MyFunc extends ScalarFunction { public int eval(float lon, float lat) { // do something }}results in [ERROR] Could not execute SQL statement. Reason:org.codehaus.commons.compiler.CompileException: Line 5, Column 10: Cannot determine simple type name "com"The problem is probably caused by the expression reducer because it disappears if a regular attribute is added to a parameter expression.</description>
+      <version>1.6.1,1.7.0</version>
+      <fixedVersion>1.6.2,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.ExpressionReducer.scala</file>
+      <file type="M">flink-libraries.flink-sql-client.src.main.java.org.apache.flink.table.client.gateway.local.LocalExecutor.java</file>
+      <file type="M">flink-libraries.flink-sql-client.src.main.java.org.apache.flink.table.client.gateway.local.ExecutionContext.java</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.sql.client.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10379" opendate="2018-9-20 00:00:00" fixdate="2018-10-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Can not use Table Functions in Java Table API</summary>
+      <description>As stated in the documentation this is how table functions should be used in Java Table API:// Register the function.tableEnv.registerFunction("split", new Split("#"));myTable.join("split(a) as (word, length)");However Table.join(String) was removed sometime ago and now it is impossible to use Table Functions in Java Table API.</description>
+      <version>1.6.1</version>
+      <fixedVersion>1.6.2,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.TableFunction.scala</file>
+      <file type="M">docs.dev.table.udfs.md</file>
+      <file type="M">docs.dev.table.tableApi.md</file>
+      <file type="M">docs.dev.table.sql.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10384" opendate="2018-9-21 00:00:00" fixdate="2018-11-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add Sinh math function supported in Table API and SQL</summary>
+      <description>like FLINK-10340 for adding Cosh math function</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.SqlExpressionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.ScalarFunctionsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.functions.ScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.sql.ScalarSqlFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.expressions.mathExpressions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.FunctionGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.BuiltInMethods.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.scala.expressionDsl.scala</file>
+      <file type="M">docs.dev.table.functions.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10390" opendate="2018-9-21 00:00:00" fixdate="2018-10-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DataDog MetricReporter leaks connections</summary>
+      <description>After upgrading to 1.6.1 from 1.4.2 we starting observing in the log warnings associated with the DataDog metrics reporter:Sep 21, 2018 9:43:20 PM org.apache.flink.shaded.okhttp3.internal.platform.Platform log WARNING: A connection to https://app.datadoghq.com/ was leaked. Did you forget to close a response body? To see where this was allocated, set the OkHttpClient logger level to FINE: Logger.getLogger(OkHttpClient.class.getName()).setLevel(Level.FINE);The metric reporter's okhttp dependency version (3.7.0) has not changed, so that does not appear to be the source of the warning.I believe the issue is the changed made in FLINK-8553. The HTTP calls were made async. The previous code called client.newCall(r).execute().close(). The new call does nothing in the callback, even thought the Callback.onResponse documentation states:Called when the HTTP response was successfully returned by the remote server. The callback may proceed to read the response body with Response.body. The response is still live until its response body is closed.  </description>
+      <version>1.6.1</version>
+      <fixedVersion>1.6.2,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-metrics.flink-metrics-datadog.src.main.java.org.apache.flink.metrics.datadog.DatadogHttpClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10416" opendate="2018-9-25 00:00:00" fixdate="2018-9-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add files generated by jepsen tests to rat excludes</summary>
+      <description>Currently jepsen generates some files that results in rat plugin failures.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10425" opendate="2018-9-25 00:00:00" fixdate="2018-10-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>taskmanager.host is not respected</summary>
+      <description>The documentation states that taskmanager.host can be set to override the discovered hostname, however, setting this value has no effect.Looking at the code, the value never seems to be used.  Instead, the deprecated taskmanager.hostname is still used.</description>
+      <version>1.6.1</version>
+      <fixedVersion>1.6.3,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn.src.main.java.org.apache.flink.yarn.YarnTaskExecutorRunner.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.runtime.IPv6HostnamesITCase.java</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.akka.AkkaSslITCase.scala</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskManagerStartupTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskManagerConfigurationTest.java</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.taskmanager.TaskManager.scala</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskManagerRunner.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.minicluster.MiniClusterConfiguration.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.runtime.clusterframework.LaunchableMesosWorker.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10474" opendate="2018-10-1 00:00:00" fixdate="2018-10-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t translate IN with Literals to JOIN with VALUES for streaming queries</summary>
+      <description>IN predicates with literals are translated to JOIN with VALUES if the number of elements in the IN clause exceeds a certain threshold. This should not be done, because a streaming join is very heavy and materializes both inputs (which is fine for the VALUES) input but not for the other.There are two ways to solve this: don't translate IN to a JOIN at all translate it to a JOIN but have a special join strategy if one input is bound and final (non-updating)Option 1. should be easy to do, option 2. requires much more effort.</description>
+      <version>1.6.1,1.7.0</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.table.CalcITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.batch.sql.CalcITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.utils.ExpressionTestBase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.calcite.CalciteConfigBuilderTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.table.CalcTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.sql.SetOperatorsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.batch.sql.CalcTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.FlinkRuleSets.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.CodeGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.FlinkPlannerImpl.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.CalciteConfig.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.TableEnvironment.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10531" opendate="2018-10-11 00:00:00" fixdate="2018-11-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>State TTL RocksDb backend end-to-end test failed on Travis</summary>
+      <description>The State TTL RocksDb backend end-to-end test end-to-end test failed on Travis.https://travis-ci.org/apache/flink/jobs/438226190https://api.travis-ci.org/v3/job/438226190/log.txt</description>
+      <version>1.6.1</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.ValueWithTs.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlVerificationContext.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlValueStateVerifier.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlUpdateContext.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlReducingStateVerifier.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlMapStateVerifier.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlListStateVerifier.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlFoldingStateVerifier.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.TtlAggregatingStateVerifier.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.verify.AbstractTtlStateVerifier.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.TtlVerifyUpdateFunction.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.TtlStateUpdateSource.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.TtlStateUpdate.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-state-ttl-test.src.main.java.org.apache.flink.streaming.tests.DataStreamStateTTLTestProgram.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10570" opendate="2018-10-16 00:00:00" fixdate="2018-10-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>State grows unbounded when "within" constraint not applied</summary>
+      <description>We have been running some failure monitoring using the CEP library. Simple stuff that should probably have been implemented with a window, rather than CEP, but we had already set the project up to use CEP elsewhere and it was trivial to add this.We ran the following pattern (on 1.4.2):begin(PURCHASE_SEQUENCE, AfterMatchSkipStrategy.skipPastLastEvent()) .subtype(PurchaseEvent.class) .times(100)and then flat selected the responses if the failure ratio was over a certain threshold.With 1.6.1, the state size of the CEP operator for this pattern grows unbounded, and eventually destroys the job with an OOM exception. We have many CEP operators in this job but all the rest use a "within" call.In 1.4.2, it seems events would be discarded once they were no longer in the 100 most recent, now it seems they are held onto indefinitely. We have a workaround (we're just going to add a "within" call to force the CEP operator to discard old events), but it would be useful if we could have the old behaviour back.Please let me know if I can provide any more information.</description>
+      <version>1.6.1</version>
+      <fixedVersion>1.6.3,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.AfterMatchSkipITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.main.java.org.apache.flink.cep.nfa.NFA.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10571" opendate="2018-10-16 00:00:00" fixdate="2018-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove support for topologies</summary>
+      <description>The topology support is hard-wired to the legacy mode and we have no intention of updating it. It should thus be removed to not block the removal of the legacy mode.</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-contrib.flink-storm.src.test.java.org.apache.flink.storm.wrappers.WrapperSetupInLocalClusterTest.java</file>
+      <file type="M">flink-contrib.flink-storm.src.test.java.org.apache.flink.storm.api.TestSpout.java</file>
+      <file type="M">flink-contrib.flink-storm.src.test.java.org.apache.flink.storm.api.TestBolt.java</file>
+      <file type="M">flink-contrib.flink-storm.src.test.java.org.apache.flink.storm.api.FlinkTopologyTest.java</file>
+      <file type="M">flink-contrib.flink-storm.src.test.java.org.apache.flink.storm.api.FlinkOutputFieldsDeclarerTest.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.wrappers.WrapperSetupHelper.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.wrappers.SpoutWrapper.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.wrappers.BoltWrapper.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.util.StormStreamSelector.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.api.TwoFlinkStreamsMerger.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.api.StormFlinkStreamMerger.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.api.FlinkTopology.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.api.FlinkSubmitter.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.api.FlinkOutputFieldsDeclarer.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.api.FlinkLocalCluster.java</file>
+      <file type="M">flink-contrib.flink-storm.src.main.java.org.apache.flink.storm.api.FlinkClient.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.wordcount.WordCountLocalNamedITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.wordcount.WordCountLocalITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.StormUnionITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.StormMetaDataITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.StormFieldsGroupingITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.operators.VerifyMetaDataBolt.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.operators.TaskIdBolt.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.operators.MetaDataSpout.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.operators.MergerBolt.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.tests.operators.FiniteRandomSpout.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.split.SplitStreamSpoutLocal.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.split.SplitStreamBoltLocal.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.split.SplitSpoutTopology.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.split.SplitITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.split.SplitBoltTopology.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.split.SplitBolt.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.join.SingleJoinITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.test.java.org.apache.flink.storm.exclamation.StormExclamationLocalITCase.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.wordcount.WordCountTopology.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.wordcount.WordCountRemoteBySubmitter.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.wordcount.WordCountRemoteByClient.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.wordcount.WordCountLocalByName.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.wordcount.WordCountLocal.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.print.PrintSampleStream.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.join.SingleJoinExample.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.exclamation.ExclamationTopology.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.src.main.java.org.apache.flink.storm.exclamation.ExclamationLocal.java</file>
+      <file type="M">flink-contrib.flink-storm-examples.pom.xml</file>
+      <file type="M">docs.dev.libs.storm.compatibility.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10607" opendate="2018-10-19 00:00:00" fixdate="2018-10-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unify to remove duplicated NoOpResultPartitionConsumableNotifier</summary>
+      <description>Currently there exists two same NoOpResultPartitionConsumableNotifier implementations for different tests. We can deduplicate the common codes and public it for unified usages. And it will also bring benefits for future new tests.</description>
+      <version>1.6.1,1.7.0</version>
+      <fixedVersion>1.5.6,1.6.3,1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.TaskCheckpointingBehaviourTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskTerminationTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.InterruptSensitiveRestoreTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.io.benchmark.StreamNetworkBenchmarkEnvironment.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.JvmExitOnFatalErrorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskAsyncCallTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskExecutorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.consumer.LocalInputChannelTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.NetworkEnvironmentTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10608" opendate="2018-10-19 00:00:00" fixdate="2018-10-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add avro files generated by datastream-allround-test to RAT exclusions</summary>
+      <description>With the 1.5.5 and 1.6.2 release-candidates it was discovered that files generated during the build are not covered by the apache-rat-plugin license-header check.As a result the first compilation succeeds but a subsequent one may fail.This is a bit surprising considering that the plugin is executed in the verify phase, which is executed after the compilation and execution of tests.This is because the plugin is only run in the flink-parent project before anything is compiled. The plugin-configuration is explicitly disables inheritance.I'm re-purposing this Jira to add the avro classes to the exclusion list.However, in the long term I'd suggest to enable inheritance for the plugin and define the module-specific exclusions in each module respectively. This will allows to run the plugin in the verify phase of each module which would've caught this error.</description>
+      <version>1.6.1,1.7.0</version>
+      <fixedVersion>1.6.3,1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10638" opendate="2018-10-22 00:00:00" fixdate="2018-11-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Invalid table scan resolution for temporal join queries</summary>
+      <description>Registered tables that contain a temporal join are not properly resolved when performing a table scan.A planning error occurs when registering a table with a temporal join and reading from it again.LogicalProject(amount=[*($0, $4)]) LogicalFilter(condition=[=($3, $1)]) LogicalCorrelate(correlation=[$cor0], joinType=[inner], requiredColumns=[{2}]) LogicalTableScan(table=[[_DataStreamTable_0]]) LogicalTableFunctionScan(invocation=[Rates(CAST($cor0.rowtime):TIMESTAMP(3) NOT NULL)], rowType=[RecordType(VARCHAR(65536) currency, BIGINT rate, TIME ATTRIBUTE(ROWTIME) rowtime)], elementType=[class [Ljava.lang.Object;])</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.sql.TemporalJoinITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.table.TemporalTableJoinTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.sql.TemporalTableJoinTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.FlinkRuleSets.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.TableEnvironment.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.StreamTableEnvironment.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.BatchTableEnvironment.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10639" opendate="2018-10-22 00:00:00" fixdate="2018-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix java syntax error in document</summary>
+      <description>Due to the  StreamTableSourceFactory  is a trait. So the java example in the document should using "implements" keyword.    </description>
+      <version>1.6.1,1.7.0</version>
+      <fixedVersion>1.6.1,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.types.serialization.md</file>
+      <file type="M">docs.dev.table.sourceSinks.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10669" opendate="2018-10-24 00:00:00" fixdate="2018-11-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Exceptions &amp; errors are not properly checked in logs in e2e tests</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.5.6,1.6.3,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1067" opendate="2014-8-26 00:00:00" fixdate="2014-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"Stratosphere" occurance in docs FAQ</summary>
+      <description>The name Stratosphere occurs in the answer to the fault-tolerance question of the FAQ.</description>
+      <version>None</version>
+      <fixedVersion>0.7.0-incubating</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.faq.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10670" opendate="2018-10-24 00:00:00" fixdate="2018-11-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Correlate codegen error</summary>
+      <description>TableFunctionCollector should handle reuseInitCode and reuseMemberCode</description>
+      <version>None</version>
+      <fixedVersion>1.5.6,1.6.3,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.table.CorrelateITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.CommonCorrelate.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.CollectorCodeGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.CodeGenerator.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10681" opendate="2018-10-25 00:00:00" fixdate="2018-11-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>elasticsearch6.ElasticsearchSinkITCase fails if wrong JNA library installed</summary>
+      <description>The elasticsearch6.ElasticsearchSinkITCase fails on systems where a wrong JNA library is installed.There is an incompatible JNA native library installed on this systemExpected: 5.2.0Found: 4.0.0/usr/java/packages/lib/amd64:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib.To resolve this issue you may do one of the following: - remove or uninstall the offending library - set the system property jna.nosys=true - set jna.boot.library.path to include the path to the version of the jnidispatch library included with the JNA jar file you are using at com.sun.jna.Native.&lt;clinit&gt;(Native.java:199) at java.lang.Class.forName0(Native Method) at java.lang.Class.forName(Class.java:264) at org.elasticsearch.bootstrap.Natives.&lt;clinit&gt;(Natives.java:45) at org.elasticsearch.bootstrap.BootstrapInfo.isMemoryLocked(BootstrapInfo.java:50) at org.elasticsearch.monitor.process.ProcessProbe.processInfo(ProcessProbe.java:130) at org.elasticsearch.monitor.process.ProcessService.&lt;init&gt;(ProcessService.java:44) at org.elasticsearch.monitor.MonitorService.&lt;init&gt;(MonitorService.java:48) at org.elasticsearch.node.Node.&lt;init&gt;(Node.java:363) at org.apache.flink.streaming.connectors.elasticsearch.EmbeddedElasticsearchNodeEnvironmentImpl$PluginNode.&lt;init&gt;(EmbeddedElasticsearchNodeEnvironmentImpl.java:85) at org.apache.flink.streaming.connectors.elasticsearch.EmbeddedElasticsearchNodeEnvironmentImpl.start(EmbeddedElasticsearchNodeEnvironmentImpl.java:53) at org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkTestBase.prepare(ElasticsearchSinkTestBase.java:73) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50) at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12) at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47) at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:24) at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:27) at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:48) at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:48) at org.junit.rules.ExternalResource$1.evaluate(ExternalResource.java:48) at org.junit.rules.RunRules.evaluate(RunRules.java:20) at org.junit.runners.ParentRunner.run(ParentRunner.java:363) at org.apache.maven.surefire.junit4.JUnit4Provider.execute(JUnit4Provider.java:252) at org.apache.maven.surefire.junit4.JUnit4Provider.executeTestSet(JUnit4Provider.java:141) at org.apache.maven.surefire.junit4.JUnit4Provider.invoke(JUnit4Provider.java:112) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:498) at org.apache.maven.surefire.util.ReflectionUtils.invokeMethodWithArray(ReflectionUtils.java:189) at org.apache.maven.surefire.booter.ProviderFactory$ProviderProxy.invoke(ProviderFactory.java:165) at org.apache.maven.surefire.booter.ProviderFactory.invokeProvider(ProviderFactory.java:85) at org.apache.maven.surefire.booter.ForkedBooter.runSuitesInProcess(ForkedBooter.java:113) at org.apache.maven.surefire.booter.ForkedBooter.main(ForkedBooter.java:75)I propose to solve the problem by setting the system property jna.nosys=true to prefer the bundled JNA library.</description>
+      <version>1.6.1,1.7.0</version>
+      <fixedVersion>1.6.3,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-elasticsearch6.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10690" opendate="2018-10-26 00:00:00" fixdate="2018-10-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tests leak resources via Files.list</summary>
+      <description>Files.list has the unfortunate property that is has to be explicitly closed to cleanup the underlying DirectoryStream. This is not done automatically by collectors.Several tests don't close the stream.</description>
+      <version>1.5.4,1.6.1,1.7.0</version>
+      <fixedVersion>1.5.6,1.6.3,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn.src.test.java.org.apache.flink.yarn.UtilsTest.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.ResumeCheckpointManuallyITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.runtime.jobmaster.JobMasterTriggerSavepointIT.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.MultipartUploadResource.java</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.src.test.java.org.apache.flink.fs.s3hadoop.HadoopS3RecoverableWriterTest.java</file>
+      <file type="M">flink-filesystems.flink-s3-fs-base.src.test.java.org.apache.flink.fs.s3.common.utils.RefCountedFileTest.java</file>
+      <file type="M">flink-end-to-end-tests.flink-distributed-cache-via-blob-test.src.main.java.org.apache.flink.streaming.tests.DistributedCacheViaBlobTestProgram.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.util.FileUtilsTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10692" opendate="2018-10-26 00:00:00" fixdate="2018-10-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Harden Confluent schema E2E test</summary>
+      <description>The Confluent schema E2E test starts a Confluent schema registry to run against. If the schema registry cannot be started, the test proceeds and simply dead locks. In order to improve the situation I suggest to fail if we cannot start the Confluent schema registry.</description>
+      <version>1.6.1,1.7.0</version>
+      <fixedVersion>1.6.3,1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.kafka-common.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10702" opendate="2018-10-27 00:00:00" fixdate="2018-10-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Yarn app is not killed when scala shell is terminated</summary>
+      <description>When I quit scala shell in yarn mode, yarn app is not killed.</description>
+      <version>1.6.1</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-scala-shell.src.main.scala.org.apache.flink.api.scala.FlinkShell.scala</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="1019" opendate="2010-4-23 00:00:00" fixdate="2010-5-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"java.net.ConnectException: Connection timed out" in MESSAGE-STREAMING-POOL:1</summary>
+      <description>after doing a nodetool repair on a node in my cluster, i see the following exception on 4 out of the 7 nodes. replication factor is 3. no compactions happening. no client traffic to the cluster. nodetool streams (on one of the nodes not repaired) shows the following which is not ever increasing:Mode: NormalStreaming to: /192.168.132.117 /data/cassandra-data/data/UdsProfiles/stream/UdsProfiles-43-Data.db 0/523088443Not receiving any streams.in addition those same four nodes all show AE-SERVICE-STAGE with pendingwork, and been showing this for several hours now. each node in thecluster has less than 2gb, so it should be finished by now.here is the exception:2010-04-23 10:08:43,416 ERROR &amp;#91;MESSAGE-STREAMING-POOL:1&amp;#93;&amp;#91;DebuggableThreadPoolExecutor.java:101&amp;#93; Error in ThreadPoolExecutorjava.lang.RuntimeException: java.net.ConnectException: Connection timed outat org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:34)at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886)at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908)at java.lang.Thread.run(Thread.java:619)Caused by: java.net.ConnectException: Connection timed outat sun.nio.ch.Net.connect(Native Method)at sun.nio.ch.SocketChannelImpl.connect(SocketChannelImpl.java:507)at org.apache.cassandra.net.FileStreamTask.runMayThrow(FileStreamTask.java:60)at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:30)... 3 more2010-04-23 10:08:43,417 ERROR &amp;#91;MESSAGE-STREAMING-POOL:1&amp;#93;&amp;#91;CassandraDaemon.java:78&amp;#93; Fatal exception in threadThread&amp;#91;MESSAGE-STREAMING-POOL:1,5,main&amp;#93;java.lang.RuntimeException: java.net.ConnectException: Connection timed outat org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:34)at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886)at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908)at java.lang.Thread.run(Thread.java:619)Caused by: java.net.ConnectException: Connection timed outat sun.nio.ch.Net.connect(Native Method)at sun.nio.ch.SocketChannelImpl.connect(SocketChannelImpl.java:507)at org.apache.cassandra.net.FileStreamTask.runMayThrow(FileStreamTask.java:60)at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:30)... 3 more</description>
+      <version>0.6.3,0.7beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.CompletedFileStatus.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamInManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamInitiateVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamCompletionHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.IStreamComplete.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamFinishedVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.IncomingStreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.FileStatusHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.FileStatus.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1027" opendate="2010-4-27 00:00:00" fixdate="2010-6-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow Null Predicate in Deletion</summary>
+      <description>In Mutation, Deletion with no predicate are rejected if no SuperColumn is provided. This forbid deletion of entire row for standard column family using batch_mutate (which feels a bit random as deleting full superColumn is authorized).Attached patch allows null predicate in Deletion (in which case, the whole row is deleted).</description>
+      <version>0.6.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.system.test.thrift.server.py</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1118" opendate="2010-5-24 00:00:00" fixdate="2010-6-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>allow overriding existing token owner with a new IP</summary>
+      <description>We'd like to support replacing one node with another at the same IP (e.g. when the data is on Amazon's EBS and can easily be mounted to a new host), as noted in CASSANDRA-872. But in practice this is reported to not work w/o a cluster restart (can't find the ML thread now ... ?)</description>
+      <version>0.6.3,0.7beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1169" opendate="2010-6-7 00:00:00" fixdate="2010-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AES makes Streaming unhappy</summary>
+      <description>Streaming service assumes there will only be one stream from S to T at a time for any nodes S and T. For the original purpose of node movement, this was a reasonable assumption (any node T can only perform one move at a time) but AES throws off streaming tasks much more frequently than that given the right conditions, which will de-sync the fragile file ordering that Streaming assumes (that T knows which files S is going to send, in what order). Eventually T is expecting file F1 but S sends a smaller file F2, leading to an infinite loop on T while it waits for F1 to finish, and T waits for S to acknowledge F2, which it never will.For 0.6 maybe the best solution is for AES to manually wait for one of its streaming tasks to finish, before it allows itself to create another. For 0.7 it would be nice to make Streaming more robust. The whole 4-stage-ack process seems very fragile, and poking around in parent objects via inetaddress keys makes reasoning about small pieces impossible b/c of encapsulation violations.</description>
+      <version>0.6.3,0.7beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.MoveTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+      <file type="M">src.java.org.apache.cassandra.avro.CassandraDaemon.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1174" opendate="2010-6-7 00:00:00" fixdate="2010-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Debian packaging should auto-detect the JVM, not require OpenJDK</summary>
+      <description>The current init.d script for Debian-packaged Cassandra has the OpenJDK's JAVA_HOME hard-coded in, making it impossible to use sun-java6 without modifying the file. Ideally it should use the same sort of auto-detection logic used by other Debian-packaged Java projects to figure out which JVM it should use.(I have a patch for this that I'll upload shortly.)</description>
+      <version>0.6.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1181" opendate="2010-6-11 00:00:00" fixdate="2010-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>kinder gentler compaction</summary>
+      <description>I suggested this in a ML thread but it seems that nobody actually tried it. I think it's worth following up on:You could try setting the compaction thread to a lower priority. You could add a thread priority to NamedThreadPool, and pass that up from CompactionExecutor constructor. According to http://www.javamex.com/tutorials/threads/priority_what.shtml you have to run as root and add a JVM option to get this to work.In particular, Brandon saw stress.py read latencies spike to 100ms during &amp;#91;anti&amp;#93;compaction on a 2 core machine. I'd like to see if this can mitigate that.</description>
+      <version>0.6.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">conf.cassandra-env.sh</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

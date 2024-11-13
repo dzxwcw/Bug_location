@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="3612" opendate="2011-12-11 00:00:00" fixdate="2011-3-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL inserting blank key.</summary>
+      <description>One of our application bug inserted blank key into cluster causing assertion error on key. After checking the root cause, I found it is the bug with CQL and reproducible. Client cassandra-node and cqlsh-1.0.6.Blank key only work when one column provided.{}cqlsh&gt; insert into login (KEY,email)values('','');cqlsh&gt; select * from login;u'' | u'email',u'' cqlsh&gt; insert into login (KEY,email,verified)values('','','');Request did not complete within rpc_timeout.cqlsh&gt; insert into login (KEY,verified)values('','');Request did not complete within rpc_timeout.cqlsh&gt; insert into login (KEY,email)values('','');cqlsh&gt; cqlsh&gt; select * from login;u'' | u'email',u'' | u'uid',Nonecqlsh&gt; select * from login;u'' | u'email',u'' | u'uid',Nonecqlsh&gt; select * from login;u'' | u'email',u'' | u'uid',Nonecqlsh&gt; cqlsh&gt; select * from login;u'' | u'email',u'' | u'uid',Noneu'samalgorai@gmail.com' | u'email',u'samalgorai@gmail.com' | u'password',u'388ad1c312a488ee9e12998fe097f2258fa8d5ee' | u'uid',UUID('05ea41dc-241f-11e1-8521-3da59237b189') | u'verified',u'0'cqlsh&gt; quit;{/}http://pastebin.com/HJn5fHhH</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.UpdateStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DeleteStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3755" opendate="2012-1-19 00:00:00" fixdate="2012-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NPE on invalid CQL DELETE command</summary>
+      <description>The CQL command delete from k where key='bar'; causes Cassandra to hit a NullPointerException when the "k" column family does not exist, and it subsequently closes the Thrift connection instead of reporting an IRE or whatever. This is probably wrong.</description>
+      <version>1.0.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.DeleteStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3955" opendate="2012-2-24 00:00:00" fixdate="2012-2-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HintedHandoff won&amp;#39;t compact a single sstable, resulting in repeated log messages</summary>
+      <description>First introduced by CASSANDRA-3554, and then mostly solved in CASSANDRA-3733, there is still one special case where the HH log message will repeat every 10 mins for 0 rows: when there have previously been hints delivered to the node, but now only a single sstable exists. Because the we refused to compact a single sstable, and it contains tombstones for the hints, the message repeats.</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3980" opendate="2012-2-29 00:00:00" fixdate="2012-2-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cli should be able to define CompositeType comparators</summary>
+      <description>There is currently no way to define, for instance, CompositeType(UTF8Type,Int32Type) in a CF definition.</description>
+      <version>1.0.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.cli.CliHelp.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3986" opendate="2012-3-1 00:00:00" fixdate="2012-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cli shouldn&amp;#39;t call FBU.getBroadcastAddress needlessly</summary>
+      <description>The cli is calling this, which causes yaml to be loaded, but the broadcast address isn't needed. // adding default data center from SimpleSnitch if (currentStrategyOptions == null || currentStrategyOptions.isEmpty()) { SimpleSnitch snitch = new SimpleSnitch(); Map&lt;String, String&gt; options = new HashMap&lt;String, String&gt;(); options.put(snitch.getDatacenter(FBUtilities.getBroadcastAddress()), "1"); ksDef.setStrategy_options(options); }because SimpleSnitch always returns 'datacenter1'</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4000" opendate="2012-3-5 00:00:00" fixdate="2012-3-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Division by zero on get_slice</summary>
+      <description>We have a column family with String row keys and Long column keys.Our WideEntityService is trying to get the first column in the range from 0 to Long.MAX. It's a batch operation performed for every row in the CF (rows count is approximately tens of thousands and each row contains from 0 to 1000 columns). After processing each row we are removing some of the columns we have queried. Also, at the same time we are writing in this CF in another threads but somewhat less intensive.An error rises approximately for a one of 100 rows.Exception itself:&amp;#91;05-Mar-2012 18:47:25,247&amp;#93; ERROR &amp;#91;http-8095-1 WideEntityServiceImpl.java:142&amp;#93; - get: key1 - {type=RANGE, start=0, end=9223372036854775807, orderDesc=false, limit=1}me.prettyprint.hector.api.exceptions.HCassandraInternalException: Cassandra encountered an internal error processing this request: TApplicationError type: 6 message:Internal error processing get_slice at me.prettyprint.cassandra.service.ExceptionsTranslatorImpl.translate(ExceptionsTranslatorImpl.java:31) at me.prettyprint.cassandra.service.KeyspaceServiceImpl$7.execute(KeyspaceServiceImpl.java:285) at me.prettyprint.cassandra.service.KeyspaceServiceImpl$7.execute(KeyspaceServiceImpl.java:268) at me.prettyprint.cassandra.service.Operation.executeAndSetResult(Operation.java:101) at me.prettyprint.cassandra.connection.HConnectionManager.operateWithFailover(HConnectionManager.java:233) at me.prettyprint.cassandra.service.KeyspaceServiceImpl.operateWithFailover(KeyspaceServiceImpl.java:131) at me.prettyprint.cassandra.service.KeyspaceServiceImpl.getSlice(KeyspaceServiceImpl.java:289) at me.prettyprint.cassandra.model.thrift.ThriftSliceQuery$1.doInKeyspace(ThriftSliceQuery.java:53) at me.prettyprint.cassandra.model.thrift.ThriftSliceQuery$1.doInKeyspace(ThriftSliceQuery.java:49) at me.prettyprint.cassandra.model.KeyspaceOperationCallback.doInKeyspaceAndMeasure(KeyspaceOperationCallback.java:20) at me.prettyprint.cassandra.model.ExecutingKeyspace.doExecute(ExecutingKeyspace.java:85) at me.prettyprint.cassandra.model.thrift.ThriftSliceQuery.execute(ThriftSliceQuery.java:48)</description>
+      <version>1.0.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SliceFromReadCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4023" opendate="2012-3-8 00:00:00" fixdate="2012-3-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve BloomFilter deserialization performance</summary>
+      <description>The difference of startup times between a 0.8.7 cluster and 1.0.7 cluster with the same amount of data is 4x greater in 1.0.7.It seems as though 1.0.7 loads the BloomFilter through a series of reading longs out in a multithreaded process while 0.8.7 reads the entire object.Perhaps we should update the new BloomFilter to do reading in batch as well?</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.RowIndexEntry.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableReaderTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.ByteBufferUtil.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4033" opendate="2012-3-9 00:00:00" fixdate="2012-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: double wide unicode chars cause incorrect padding in select output</summary>
+      <description>CREATE COLUMNFAMILY cf3 (KEY text primary key);INSERT INTO cf3 (KEY, col1, col2) VALUES ('a', '1234 1234 1234 1234', 'abcd');INSERT INTO cf3 (KEY, col1, col2) VALUES ('b', '愛愛愛愛 愛愛愛愛 愛愛愛愛 愛愛愛愛', 'abcd');SELECT * FROM cf3 WHERE key in ('a', 'b');produces this output: KEY | col1 | col2-----+-----------------------------------------------------+------ a | 1234 1234 1234 1234 | abcd b | 愛愛愛愛 愛愛愛愛 愛愛愛愛 愛愛愛愛 | abcdnote the extra spaces before the "love" glyphs.</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4070" opendate="2012-3-21 00:00:00" fixdate="2012-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CFS.setMaxCompactionThreshold doesn&amp;#39;t allow 0 unless min is also 0</summary>
+      <description>Thrift allows to set the max compaction threshold to 0 to disable compaction. However, CFS.setMaxCompactionThreshold throws an exception min &gt; max even if max is 0.Note that even if someone sets 0 for both the min and max thresholds, we'll can have a problem because SizeTieredCompaction calls CFS.setMaxCompactionThreshold before calling CFS.setMinCompactionThreshold and thus will trigger the RuntimeException when it shouldn't.</description>
+      <version>1.0.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4081" opendate="2012-3-24 00:00:00" fixdate="2012-3-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Issue with cassandra-cli "assume" command and custom types</summary>
+      <description>There seems to be an issue with cassandra-cli's assume command with a custom type. I get "Syntax error at position 35: missing EOF at '.'"To make sure the issue is not with my custom type, I tried it with the built-in BytesType and got the same error:&amp;#91;default@test&amp;#93; assume UserDetails validator as org.apache.cassandra.db.marshal.BytesType;Syntax error at position 35: missing EOF at '.'I also tried it with single and double quotes with no success:&amp;#91;default@test&amp;#93; assume UserDetails validator as 'org.apache.cassandra.db.marshal.BytesType';Syntax error at position 32: mismatched input ''org.apache.cassandra.db.marshal.BytesType'' expecting IdentifierBased on the output of "help assume" I should be able to just pass a fqn of a class.&gt; It is also valid to specify the fully-qualified class name to a class that&gt; extends org.apache.Cassandra.db.marshal.AbstractType.</description>
+      <version>1.0.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.Cli.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4086" opendate="2012-3-27 00:00:00" fixdate="2012-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>decom should shut thrift down</summary>
+      <description>If you decom a node an then try to use it, you get nothing but timeouts. Instead let's just kill thrift so intelligent clients can move along.</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4096" opendate="2012-3-28 00:00:00" fixdate="2012-3-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>mlockall() returned code is ignored w/o assertions</summary>
+      <description>We log that mlockall() was successful only based on the lack of an assertion failure, so for anyone running w/o -ea we are lying about mlockall() succeeding.</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.CLibrary.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4099" opendate="2012-3-28 00:00:00" fixdate="2012-6-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>IncomingTCPConnection recognizes from by doing socket.getInetAddress() instead of BroadCastAddress</summary>
+      <description>change "this.from = socket.getInetAddress()" to understand the broad cast IP, but the problem is we dont know until the first packet is received, this ticket is to work around the problem until it reads the first packet.</description>
+      <version>1.0.9,1.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.IncomingTcpConnection.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="8692" opendate="2018-2-18 00:00:00" fixdate="2018-2-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Mistake in MyMapFunction code snippet</summary>
+      <description>The MyMapFunction code snippet on the Basic API Concepts page has an extra parenthesis. Just remove the last parenthesis. See the attached screenshot. Thanks. </description>
+      <version>1.4.1,1.5.0</version>
+      <fixedVersion>1.4.2,1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.api.concepts.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8741" opendate="2018-2-22 00:00:00" fixdate="2018-5-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>KafkaFetcher09/010/011 uses wrong user code classloader</summary>
+      <description>This commit https://github.com/apache/flink/commit/0a1ce0060ef3af29b196ab6ad58f97e49a40a4cf#diff-51fb939365cf758a89794a2599344702R98 caused the wrong classloader to be used.The user code classloader should be used directly, not its parent. That change seems to be irrelevant to the issue, and seems to have been changed by accident.</description>
+      <version>1.4.1,1.5.0</version>
+      <fixedVersion>1.4.2,1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test-infra.end-to-end-test.test.streaming.kafka010.sh</file>
+      <file type="M">flink-examples.flink-examples-streaming.src.main.java.org.apache.flink.streaming.examples.kafka.Kafka010Example.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.main.java.org.apache.flink.streaming.connectors.kafka.internal.Kafka09Fetcher.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8793" opendate="2018-2-27 00:00:00" fixdate="2018-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hide key containing "secret" in web interface</summary>
+      <description>Currently, we going in /jobmanager/config on the web interface, the value of the key containing "password" are replaced by "****" When using s3 for checkpoint/savepoint configuration on an infrastructure which is not on AWS (where IAM is not possible), the s3.secret-key is revealed from the interface. I propose the same behaviour as key with "password" for key with "secret" </description>
+      <version>1.4.1</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.ClusterConfigurationInfo.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.legacy.ClusterConfigHandler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8798" opendate="2018-2-27 00:00:00" fixdate="2018-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make commons-logging a parent-first pattern</summary>
+      <description>The Apache commons-logging framework does not play well with child-first classloading.We need to make this a parent-first pattern.As a matter of fact, other frameworks that use inverted classloading (JBoss, Tomcat) use force this library to be always parent-first as well.</description>
+      <version>1.4.1</version>
+      <fixedVersion>1.4.2,1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-core.src.test.java.org.apache.flink.configuration.ParentFirstPatternsTest.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.CoreOptions.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8847" opendate="2018-3-3 00:00:00" fixdate="2018-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Modules containing package-info.java are always recompiled</summary>
+      <description>All modules that contain a package-info.java file (that do not contain annotations which applies to all instances in Flink) will always be recompiled by the maven-compiler-plugin.To detect modified files the compiler compares timestamps of the source and .class file. In the case of package-info.java no .class file is created if it doesn't contain annotations, which the compiler interprets as a missing .class file.We can add -Xpkginfo:always to the compiler configuration to force the generation of these files to prevent this from happening.</description>
+      <version>1.3.2,1.4.1,1.5.0</version>
+      <fixedVersion>1.4.3,1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8871" opendate="2018-3-5 00:00:00" fixdate="2018-5-5 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Checkpoint cancellation is not propagated to stop checkpointing threads on the task manager</summary>
+      <description>Flink currently lacks any form of feedback mechanism from the job manager / checkpoint coordinator to the tasks when it comes to failing a checkpoint. This means that running snapshots on the tasks are also not stopped even if their owning checkpoint is already cancelled. Two examples for cases where this applies are checkpoint timeouts and local checkpoint failures on a task together with a configuration that does not fail tasks on checkpoint failure. Notice that those running snapshots do no longer account for the maximum number of parallel checkpoints, because their owning checkpoint is considered as cancelled.Not stopping the task's snapshot thread can lead to a problematic situation where the next checkpoints already started, while the abandoned checkpoint thread from a previous checkpoint is still lingering around running. This scenario can potentially cascade: many parallel checkpoints will slow down checkpointing and make timeouts even more likely. A possible solution is introducing a cancelCheckpoint method  as counterpart to the triggerCheckpoint method in the task manager gateway, which is invoked by the checkpoint coordinator as part of cancelling the checkpoint.</description>
+      <version>1.3.2,1.4.1,1.5.0,1.6.0,1.7.0</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.runtime.jobmaster.JobMasterTriggerSavepointITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TestingTaskExecutorGateway.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.utils.SimpleAckingTaskManagerGateway.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.CheckpointCoordinatorTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskExecutorGateway.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskExecutor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.RpcTaskManagerGateway.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmanager.slots.TaskManagerGateway.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.Execution.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.CheckpointFailureReason.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.CheckpointFailureManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.CheckpointCoordinator.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.streaming.api.datastream.ReinterpretDataStreamAsKeyedStreamITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.classloading.jar.CheckpointingCustomKvStateProgram.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.classloading.jar.CheckpointedStreamingProgram.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.ZooKeeperHighAvailabilityITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.utils.FailingSource.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.utils.CancellingIntegerSource.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.utils.AccumulatingIntegerSink.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UnalignedCheckpointITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.StreamCheckpointNotifierITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.StateCheckpointedITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.KeyedStateCheckpointingITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.CoStreamCheckpointingITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.ContinuousFileProcessingCheckpointITCase.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.ExceptionallyDoneFuture.java</file>
+      <file type="M">flink-connectors.flink-connector-filesystem.src.main.java.org.apache.flink.streaming.connectors.fs.bucketing.BucketingSink.java</file>
+      <file type="M">flink-connectors.flink-connector-gcp-pubsub.src.main.java.org.apache.flink.streaming.connectors.gcp.pubsub.common.AcknowledgeOnCheckpoint.java</file>
+      <file type="M">flink-connectors.flink-connector-gcp-pubsub.src.main.java.org.apache.flink.streaming.connectors.gcp.pubsub.PubSubSource.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaConsumerTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaProducerTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.testutils.FailingIdentityMapper.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.testutils.IntegerSource.java</file>
+      <file type="M">flink-end-to-end-tests.flink-datastream-allround-test.src.main.java.org.apache.flink.streaming.tests.FailureMapper.java</file>
+      <file type="M">flink-end-to-end-tests.flink-heavy-deployment-stress-test.src.main.java.org.apache.flink.deployment.HeavyDeploymentStressTestProgram.java</file>
+      <file type="M">flink-end-to-end-tests.flink-local-recovery-and-allocation-test.src.main.java.org.apache.flink.streaming.tests.StickyAllocationAndLocalRecoveryTestJob.java</file>
+      <file type="M">flink-libraries.flink-state-processing-api.src.main.java.org.apache.flink.state.api.runtime.SavepointTaskStateManager.java</file>
+      <file type="M">flink-libraries.flink-state-processing-api.src.test.java.org.apache.flink.state.api.output.SnapshotUtilsTest.java</file>
+      <file type="M">flink-queryable-state.flink-queryable-state-runtime.src.test.java.org.apache.flink.queryablestate.itcases.AbstractQueryableStateTestBase.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.CheckpointListener.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.heap.HeapKeyedStateBackend.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.NoOpTaskLocalStateStoreImpl.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.TaskLocalStateStore.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.TaskLocalStateStoreImpl.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.TaskStateManagerImpl.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.Task.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.TaskLocalStateStoreImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.TestTaskLocalStateStore.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.TestTaskStateManager.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.ttl.mock.MockKeyedStateBackend.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBKeyedStateBackend.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.snapshot.RocksFullSnapshotStrategy.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.snapshot.RocksIncrementalSnapshotStrategy.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.functions.sink.filesystem.StreamingFileSink.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.functions.sink.TwoPhaseCommitSinkFunction.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.functions.source.MessageAcknowledgingSourceBase.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.AbstractStreamOperator.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.AbstractStreamOperatorV2.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.collect.CollectSinkFunction.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.StreamOperatorStateHandler.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.AsyncCheckpointRunnable.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.StreamTask.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.SubtaskCheckpointCoordinator.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.SubtaskCheckpointCoordinatorImpl.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.operators.AbstractUdfStreamOperatorLifecycleTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.LocalStateForwardingTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.MockSubtaskCheckpointCoordinatorBuilder.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.SubtaskCheckpointCoordinatorTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.SynchronousCheckpointITCase.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.java.org.apache.flink.table.planner.runtime.utils.FailingCollectionSource.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.runtime.stream.FsStreamingSinkITCaseBase.scala</file>
+      <file type="M">flink-test-utils-parent.flink-test-utils.src.main.java.org.apache.flink.streaming.util.FiniteTestSource.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.runtime.jobmaster.JobMasterStopWithSavepointIT.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8897" opendate="2018-3-8 00:00:00" fixdate="2018-11-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rowtime materialization causes "mismatched type" AssertionError</summary>
+      <description>As raised in this thread, the query created by the following code will throw a calcite "mismatch type" (Timestamp(3) and TimeIndicator) exception.String sql1 = "select id, eventTs as t1, count(*) over (partition by id order by eventTs rows between 100 preceding and current row) as cnt1 from myTable1";String sql2 = "select distinct id as r_id, eventTs as t2, count(*) over (partition by id order by eventTs rows between 50 preceding and current row) as cnt2 from myTable2";Table left = tableEnv.sqlQuery(sql1);Table right = tableEnv.sqlQuery(sql2);left.join(right).where("id === r_id &amp;&amp; t1 === t2").select("id, t1").writeToSink(...)The logical plan is as follows.LogicalProject(id=[$0], t1=[$1]) LogicalFilter(condition=[AND(=($0, $3), =($1, $4))]) LogicalJoin(condition=[true], joinType=[inner]) LogicalAggregate(group=[{0, 1, 2}]) LogicalWindow(window#0=[window(partition {0} order by [1] rows between $2 PRECEDING and CURRENT ROW aggs [COUNT()])]) LogicalProject(id=[$0], eventTs=[$3]) LogicalTableScan(table=[[_DataStreamTable_0]]) LogicalAggregate(group=[{0, 1, 2}]) LogicalWindow(window#0=[window(partition {0} order by [1] rows between $2 PRECEDING and CURRENT ROW aggs [COUNT()])]) LogicalProject(id=[$0], eventTs=[$3]) LogicalTableScan(table=[[_DataStreamTable_0]])That is because the the rowtime field after an aggregation will be materialized while the RexInputRef type for the filter's operands (t1 === t2) is still TimeIndicator. We should make them unified.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.TimeAttributesITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.plan.TimeIndicatorConversionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.table.JoinTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.sql.JoinTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.join.WindowJoinUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.datastream.DataStreamWindowJoinRule.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.datastream.DataStreamJoinRule.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.RelTimeIndicatorConverter.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9274" opendate="2018-4-30 00:00:00" fixdate="2018-5-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add thread name to Kafka Partition Discovery</summary>
+      <description>For debugging, threads should have names to filter on and get a quick overview. The Kafka partition discovery thread(s) currently don't have any name assigned.</description>
+      <version>1.4.0,1.4.1,1.4.2,1.5.0,1.6.0</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9275" opendate="2018-4-30 00:00:00" fixdate="2018-5-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Set more distinctive output flusher thread names</summary>
+      <description>All output flusher threads are named "OutputFlusher" while at the only place the StreamWriter is initialized, we already have the task name at hand.</description>
+      <version>1.4.0,1.4.1,1.4.2,1.5.0,1.6.0</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.StreamTask.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.io.StreamRecordWriter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9306" opendate="2018-5-7 00:00:00" fixdate="2018-5-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Execute YARN IT tests for legacy and new mode</summary>
+      <description>Currently, we are not executing the YARN IT cases for legacy mode.I opened a PR that changes that but it's currently failing on one of the tests in legacy mode: https://github.com/apache/flink/pull/5953</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.YarnTestBase.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.YARNSessionFIFOSecuredITCase.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.YARNSessionFIFOITCase.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.YARNSessionCapacitySchedulerITCase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9333" opendate="2018-5-11 00:00:00" fixdate="2018-5-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>QuickStart Docs Spelling fix and some info regarding IntelliJ JVM Options</summary>
+      <description>Spelling fix for QuickStart Project Template for Java  Adding more details regarding changing JVM options in IntelliJ IDEA</description>
+      <version>1.4.1,1.4.2</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.quickstart.java.api.quickstart.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9372" opendate="2018-5-15 00:00:00" fixdate="2018-5-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Typo on Elasticsearch website link (elastic.io --&gt; elastic.co)</summary>
+      <description>Typo on website link in Elasticsearch Java Docs (elastic.io --&gt; elastic.co)</description>
+      <version>1.4.1,1.4.2,1.5.0,1.5.1</version>
+      <fixedVersion>1.5.1,1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-elasticsearch.src.main.java.org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSink.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch5.src.main.java.org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch2.src.main.java.org.apache.flink.streaming.connectors.elasticsearch2.ElasticsearchSink.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9463" opendate="2018-5-29 00:00:00" fixdate="2018-6-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Setting taskmanager.network.netty.transport to epoll</summary>
+      <description>https://github.com/apache/flink-shaded/issues/30 </description>
+      <version>1.4.0,1.4.1,1.4.2,1.5.0</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-core.src.main.java.org.apache.flink.util.ExceptionUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9990" opendate="2018-7-29 00:00:00" fixdate="2018-10-29 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Add regexp_extract supported in TableAPI and SQL</summary>
+      <description>regex_extract is a very useful function, it returns a string based on a regex pattern and a index.For example : regexp_extract('foothebar', 'foo(.*?)(bar)', 2) // returns 'bar.'It is provided as a UDF in Hive, more details please see&amp;#91;1&amp;#93;.&amp;#91;1&amp;#93;: https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.SqlExpressionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.ScalarFunctionsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.functions.ScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.sql.ScalarSqlFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.expressions.stringExpressions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.FunctionGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.BuiltInMethods.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.scala.expressionDsl.scala</file>
+      <file type="M">docs.dev.table.functions.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9991" opendate="2018-7-29 00:00:00" fixdate="2018-9-29 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Add regexp_replace supported in TableAPI and SQL</summary>
+      <description>regexp_replace is a very userful function to process String. For example :regexp_replace("foobar", "oo|ar", "") //returns 'fb.'It is supported as a UDF in Hive, more details please see&amp;#91;1&amp;#93;.&amp;#91;1&amp;#93;: https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF </description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.SqlExpressionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.ScalarFunctionsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.functions.ScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.sql.ScalarSqlFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.expressions.stringExpressions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.FunctionGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.BuiltInMethods.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.scala.expressionDsl.scala</file>
+      <file type="M">docs.dev.table.functions.md</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

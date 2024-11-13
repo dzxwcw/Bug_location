@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10120" opendate="2015-8-18 00:00:00" fixdate="2015-4-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When specifying both num_tokens and initial_token, error out if the numbers don&amp;#39;t match</summary>
+      <description>Right now if both initial_token and num_tokens are specified, initial_token is used. As something to not trip people up, it would be nice to do a basic error check. If both are specified, we should make sure they match. That is, if they have one initial token and num_tokens of 256, it should error out on startup and alert the user of the configuration. It's better to fail fast than bootstrap with only one token.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10853" opendate="2015-12-12 00:00:00" fixdate="2015-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>deb package migration to dh_python2</summary>
+      <description>I'm working on a deb job in jenkins, and I had forgotten to open a bug for this. There is no urgent need, since python-support is in Jessie, but this package is currently in transition to be removed.http://deb.li/dhs2pDuring deb build:dh_pysupport: This program is deprecated, you should use dh_python2 instead. Migration guide: http://deb.li/dhs2p</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.rules</file>
+      <file type="M">src.java.org.apache.cassandra.utils.Interval.java</file>
+      <file type="M">debian.control</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11137" opendate="2016-2-9 00:00:00" fixdate="2016-4-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JSON datetime formatting needs timezone</summary>
+      <description>The JSON date time string representation lacks the timezone information:cqlsh:events&gt; select toJson(created_at) AS created_at from event_by_user_timestamp ; created_at--------------------------- "2016-01-04 16:05:47.123"(1 rows)vs.cqlsh:events&gt; select created_at FROM event_by_user_timestamp ; created_at-------------------------- 2016-01-04 15:05:47+0000(1 rows)cqlsh:events&gt;To make things even more complicated the JSON timestamp is not returned in UTC.At the moment DateType picks this formatting string "yyyy-MM-dd HH:mm:ss.SSS". Shouldn't we somehow make this configurable by users or at a minimum add the timezone?</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.TimestampSerializer.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11329" opendate="2016-3-9 00:00:00" fixdate="2016-4-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Indexers are not informed when expired rows are encountered in compaction</summary>
+      <description>When rows are merged during a compaction, if the row resulting from that merge is expired due to a row level ttl, registered indexes should be notified. Index implementers need to be aware that just because an expired row is written to the new SSTable, it doesn't necessarily mean that the index should purge its entry/entries for that row as there may still be be live data in other SSTables. That said, it should probably be the responsibility of the index implementation to manage that, but at the moment the handling of an onPrimaryKeyLivenessInfo event during compaction is a no-op and doesn't cause the registered indexes to be notified.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.index.CustomIndexTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.SecondaryIndexManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.internal.CassandraIndex.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11410" opendate="2016-3-23 00:00:00" fixdate="2016-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Option to specify ProtocolVersion in cassandra-stress</summary>
+      <description>Currently cassandra-stress is hardcoded to ProtocolVersion.NEWEST_SUPPORTED.It is not always the true that the cassandra version being stressed is the same as that cassandra-stress is being used from. An example is wanting to use the graphing feature against Cassandra-2.1This patch offers the option to specify the ProtocolVersion.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/Testing,Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.JavaDriverClient.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsMode.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11412" opendate="2016-3-23 00:00:00" fixdate="2016-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Many sstablescanners opened during repair</summary>
+      <description>Since CASSANDRA-5220 we open one sstablescanner per range per sstable. If compaction gets behind and you are running vnodes with 256 tokens and RF3, this could become a problem (ie, 768 * number of sstables scanners)We could probably refactor this similar to the way we handle scanners with LCS - only open the scanner once we need it</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.big.BigTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionStrategyManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.AbstractCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11474" opendate="2016-4-1 00:00:00" fixdate="2016-4-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM should use regular inserts for single statement batches</summary>
+      <description>I haven't reproduced it with a test yet but, from code inspection, if CQL rows are larger than batch_size_fail_threshold_in_kb and this parameter cannot be changed, then data import will fail.Users can control the batch size by setting MAXBATCHSIZE.If a batch contains a single statement, there is no need to use a batch and we should use normal inserts instead or, alternatively, we should skip the batch size check for unlogged batches with only one statement.</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11510" opendate="2016-4-6 00:00:00" fixdate="2016-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clustering key and secondary index</summary>
+      <description>I noticed the following change in behavior while migrating from 2.0.11: Elements of the clustering key seems to not be secondary indexable anymore.Using this table:CREATE TABLE table1 ( name text, class int, inter text, power int, PRIMARY KEY (name, class, inter)) WITH CLUSTERING ORDER BY (class DESC, inter ASC);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',1, 'int1',13);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',2, 'int1',18);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',3, 'int1',37);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',4, 'int1',49);In version 2.0.11, I used to have a secondary index on inter, that allowed me to make fast queries on the table:CREATE INDEX table1_inter ON table1 (inter);SELECT * FROM table1 where name='R1' AND class&gt;0 AND class&lt;4 AND inter='int1' ALLOW FILTERING;While testing on 3.3.0, I get the following message:Clustering column "inter" cannot be restricted (preceding column "class" is restricted by a non-EQ relation)It seems to only be considered as a key and the index and ALLOW FILTERING are not taken into account anymore (as it was in 2.0.11).I found the following workaround: Duplicate the column inter as a regular column, and simply query it with the secondary index and no ALLOW FILTERING. It looks like the behavior I would anticipate and do not understand why it does not work on inter only because it is a clustering key. The only answer on the ml evokes a bug.</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Feature/2iIndex,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectSingleColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.StatementRestrictions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSet.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11515" opendate="2016-4-6 00:00:00" fixdate="2016-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* won&amp;#39;t launch with whitespace in path on Windows</summary>
+      <description>In a directory named 'test space', I see the following on launch:Error: Could not find or load main class space\cassandra.logs.gc.log</description>
+      <version>2.2.6,3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11529" opendate="2016-4-7 00:00:00" fixdate="2016-4-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Checking if an unlogged batch is local is inefficient</summary>
+      <description>Based on CASSANDRA-11363 report I noticed that on CASSANDRA-9303 we introduced the following check to avoid printing a WARN in case an unlogged batch statement is local: for (IMutation im : mutations) { keySet.add(im.key()); for (ColumnFamily cf : im.getColumnFamilies()) ksCfPairs.add(String.format("%s.%s", cf.metadata().ksName, cf.metadata().cfName));++ if (localMutationsOnly)+ localMutationsOnly &amp;= isMutationLocal(localTokensByKs, im); } + // CASSANDRA-9303: If we only have local mutations we do not warn+ if (localMutationsOnly)+ return;+ NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES, unloggedBatchWarning, keySet.size(), keySet.size() == 1 ? "" : "s", ksCfPairs.size() == 1 ? "" : "s", ksCfPairs);The isMutationLocal check uses StorageService.instance.getLocalRanges(mutation.getKeyspaceName()), which underneaths uses AbstractReplication.getAddressRanges to calculate local ranges. Recalculating this at every unlogged batch can be pretty inefficient, so we should at the very least cache it every time the ring changes.</description>
+      <version>2.1.14,2.2.6,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11549" opendate="2016-4-12 00:00:00" fixdate="2016-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM ignores NULL values in conversion</summary>
+      <description>COPY FROM fails to import empty values. For example:$ cat test.csva,10,20b,30,c,50,60$ cqlshcqlsh&gt; create keyspace if not exists test with replication = {'class': 'SimpleStrategy', 'replication_factor':1};cqlsh&gt; create table if not exists test.test (t text primary key, i1 int, i2 int);cqlsh&gt; copy test.test (t,i1,i2) from 'test.csv';Imports:select * from test.test"; t | i1 | i2---+----+---- a | 10 | 20 c | 50 | 60(2 rows)and generates a ParseError - invalid literal for int() with base 10: '', given up without retries for the row with an empty value.It should import the empty value as a null and there should be no error:cqlsh&gt; select * from test.test"; t | i1 | i2---+----+------ a | 10 | 20 c | 50 | 60 b | 30 | null(3 rows)</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11574" opendate="2016-4-14 00:00:00" fixdate="2016-4-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>clqsh: COPY FROM throws TypeError with Cython extensions enabled</summary>
+      <description>Any COPY FROM command in cqlsh is throwing the following error:"get_num_processes() takes no keyword arguments"Example command: COPY inboxdata (to_user_id,to_user_network,created_time,attachments,from_user_id,from_user_name,from_user_network,id,message,to_user_name,updated_time) FROM 'inbox.csv';Similar commands worked parfectly in the previous versions such as 3.0.4</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11602" opendate="2016-4-19 00:00:00" fixdate="2016-5-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Materialized View Does Not Have Static Columns</summary>
+      <description>CREATE TABLE "team" (teamname text, manager text, location text static, PRIMARY KEY ((teamname), manager));INSERT INTO team (teamname, manager, location) VALUES ('Red Bull1', 'Ricciardo11', 'Australian');INSERT INTO team (teamname, manager, location) VALUES ('Red Bull2', 'Ricciardo12', 'Australian');INSERT INTO team (teamname, manager, location) VALUES ('Red Bull2', 'Ricciardo13', 'Australian');select * From team;CREATE MATERIALIZED VIEW IF NOT EXISTS "teamMV" AS SELECT "teamname", "manager", "location" FROM "team" WHERE "teamname" IS NOT NULL AND "manager" is NOT NULL AND "location" is NOT NULL PRIMARY KEY("manager", "teamname"); select * from "teamMV";The teamMV does not have "location" column. Static columns are not getting created in MV.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Feature/MaterializedViews,Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateViewStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11618" opendate="2016-4-20 00:00:00" fixdate="2016-5-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Removing an element from map&lt;any type, tinyint/smallint&gt; corrupts commitlog</summary>
+      <description>2.2.6 has no this bug.I've tried 3.0 alpha 1, 3.0 beta 1, 3.0 beta 2, 3.0.0, 3.0.6, 3.5, datastax-ddc 3.5.0 (from repo), and trunk (3.6) - all of them have this bug. I've found that the error is thrown since d12d2d496540c698f30e9b528b66e8f6636842d3, which is included in 3.0 beta 1 (but not in the alpha 1).Cassandra 3.0 alpha 1 does not throw the error, but forgets about the changes after shutting down.Only after rm ./data/commitlog/* , Cassandra starts fine.By the way, map&lt;int, boolean&gt; works fine.Steps to reproduce:$ ant build$ ./bin/cassandra$ ./bin/cqlshCREATE KEYSPACE bugs WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND durable_writes = true;CREATE TABLE bugs.bug1 ( id int, m map&lt;int, tinyint or smallint&gt;, -- key can be any type PRIMARY KEY (id));INSERT INTO bugs.bug1 (id, m) VALUES (1, {0: 4, 4: 3});UPDATE bugs.bug1 SET m[0]=NULL WHERE id=1;-- and/or UPDATE bugs.bug1 SET m[1]=NULL WHERE id=1;SELECT * FROM bugs.bug1; id | m----+-------- 1 | {4: 3}(1 rows)$ ./bin/nodetool stopdaemon$ ./bin/cassandra</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.CellTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.AbstractCell.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11627" opendate="2016-4-21 00:00:00" fixdate="2016-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Streaming and other ops should filter out all LocalStrategy keyspaces, not just system keyspaces</summary>
+      <description>Streaming operations currently filter ignore system keyspaces (at least, all system keyspaces that use LocalStrategy), but they technically need to ignore all LocalStrategy keyspaces, not just system ones. There are also a few non-streaming operations that need to do the same thing: cleanup, key range sampling, and nodetool status.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.MoveTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.service.LeaveAndBootstrapTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.locator.SimpleStrategyTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.dht.BootStrapperTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.nodetool.Repair.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.nodetool.Cleanup.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.PendingRangeCalculatorService.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.BootStrapper.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SizeEstimatesRecorder.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Keyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Schema.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11631" opendate="2016-4-22 00:00:00" fixdate="2016-4-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY FROM fails for null values with non-prepared statements</summary>
+      <description>cqlsh's COPY FROM ... WITH PREPAREDSTATEMENTS = False fails if the row contains null values. Reason is that the ','.join(r) in make_non_prepared_batch_statement doesn't seem to handle None, which results in this error message.Failed to import 1 rows: TypeError - sequence item 2: expected string, NoneType found, given up without retriesAttached patch should fix the problem.</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11654" opendate="2016-4-26 00:00:00" fixdate="2016-4-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstabledump is not able to properly print out SSTable that may contain historical (but "shadowed") row tombstone</summary>
+      <description>It is pretty trivial to reproduce. Here are the steps I used (on a single node C* 3.x cluster):echo "CREATE KEYSPACE IF NOT EXISTS testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'};" | cqlshecho "CREATE TABLE IF NOT EXISTS testks.testcf ( k int, c text, val0_int int, PRIMARY KEY (k, c) );" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int) VALUES (1, 'c1', 100);" | cqlshecho "DELETE FROM testks.testcf where k=1 and c='c1';" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int) VALUES (1, 'c1', 100);" | cqlshnodetool flush testks testcfecho "SELECT * FROM testks.testcf;" | cqlshThe last step from above will confirm that there is one live row in the testks.testcf table. However, if you now go to the actual SSTable file directory and run sstabledump like the following, you will see the row is still marked as deleted and no row content is shown:$ sstabledump ma-1-big-Data.db[ { "partition" : { "key" : [ "1" ], "position" : 0 }, "rows" : [ { "type" : "row", "position" : 18, "clustering" : [ "c1" ], "liveness_info" : { "tstamp" : 1461633248542342 }, "deletion_info" : { "deletion_time" : 1461633248212499, "tstamp" : 1461633248 } } ] }]This is reproduced in both latest 3.0.5 and 3.6-snapshot (i.e. trunk as of Apr 25, 2016).Looks like only row tombstone is affecting sstabledump. If you generate cell tombstones, even if you delete all non-PK &amp; non-static columns in the row, as long as there is no explicit row delete (so the clustering is still considered alive), sstabledump will work just fine, see the following example steps:echo "CREATE KEYSPACE IF NOT EXISTS testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'};" | cqlshecho "CREATE TABLE IF NOT EXISTS testks.testcf ( k int, c text, val0_int int, val1_int int, PRIMARY KEY (k, c) );" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int, val1_int) VALUES (1, 'c1', 100, 200);" | cqlshecho "DELETE val0_int, val1_int FROM testks.testcf where k=1 and c='c1';" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int, val1_int) VALUES (1, 'c1', 300, 400);" | cqlshnodetool flush testks testcfecho "select * from testks.testcf;" | cqlsh$ sstabledump ma-1-big-Data.db[ { "partition" : { "key" : [ "1" ], "position" : 0 }, "rows" : [ { "type" : "row", "position" : 18, "clustering" : [ "c1" ], "liveness_info" : { "tstamp" : 1461634633566479 }, "cells" : [ { "name" : "val0_int", "value" : "300" }, { "name" : "val1_int", "value" : "400" } ] } ] }]</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.JsonTransformer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11655" opendate="2016-4-26 00:00:00" fixdate="2016-4-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstabledump doesn&amp;#39;t print out tombstone information for deleted collection column</summary>
+      <description>Pretty trivial to reproduce.echo "CREATE KEYSPACE IF NOT EXISTS testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'};" | cqlshecho "CREATE TABLE IF NOT EXISTS testks.testcf ( k int, c text, val0_int int, val1_set_of_int set&lt;int&gt;, PRIMARY KEY (k, c) );" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int, val1_set_of_int) VALUES (1, 'c1', 100, {1, 2, 3, 4, 5});" | cqlshecho "delete val1_set_of_int from testks.testcf where k=1 and c='c1';" | cqlshecho "select * from testks.testcf;" | cqlshnodetool flush testks testcfNow if you run sstabledump (even after taking the patch for CASSANDRA-11654) against the newly generated SSTable like the following:~/cassandra-trunk/tools/bin/sstabledump ma-1-big-Data.db[ { "partition" : { "key" : [ "1" ], "position" : 0 }, "rows" : [ { "type" : "row", "position" : 18, "clustering" : [ "c1" ], "liveness_info" : { "tstamp" : 1461645231352208 }, "cells" : [ { "name" : "val0_int", "value" : "100" } ] } ] }]You will see that the collection-level Deletion Info is nowhere to be found, so you will not be able to know "markedForDeleteAt" or "localDeletionTime" for this collection tombstone.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.JsonTransformer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11669" opendate="2016-4-27 00:00:00" fixdate="2016-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RangeName queries might not return all the results</summary>
+      <description>It seems that if a page end in the middle of a partition the remaining rows of the partition will never be returned.The problem can be reproduced using the java driver with the following code: session = cluster.connect(); session.execute("CREATE KEYSPACE IF NOT EXISTS test WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : '1'}"); session.execute("USE test"); session.execute("DROP TABLE IF EXISTS test"); session.execute("CREATE TABLE IF NOT EXISTS test (a int, b int, c int, d int, PRIMARY KEY(a, b, c))"); PreparedStatement prepare = session.prepare("INSERT INTO test (a, b, c, d) VALUES (?, ?, ?, ?);"); for (int i = 1; i &lt; 4; i++) for (int j = 1; j &lt; 5; j++) for (int k = 1; k &lt; 5; k++) session.execute(prepare.bind(i, j, k, i + j)); ResultSet rs = session.execute(session.newSimpleStatement("SELECT * FROM test WHERE b = 1 and c IN (1, 2, 3) ALLOW FILTERING") .setFetchSize(4)); for (Row row : rs) { System.out.println(row); // Only one row will be returned for partition 2 instead of 3 }</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeSliceQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeNamesQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.PartitionRangeReadCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9935" opendate="2015-7-30 00:00:00" fixdate="2015-4-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair fails with RuntimeException</summary>
+      <description>We had problems with slow repair in 2.1.7 (CASSANDRA-9702) but after upgrade to 2.1.8 it started to work faster but now it fails with:...[2015-07-29 20:44:03,956] Repair session 23a811b0-3632-11e5-a93e-4963524a8bde for range (-5474076923322749342,-5468600594078911162] finished[2015-07-29 20:44:03,957] Repair session 336f8740-3632-11e5-a93e-4963524a8bde for range (-8631877858109464676,-8624040066373718932] finished[2015-07-29 20:44:03,957] Repair session 4ccd8430-3632-11e5-a93e-4963524a8bde for range (-5372806541854279315,-5369354119480076785] finished[2015-07-29 20:44:03,957] Repair session 59f129f0-3632-11e5-a93e-4963524a8bde for range (8166489034383821955,8168408930184216281] finished[2015-07-29 20:44:03,957] Repair session 6ae7a9a0-3632-11e5-a93e-4963524a8bde for range (6084602890817326921,6088328703025510057] finished[2015-07-29 20:44:03,957] Repair session 8938e4a0-3632-11e5-a93e-4963524a8bde for range (-781874602493000830,-781745173070807746] finished[2015-07-29 20:44:03,957] Repair command #4 finishederror: nodetool failed, check server logs-- StackTrace --java.lang.RuntimeException: nodetool failed, check server logs at org.apache.cassandra.tools.NodeTool$NodeToolCmd.run(NodeTool.java:290) at org.apache.cassandra.tools.NodeTool.main(NodeTool.java:202)After running:nodetool repair --partitioner-range --parallel --in-local-dc syncLast records in logs regarding repair are:INFO [Thread-173887] 2015-07-29 20:44:03,956 StorageService.java:2952 - Repair session 09ff9e40-3632-11e5-a93e-4963524a8bde for range (-7695808664784761779,-7693529816291585568] finishedINFO [Thread-173887] 2015-07-29 20:44:03,956 StorageService.java:2952 - Repair session 17d8d860-3632-11e5-a93e-4963524a8bde for range (8063716953988492222,8065203836608925992] finishedINFO [Thread-173887] 2015-07-29 20:44:03,956 StorageService.java:2952 - Repair session 23a811b0-3632-11e5-a93e-4963524a8bde for range (-5474076923322749342,-5468600594078911162] finishedINFO [Thread-173887] 2015-07-29 20:44:03,956 StorageService.java:2952 - Repair session 336f8740-3632-11e5-a93e-4963524a8bde for range (-8631877858109464676,-8624040066373718932] finishedINFO [Thread-173887] 2015-07-29 20:44:03,957 StorageService.java:2952 - Repair session 4ccd8430-3632-11e5-a93e-4963524a8bde for range (-5372806541854279315,-5369354119480076785] finishedINFO [Thread-173887] 2015-07-29 20:44:03,957 StorageService.java:2952 - Repair session 59f129f0-3632-11e5-a93e-4963524a8bde for range (8166489034383821955,8168408930184216281] finishedINFO [Thread-173887] 2015-07-29 20:44:03,957 StorageService.java:2952 - Repair session 6ae7a9a0-3632-11e5-a93e-4963524a8bde for range (6084602890817326921,6088328703025510057] finishedINFO [Thread-173887] 2015-07-29 20:44:03,957 StorageService.java:2952 - Repair session 8938e4a0-3632-11e5-a93e-4963524a8bde for range (-781874602493000830,-781745173070807746] finishedbut a bit above I see (at least two times in attached log):ERROR [Thread-173887] 2015-07-29 20:44:03,853 StorageService.java:2959 - Repair session 1b07ea50-3608-11e5-a93e-4963524a8bde for range (5765414319217852786,5781018794516851576] failed with error org.apache.cassandra.exceptions.RepairException: [repair #1b07ea50-3608-11e5-a93e-4963524a8bde on sync/entity_by_id2, (5765414319217852786,5781018794516851576]] Validation failed in /10.195.15.162java.util.concurrent.ExecutionException: java.lang.RuntimeException: org.apache.cassandra.exceptions.RepairException: [repair #1b07ea50-3608-11e5-a93e-4963524a8bde on sync/entity_by_id2, (5765414319217852786,5781018794516851576]] Validation failed in /10.195.15.162 at java.util.concurrent.FutureTask.report(FutureTask.java:122) [na:1.7.0_80] at java.util.concurrent.FutureTask.get(FutureTask.java:188) [na:1.7.0_80] at org.apache.cassandra.service.StorageService$4.runMayThrow(StorageService.java:2950) ~[apache-cassandra-2.1.8.jar:2.1.8] at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) [apache-cassandra-2.1.8.jar:2.1.8] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) [na:1.7.0_80] at java.util.concurrent.FutureTask.run(FutureTask.java:262) [na:1.7.0_80] at java.lang.Thread.run(Thread.java:745) [na:1.7.0_80]Caused by: java.lang.RuntimeException: org.apache.cassandra.exceptions.RepairException: [repair #1b07ea50-3608-11e5-a93e-4963524a8bde on sync/entity_by_id2, (5765414319217852786,5781018794516851576]] Validation failed in /10.195.15.162 at com.google.common.base.Throwables.propagate(Throwables.java:160) ~[guava-16.0.jar:na] at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:32) [apache-cassandra-2.1.8.jar:2.1.8] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) [na:1.7.0_80] at java.util.concurrent.FutureTask.run(FutureTask.java:262) [na:1.7.0_80] at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) ~[na:1.7.0_80] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) ~[na:1.7.0_80] ... 1 common frames omittedCaused by: org.apache.cassandra.exceptions.RepairException: [repair #1b07ea50-3608-11e5-a93e-4963524a8bde on sync/entity_by_id2, (5765414319217852786,5781018794516851576]] Validation failed in /10.195.15.162 at org.apache.cassandra.repair.RepairSession.validationComplete(RepairSession.java:166) ~[apache-cassandra-2.1.8.jar:2.1.8] at org.apache.cassandra.service.ActiveRepairService.handleMessage(ActiveRepairService.java:406) ~[apache-cassandra-2.1.8.jar:2.1.8] at org.apache.cassandra.repair.RepairMessageVerbHandler.doVerb(RepairMessageVerbHandler.java:134) ~[apache-cassandra-2.1.8.jar:2.1.8] at org.apache.cassandra.net.MessageDeliveryTask.run(MessageDeliveryTask.java:62) ~[apache-cassandra-2.1.8.jar:2.1.8] ... 3 common frames omittedINFO [Thread-173887] 2015-07-29 20:44:03,854 StorageService.java:2952 - Repair session 846d9300-3608-11e5-a93e-4963524a8bde for range (-6705935742755245856,-6704072966568763453] finished</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.long.org.apache.cassandra.db.compaction.LongLeveledCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

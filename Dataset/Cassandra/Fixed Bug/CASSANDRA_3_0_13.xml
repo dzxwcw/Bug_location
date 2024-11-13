@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="12213" opendate="2016-7-15 00:00:00" fixdate="2016-4-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in write_failures_test.TestWriteFailures.test_paxos_any</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-3.9_dtest/10/testReport/write_failures_test/TestWriteFailures/test_paxos_anyand:http://cassci.datastax.com/job/cassandra-3.9_dtest/10/testReport/write_failures_test/TestWriteFailures/test_mutation_v3/Failed on CassCI build cassandra-3.9_dtest #10</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.SchemaKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12773" opendate="2016-10-11 00:00:00" fixdate="2016-3-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-stress error for one way SSL</summary>
+      <description>CASSANDRA-9325 added keystore/truststore configuration into cassandra-stress. However, for one way ssl (require_client_auth=false), there is no need to pass keystore info into ssloptions. Cassadra-stress errored out:java.lang.RuntimeException: java.io.IOException: Error creating the initializing the SSL Context at org.apache.cassandra.stress.settings.StressSettings.getJavaDriverClient(StressSettings.java:200) at org.apache.cassandra.stress.settings.SettingsSchema.createKeySpacesNative(SettingsSchema.java:79) at org.apache.cassandra.stress.settings.SettingsSchema.createKeySpaces(SettingsSchema.java:69) at org.apache.cassandra.stress.settings.StressSettings.maybeCreateKeyspaces(StressSettings.java:207) at org.apache.cassandra.stress.StressAction.run(StressAction.java:55) at org.apache.cassandra.stress.Stress.main(Stress.java:117) Caused by: java.io.IOException: Error creating the initializing the SSL Context at org.apache.cassandra.security.SSLFactory.createSSLContext(SSLFactory.java:151) at org.apache.cassandra.stress.util.JavaDriverClient.connect(JavaDriverClient.java:128) at org.apache.cassandra.stress.settings.StressSettings.getJavaDriverClient(StressSettings.java:191) ... 5 more Caused by: java.io.IOException: Keystore was tampered with, or password was incorrect at sun.security.provider.JavaKeyStore.engineLoad(JavaKeyStore.java:772) at sun.security.provider.JavaKeyStore$JKS.engineLoad(JavaKeyStore.java:55) at java.security.KeyStore.load(KeyStore.java:1445) at org.apache.cassandra.security.SSLFactory.createSSLContext(SSLFactory.java:129) ... 7 more Caused by: java.security.UnrecoverableKeyException: Password verification failed at sun.security.provider.JavaKeyStore.engineLoad(JavaKeyStore.java:770) ... 10 moreIt's a bug from CASSANDRA-9325. When the keystore is absent, the keystore is assigned to the path of the truststore, but the password isn't taken care.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsTransport.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13053" opendate="2016-12-16 00:00:00" fixdate="2016-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>GRANT/REVOKE on table without keyspace performs permissions check incorrectly</summary>
+      <description>When a GRANT or REVOKE statement is executed on a table without specifying the keyspace, we attempt to use the client session's keyspace to qualify the resource. This is done when validating the statement, which occurs after checking that the user executing the statement has sufficient permissions. This means that the permissions checking uses an incorrect resource, namely a table with a null keyspace. If that user is a superuser, then no error is encountered as superuser privs implicitly grants all permissions. If the user is not a superuser, then the GRANT or REVOKE fails with an ugly error, regardless of which keyspace the client session is bound to:Unauthorized: Error from server: code=2100 [Unauthorized] message="User admin has no AUTHORIZE permission on &lt;table null.t1&gt; or any of its parents"</description>
+      <version>2.2.10,3.0.13,3.11.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.PermissionsManagementStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13130" opendate="2017-1-17 00:00:00" fixdate="2017-3-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Strange result of several list updates in a single request</summary>
+      <description>Let's assume that we have a row with the 'listColumn' column and value {1,2,3,4}.For me it looks logical to expect that the following two pieces of code will ends up with the same result but it isn't so.Code1:UPDATE t SET listColumn[2] = 7, listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,7,8,4}Code2:UPDATE t SET listColumn[2] = 7 WHERE id = 1;UPDATE t SET listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,8,4}So the question is why Code1 and Code2 give different results?Looks like Code1 should give the same result as Code2.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13147" opendate="2017-1-24 00:00:00" fixdate="2017-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Secondary index query on partition key columns might not return all the rows.</summary>
+      <description>A secondary index query on a partition key column will, apparently, not return the empty partitions with static data.The following unit test can be used to reproduce the problem. public void testIndexOnPartitionKeyWithStaticColumnAndNoRows() throws Throwable { createTable("CREATE TABLE %s (pk1 int, pk2 int, c int, s int static, v int, PRIMARY KEY((pk1, pk2), c))"); createIndex("CREATE INDEX ON %s (pk2)"); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 1, 1, 1, 9, 1); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 1, 1, 2, 9, 2); execute("INSERT INTO %s (pk1, pk2, s) VALUES (?, ?, ?)", 2, 1, 9); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 3, 1, 1, 9, 1); assertRows(execute("SELECT * FROM %s WHERE pk2 = ?", 1), row(1, 1, 1, 9, 1), row(1, 1, 2, 9, 2), row(2, 1, null, 9, null), &lt;-- is not returned row(3, 1, 1, 9, 1)); }</description>
+      <version>2.1.18,2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.SecondaryIndexTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13153" opendate="2017-1-25 00:00:00" fixdate="2017-3-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reappeared Data when Mixing Incremental and Full Repairs</summary>
+      <description>This happens for both LeveledCompactionStrategy and SizeTieredCompactionStrategy. I've only tested it on Cassandra version 2.2 but it most likely also affects all Cassandra versions after 2.2, if they have anticompaction with full repair.When mixing incremental and full repairs, there are a few scenarios where the Data SSTable is marked as unrepaired and the Tombstone SSTable is marked as repaired. Then if it is past gc_grace, and the tombstone and data has been compacted out on other replicas, the next incremental repair will push the Data to other replicas without the tombstone.Simplified scenario:3 node cluster with RF=3Intial config: Node 1 has data and tombstone in separate SSTables. Node 2 has data and no tombstone. Node 3 has data and tombstone in separate SSTables.Incremental repair (nodetool repair -pr) is run every day so now we have tombstone on each node.Some minor compactions have happened since so data and tombstone get merged to 1 SSTable on Nodes 1 and 3. Node 1 had a minor compaction that merged data with tombstone. 1 SSTable with tombstone. Node 2 has data and tombstone in separate SSTables. Node 3 had a minor compaction that merged data with tombstone. 1 SSTable with tombstone.Incremental repairs keep running every day.Full repairs run weekly (nodetool repair -full -pr). Now there are 2 scenarios where the Data SSTable will get marked as "Unrepaired" while Tombstone SSTable will get marked as "Repaired".Scenario 1: Since the Data and Tombstone SSTable have been marked as "Repaired" and anticompacted, they have had minor compactions with other SSTables containing keys from other ranges. During full repair, if the last node to run it doesn't own this particular key in it's partitioner range, the Data and Tombstone SSTable will get anticompacted and marked as "Unrepaired". Now in the next incremental repair, if the Data SSTable is involved in a minor compaction during the repair but the Tombstone SSTable is not, the resulting compacted SSTable will be marked "Unrepaired" and Tombstone SSTable is marked "Repaired".Scenario 2: Only the Data SSTable had minor compaction with other SSTables containing keys from other ranges after being marked as "Repaired". The Tombstone SSTable was never involved in a minor compaction so therefore all keys in that SSTable belong to 1 particular partitioner range. During full repair, if the last node to run it doesn't own this particular key in it's partitioner range, the Data SSTable will get anticompacted and marked as "Unrepaired". The Tombstone SSTable stays marked as Repaired.Then it’s past gc_grace. Since Node’s #1 and #3 only have 1 SSTable for that key, the tombstone will get compacted out. Node 1 has nothing. Node 2 has data (in unrepaired SSTable) and tombstone (in repaired SSTable) in separate SSTables. Node 3 has nothing.Now when the next incremental repair runs, it will only use the Data SSTable to build the merkle tree since the tombstone SSTable is flagged as repaired and data SSTable is marked as unrepaired. And the data will get repaired against the other two nodes. Node 1 has data. Node 2 has data and tombstone in separate SSTables. Node 3 has data.If a read request hits Node 1 and 3, it will return data. If it hits 1 and 2, or 2 and 3, however, it would return no data.Tested this with single range tokens for simplicity.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Tools,Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13238" opendate="2017-2-17 00:00:00" fixdate="2017-3-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add actual row output to assertEmpty error message</summary>
+      <description>We have several issues popping up every now and then that are hard to debug and the test failure messages aren't entirely helpful, for example: java.lang.AssertionError: Expected empty result but got 1 rows:It could be much better if we could have an actual output (what exactly the row that got returned appended to it:java.lang.AssertionError: Expected empty result but got 1 rows: [row(value=null)]The nice side-effect of this change is that now we will have a helper method that can nicely turn an UntypedResultSet into String (I apologise if I did overlooked one).</description>
+      <version>3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13274" opendate="2017-2-27 00:00:00" fixdate="2017-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix code to not exchange schema across major versions</summary>
+      <description>A rolling upgrade from 3.* to 4.0 (messaging version 11) unveils a regression caused by CASSANDRA-11128.Generally, we store all possible options/attributes including the default values in the schema. This causes (expected) schema-version-mismatches during rolling upgrades and therefore we prevent schema pulls/pushes in this situation, which has been broken by CASSANDRA-11128.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13282" opendate="2017-3-1 00:00:00" fixdate="2017-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Commitlog replay may fail if last mutation is within 4 bytes of end of segment</summary>
+      <description>Following CASSANDRA-9749 , stricter correctness checks on commitlog replay can incorrectly detect "corrupt segments" and stop commitlog replay (and potentially stop cassandra, depending on the configured policy). In CommitlogReplayer#replaySyncSection we try to read a 4 byte int serializedSize, and if it's 0 (which will happen due to zeroing when the segment was created), we continue on to the next segment. However, it appears that if a mutation is sized such that it ends with 1, 2, or 3 bytes remaining in the segment, we'll pass the isEOF on the while loop but fail to read the serializedSize int, and fail.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.commitlog.CommitLogTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogReplayer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13340" opendate="2017-3-16 00:00:00" fixdate="2017-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bugs handling range tombstones in the sstable iterators</summary>
+      <description>There is 2 bugs in the way sstable iterators handle range tombstones: empty range tombstones can be returned due to a strict comparison that shouldn't be. the sstable reversed iterator can actually return completely bogus results when range tombstones are spanning multiple index blocks.The 2 bugs are admittedly separate but as they both impact the same area of code and are both range tombstones related, I suggest just fixing both here (unless something really really mind).Marking the ticket critical mostly for the 2nd bug: it can truly make use return bad results on reverse queries.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.DeleteTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnfilteredDeserializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableReversedIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ClusteringPrefix.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13341" opendate="2017-3-16 00:00:00" fixdate="2017-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Legacy deserializer can create empty range tombstones</summary>
+      <description>Range tombstones in the 2.x file format is a bit far-westy so you can actually get sequences of range tombstones like [1, 4]@3 [1, 10]@5. But the current legacy deserializer doesn't handle this correctly. On the first range, it will generate a INCL_START(1)@3 open marker, but upon seeing the next tombstone it will decide to close the previously opened range and re-open with deletion time 5, so will generate EXCL_END_INCL_START(1)@3-5. That result in the first range being empty, which break future assertions in the code.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.OldFormatDeserializerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnfilteredDeserializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.RangeTombstoneMarker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.RangeTombstoneBoundMarker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.RangeTombstoneBoundaryMarker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13384" opendate="2017-3-28 00:00:00" fixdate="2017-3-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Legacy caching options can prevent 3.0 upgrade</summary>
+      <description>In 2.1, we wrote caching options as a JSONified map, but we tolerated raw strings "ALL", "KEYS_ONLY", "ROWS_ONLY", and "NONE".If a 2.1 node with any of these strings is upgraded to 3.0, the legacy schema migration will fail.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.schema.LegacySchemaMigratorTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaMigrator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13410" opendate="2017-4-4 00:00:00" fixdate="2017-4-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool upgradesstables/scrub/compact ignores system tables</summary>
+      <description>CASSANDRA-11627 changed the behavior of nodetool commands that work across all keyspaces. Sometimes it's OK (not compacting system.peers when you call compact probably isn't going to anger anyone), but sometimes it's not (disableautocompaction, flush, upgradesstables, etc).</description>
+      <version>3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2013-7-16 01:00:00" id="5481" opendate="2013-4-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQLSH exception handling could leave a session in a bad state</summary>
+      <description>Playing with CTRL+C in a cqlsh session can leave the (Thrift|Native) connection in a bad state.To reproduce :1) Run a long running COPY FROM command (COPY test (k, v) FROM '/tmp/test.csv')2) Interrupt the importer with CTRL+CRepeat step 1 and 2 until you start seeing weird things in the cql shell (see attached screenshot)The reason is, I believe, the connection (and the cursor) is not correclty closed and reopened on interruption.I am working to propose a fix.Jordan</description>
+      <version>1.2.19,2.0.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-7-16 01:00:00" id="6596" opendate="2014-1-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Split out outgoing stream throughput within a DC and inter-DC</summary>
+      <description>Currently the outgoing stream throughput setting doesn't differentiate between when it goes to another node in the same DC and when it goes to another DC across a potentially bandwidth limited link. It would be nice to have that split out so that it could be tuned for each type of link.</description>
+      <version>2.0.10,2.1beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-7-26 01:00:00" id="6621" opendate="2014-1-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add flag to disable STCS in L0</summary>
+      <description>The initial discussion started in (closed) CASSANDRA-5371. I've rewritten my last comment here...After streaming (e.g. during boostrap) Cassandra places all sstables at L0. At the end of the process we end up with huge number of sstables at the lowest level. Currently, Cassandra falls back to STCS until the number of sstables at L0 reaches the reasonable level (32 or something).I'm not sure if falling back to STCS is the best way to handle this particular situation. I've read the comment in the code and I'm aware why it is a good thing to do if we have to many sstables at L0 as a result of too many random inserts. We have a lot of sstables, each of them covers the whole ring, there's simply no better option.However, after the bootstrap situation looks a bit different. The loaded sstables already have very small ranges! We just have to tidy up a bit and everything should be OK. STCS ignores that completely and after a while we have a bit less sstables but each of them covers the whole ring instead of just a small part. I believe that in that case letting LCS do the job is a better option that allowing STCS mix everything up before.Is there a way to disable STCS fallback? I'd like to test that scenario in practice during our next bootstrap...Does Cassandra really have to put streamed sstables at L0? The only thing we have to assure is that sstables at any given level do not overlap. If we stream different regions from different nodes how can we get any overlaps?</description>
+      <version>2.0.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-7-21 01:00:00" id="6905" opendate="2014-3-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>commitlog archive replay should attempt to replay all mutations</summary>
+      <description>Currently when you do a point-in-time recovery using archived commitlogs, the replay stops when the time is encountered, but since timestamps are supplied by the client we can't guarantee the segment is ordered by timestamp, so some mutations can be lost. Instead we could continue past the given timestamp, and just filter out any mutations greater than it.</description>
+      <version>2.0.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RecoveryManagerTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-6-3 01:00:00" id="7345" opendate="2014-6-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unfinished or inflight CAS are always done at QUORUM</summary>
+      <description>The problem here is that we don't know which consistency level was used to perform the operation. We might want to store this in paxos cf or use the consistency level of the current call. This is important because calls being done at LOCAL_SERIAL will become slow.</description>
+      <version>2.0.10,2.1rc3</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-6-18 01:00:00" id="7414" opendate="2014-6-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>After cleanup we can end up with non-compacting high level sstables</summary>
+      <description>If we run cleanup (or increase sstable size) on a node with LCS, we could end up with a bunch of sstables in higher levels that are "never" compacted.</description>
+      <version>2.0.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-8-21 01:00:00" id="7432" opendate="2014-6-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add new CMS GC flags to cassandra_env.sh for JVM later than 1.7.0_60</summary>
+      <description>The new flags in question are as follows:-XX:+CMSParallelInitialMarkEnabled-XX:+CMSEdenChunksRecordAlwaysGiven we already haveJVM_OPTS="$JVM_OPTS -XX:+UseParNewGC" JVM_OPTS="$JVM_OPTS -XX:+UseConcMarkSweepGC" JVM_OPTS="$JVM_OPTS -XX:+CMSParallelRemarkEnabled" JVM_OPTS="$JVM_OPTS -XX:+UseTLAB"if [ "$JVM_ARCH" = "64-Bit" ] ; then JVM_OPTS="$JVM_OPTS -XX:+UseCondCardMark"fiThe assumption would be that people are at least running on large number CPU cores/threadsI would therefore recommend defaulting these flags if available - the only two possible downsides for +CMSEdenChunksRecordAlways:1) There is a new very short (probably un-contended) lock in the "slow" (non TLAB) eden allocation path with +CMSEdenChunksRecordAlways. I haven't detected this timing wise - this is the "slow" path after all2) If you are running with -XX:-UseCMSCompactAtFullCollection (not the default) and you call System.gc() then +CMSEdenChunksRecordAlways will expose you to a possible seg fault: (seehttp://bugs.java.com/bugdatabase/view_bug.do?bug_id=8021809)</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-7-3 01:00:00" id="7490" opendate="2014-7-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Static columns mess up selects with ordering and clustering column ranges</summary>
+      <description>Starts off ok:cqlsh:test&gt; create table test (p text, c text, v text, s text static, PRIMARY KEY (p, c));cqlsh:test&gt; insert into test (p, c, v, s) values ('p1', 'k1', 'v1', 'sv1');cqlsh:test&gt; select * from test where p = 'p1'; p | c | s | v----+----+-----+---- p1 | k1 | sv1 | v1(1 rows)But try ordering, and we appear to get the static row instead:cqlsh:test&gt; select * from test where p = 'p1' order by c desc; p | c | s | v----+------+-----+------ p1 | null | sv1 | null(1 rows)Now we add a clustering key range constraint, again works ok:cqlsh:test&gt; select * from test where p = 'p1' and c &gt;= 'a'; p | c | s | v----+----+-----+---- p1 | k1 | sv1 | v1(1 rows)But, this causes assertion failure (which has a very nice comment explaining exactly why that might happen!):cqlsh:test&gt; select * from test where p = 'p1' and c &gt;= 'a' order by c desc;Request did not complete within rpc_timeout.Cause:java.lang.AssertionError: Added column does not sort as the first column at org.apache.cassandra.db.ArrayBackedSortedColumns.addColumn(ArrayBackedSortedColumns.java:115) at org.apache.cassandra.db.ColumnFamily.addColumn(ColumnFamily.java:116) at org.apache.cassandra.db.ColumnFamily.addIfRelevant(ColumnFamily.java:110) at org.apache.cassandra.db.filter.SliceQueryFilter.collectReducedColumns(SliceQueryFilter.java:205) at org.apache.cassandra.db.filter.QueryFilter.collateColumns(QueryFilter.java:122) at org.apache.cassandra.db.filter.QueryFilter.collateOnDiskAtom(QueryFilter.java:80) at org.apache.cassandra.db.filter.QueryFilter.collateOnDiskAtom(QueryFilter.java:72) at org.apache.cassandra.db.CollationController.collectAllData(CollationController.java:297) at org.apache.cassandra.db.CollationController.getTopLevelColumns(CollationController.java:53) at org.apache.cassandra.db.ColumnFamilyStore.getTopLevelColumns(ColumnFamilyStore.java:1547) at org.apache.cassandra.db.ColumnFamilyStore.getColumnFamily(ColumnFamilyStore.java:1376) at org.apache.cassandra.db.Keyspace.getRow(Keyspace.java:333) at org.apache.cassandra.db.SliceFromReadCommand.getRow(SliceFromReadCommand.java:65) at org.apache.cassandra.service.StorageProxy$LocalReadRunnable.runMayThrow(StorageProxy.java:1363) at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:1927) at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) at java.util.concurrent.FutureTask.run(FutureTask.java:262) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) at java.lang.Thread.run(Thread.java:744)</description>
+      <version>2.0.10</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2010-2-2 01:00:00" id="753" opendate="2010-2-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>r/m SSTR.openedFiles</summary>
+      <description>this is a remnant of when we passed around date file names and did SSTR.open(fname) constantly. Now we use CFS.sstables instead almost exclusively which is much cleaner. time to clean out the rest of this.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.SSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AntiEntropyService.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.SSTableTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.SSTable.java</file>
+      <file type="M">test.unit.org.apache.cassandra.service.AntiEntropyServiceTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.SSTableUtils.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamOut.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.avro.CassandraDaemon.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-7-11 01:00:00" id="7535" opendate="2014-7-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Coverage analysis for range queries</summary>
+      <description>This is a regression related to CASSANDRA-4858Range queries are taking orders of magnitude more time to complete than before because the query planner is frequently unable to calculate the correct intersection of contiguous ranges for a given node.For example, SELECT * FROM TBL should result in exactly one scan at CL.ONE when RF = #nodes when in fact it can result in several hundred scans (sometimes thousands). The problem is exasperated with vnodes.The regression occurred at some point between 2.0.4 (which works fine) and 2.0.9.</description>
+      <version>2.0.10,2.1rc4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.DynamicEndpointSnitch.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-7-14 01:00:00" id="7541" opendate="2014-7-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Windows: IOException when repairing a range of tokens</summary>
+      <description>Looks like we missed this in CASSANDRA-6907 - range-based repair still defaults to snapshot-based on Windows.</description>
+      <version>2.0.10,2.1rc4</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-7-24 01:00:00" id="7611" opendate="2014-7-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>incomplete CREATE/DROP USER help and tab completion</summary>
+      <description>IF NOT EXISTS/IF EXISTS doesn't appear in the online help and tab completion.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-8-29 01:00:00" id="7641" opendate="2014-7-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh should automatically disable tracing when selecting from system_traces</summary>
+      <description>Nobody needs to trace their traces while they're tracing.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-8-31 01:00:00" id="7663" opendate="2014-7-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Removing a seed causes previously removed seeds to reappear</summary>
+      <description>When you remove a seed from a cluster, Gossiper.removeEndpoint ensures it is removed from the seed list. However, it also resets the seed list to be the original list, which would bring back any previously removed seeds. What is the reasoning for having the call to buildSeedsList()? If it wasn’t there then I think the problem would be solved.</description>
+      <version>1.2.19,2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.locator.SimpleSeedProvider.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-1 01:00:00" id="7668" opendate="2014-8-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make gc_grace_seconds 7 days for system tables</summary>
+      <description>The system tables have had a gc_grace_seconds of 8640 since CASSANDRA-4018. This was probably a typo and was intended to be 10 days. In CASSANDRA-6717 we will set gc_grace to seven days, so that would be a reasonable value to use here.</description>
+      <version>1.2.19,2.0.10,2.1rc5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-8-10 01:00:00" id="7733" opendate="2014-8-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix supercolumn range deletion from Thrift (+ a few tests)</summary>
+      <description>There is a trivial bug with full supercolumn range deletion in Thrift</description>
+      <version>2.0.10,2.1rc6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.system.test.thrift.server.py</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-11 01:00:00" id="7744" opendate="2014-8-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dropping the last collection column turns CompoundSparseCellNameType$WithCollection into CompoundDenseCellNameType</summary>
+      <description>Dropping the last collection column turns CompoundSparseCellNameType$WithCollection into CompoundDenseCellNameTypeTo reproducecqlsh:test&gt; create table test (id int primary key, col map&lt;int,int&gt;);cqlsh:test&gt; alter table test drop col;cqlsh:test&gt; alter table test add col list&lt;int&gt;;code=2200 [Invalid query] message="Cannot add new column to a COMPACT STORAGE table"</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTableStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-8-11 01:00:00" id="7752" opendate="2014-8-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix expiring map time for CAS messages</summary>
+      <description>CAS PrepareCallback is kept in expiring map for 10 seconds which is more than the timeout. I found this while analyzing a heap dump and saw a lot of Commit and PrepareCallback objects referenced by expiring map.</description>
+      <version>2.0.10</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-8-11 01:00:00" id="7753" opendate="2014-8-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Level compaction for Paxos table</summary>
+      <description>Paxos table uses size tiered compaction which causes stable per read to be high. Converting to level has improved the performance. I think we should consider making this as default or to change the default setting of size tiered.</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+</bugrepository>

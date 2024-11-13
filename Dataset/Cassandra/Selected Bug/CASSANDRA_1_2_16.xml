@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  
+  <bug fixdate="2014-2-6 01:00:00" id="6667" opendate="2014-2-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Mean cells per sstable is calculated incorrectly</summary>
+      <description>We currently take the average of the mean for each partition, rather than correctly weighting by cell count. This affects hint paging as well as index selectivity calculation.</description>
+      <version>1.2.16,2.0.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.metrics.ColumnFamilyMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStoreMBean.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-2-7 01:00:00" id="6678" opendate="2014-2-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unwanted schema pull while upgrading nodes from 1.2 to 2.0</summary>
+      <description>While upgrading from 1.2 to 2.0, the 1.2 nodes are not supposed to pull schemas from upgraded 2.0 nodes to avoid conflicts.This relies on network version checks between the two nodes, but there's a bit of a race between the Gossiper, which is activated first, and the MessagingService, which is activated after the Gossiper and handles network version exchange: if a 1.2 node Gossiper gets a gossip message from a newly 2.0 node before opening connections from the MessagingService, the version will still be 1.2, and the schema will be pulled from the new node.A possible solution may be to have the Gossiper update the network version upon receiving the first gossip message of an upgraded node: thoughts?</description>
+      <version>1.2.16,2.0.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-2-12 01:00:00" id="6695" opendate="2014-2-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t exchange schema between nodes with different versions (no pull, no push)</summary>
+      <description>Subject. Don't push schema to unknown-, or differently major-versioned nodes, and don't pull schema from them, either.Since we don't support schema altering during upgrade, and adding nodes during cluster upgrades is also a non-recommended thing, this is what we are going to do.Until CASSANDRA-6038, that is.</description>
+      <version>1.2.16,2.0.6,2.1beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-2-13 01:00:00" id="6701" opendate="2014-2-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>IN on the last clustering columns + ORDER BY DESC yield no results</summary>
+      <description>That's not a very common mix but well, the following return no results which is obviously bogus:CREATE TABLE test (k int, c1 int, c2 int, PRIMARY KEY (k, c1, c2));INSERT INTO test(k, c1, c2) VALUES (0, 0, 0);INSERT INTO test(k, c1, c2) VALUES (0, 0, 1);INSERT INTO test(k, c1, c2) VALUES (0, 0, 2);SELECT * FROM test WHERE k=0 AND c1 = 0 AND c2 IN (2, 0) ORDER BY c1 DESCNote: it's pretty useless to order on a column which has an equal restriction, and that's probably why nobody ran into this yet, but that's really just due to a minor typo so there is no reason not to fix.</description>
+      <version>1.2.16,2.0.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-3-26 01:00:00" id="6773" opendate="2014-2-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Delimiter not working for special characters in COPY command from CQLSH</summary>
+      <description>COPY command from CQLSH which can be used to load data from CSV files is not working with option delimiter='\t'cqlsh&gt;CREATE TABLE airplanes (name text PRIMARY KEY,manufacturer ascii,year int,mach float);cqlsh&gt;INSERT INTO airplanes (name, manufacturer, year, mach) VALUES ('P38-Lightning', 'Lockheed', 1937, 7);cqlsh&gt; SELECT * FROM airplanes; name | mach | manufacturer | year -----------------------------+----- P38-Lightning | 0.7 | Lockheed | 1937cqlsh&gt; COPY airplanes (name, manufacturer, year, mach) TO 'temp.tsv' WITH DELIMITER = '\t';"delimiter" must be an 1-character stringcqlsh&gt; COPY airplanes (name, manufacturer, year, mach) FROM 'temp.csv' WITH DELIMITER = '\t';"delimiter" must be an 1-character string</description>
+      <version>1.2.16,2.0.7,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+</bugrepository>

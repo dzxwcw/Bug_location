@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="6487" opendate="2013-12-14 00:00:00" fixdate="2013-4-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Log WARN on large batch sizes</summary>
+      <description>Large batches on a coordinator can cause a lot of node stress. I propose adding a WARN log entry if batch sizes go beyond a configurable size. This will give more visibility to operators on something that can happen on the developer side. New yaml setting with 5k default.# Log WARN on any batch size exceeding this value. 5k by default.# Caution should be taken on increasing the size of this threshold as it can lead to node instability.batch_size_warn_threshold: 5k</description>
+      <version>2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6546" opendate="2014-1-3 00:00:00" fixdate="2014-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>disablethrift results in unclosed file descriptors</summary>
+      <description>Disabling thrift results in unclosed thrift sockets being left around.Steps to reproduce and observe:1. Have a handful of clients connect via thrift.2. Disable thrift.3. Enable thrift, have the clients reconnect.4. Observe netstat or lsof, and you'll find a lot of thrift sockets in CLOSE_WAIT state, and they'll never go away. Also verifiable from org.apache.cassandra.metrics:type=Client,name=connectedThriftClients MBean.What's extra fun about this is the leaked sockets still count towards your maximum RPC thread count. As a result, toggling thrift enough times will result in an rpc_max_threads number of CLOSED_WAIT sockets, with no new clients able to connect.This was reproduced with HSHA. I haven't tried it in sync yet.</description>
+      <version>1.2.17,2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CustomTHsHaServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6831" opendate="2014-3-10 00:00:00" fixdate="2014-5-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Updates to COMPACT STORAGE tables via cli drop CQL information</summary>
+      <description>If a COMPACT STORAGE table is altered using the CLI all information about the column names reverts to the initial "key, column1, column2" namings. Additionally, the changes in the columns name will not take effect until the Cassandra service is restarted. This means that the clients using CQL will continue to work properly until the service is restarted, at which time they will start getting errors about non-existant columns in the table.When attempting to rename the columns back using ALTER TABLE an error stating the column already exists will be raised. The only way to get it back is to ALTER TABLE and change the comment or something, which will bring back all the original column names.This seems to be related to CASSANDRA-6676 and CASSANDRA-6370In cqlshConnected to cluster1 at 127.0.0.3:9160.[cqlsh 3.1.8 | Cassandra 1.2.15-SNAPSHOT | CQL spec 3.0.0 | Thrift protocol 19.36.2]Use HELP for help.cqlsh&gt; CREATE KEYSPACE test WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };cqlsh&gt; USE test;cqlsh:test&gt; CREATE TABLE foo (bar text, baz text, qux text, PRIMARY KEY(bar, baz) ) WITH COMPACT STORAGE;cqlsh:test&gt; describe table foo;CREATE TABLE foo ( bar text, baz text, qux text, PRIMARY KEY (bar, baz)) WITH COMPACT STORAGE AND bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};Now in cli: Connected to: "cluster1" on 127.0.0.3/9160Welcome to Cassandra CLI version 1.2.15-SNAPSHOTType 'help;' or '?' for help.Type 'quit;' or 'exit;' to quit.[default@unknown] use test;Authenticated to keyspace: test[default@test] UPDATE COLUMN FAMILY foo WITH comment='hey this is a comment';3bf5fa49-5d03-34f0-b46c-6745f7740925Now back in cqlsh:cqlsh:test&gt; describe table foo;CREATE TABLE foo ( bar text, column1 text, value text, PRIMARY KEY (bar, column1)) WITH COMPACT STORAGE AND bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='hey this is a comment' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};cqlsh:test&gt; ALTER TABLE foo WITH comment='this is a new comment';cqlsh:test&gt; describe table foo;CREATE TABLE foo ( bar text, baz text, qux text, PRIMARY KEY (bar, baz)) WITH COMPACT STORAGE AND bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='this is a new comment' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.config.ColumnDefinitionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.ColumnDefinition.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6939" opendate="2014-3-27 00:00:00" fixdate="2014-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LOCAL_SERIAL use QUORAM consistency level to read rows in the read path</summary>
+      <description>LOCAL_SERIAL use QUORAM consistency level to read rows in the read pathThe fix is same as CASSANDRA-6495 but on the read path.</description>
+      <version>2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6950" opendate="2014-3-28 00:00:00" fixdate="2014-5-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Secondary index query fails with tc range query when ordered by DESC</summary>
+      <description>create table test4 ( name text, lname text, tc bigint, record text, PRIMARY KEY ((name, lname), tc)) WITH CLUSTERING ORDER BY (tc DESC) AND compaction={'class': 'LeveledCompactionStrategy'}; create index test4_index ON test4(lname);Populate it with some data and non-zero tc values, then try: select * from test4 where lname='blah' and tc&gt;0 allow filtering;And, (0 rows) returned, even though there are rows which should be found.When I create the table using CLUSTERING ORDER BY (tc ASC), the above query works. Rows are correctly returned based on the range check.Tried various combinations but with descending order on tc nothing works.</description>
+      <version>2.0.8</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6999" opendate="2014-4-8 00:00:00" fixdate="2014-4-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog replay should account for CF truncation records</summary>
+      <description>Just as HHOM does, BM should properly handle column families' truncation records and not replay mutations that are younger that the last known record.</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.HintedHandOffTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.BatchlogManagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RowMutation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogReplayer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="70" opendate="2009-4-10 00:00:00" fixdate="2009-8-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>MultiGet</summary>
+      <description>Avinash is working on a multiget interface (requesting data from multiple keys at once).</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.QuorumResponseHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MultiAsyncResult.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IMessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IAsyncResult.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.AsyncResult.java</file>
+      <file type="M">test.system.test.server.py</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraServer.java</file>
+      <file type="M">interface.gen-java.org.apache.cassandra.service.Cassandra.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7038" opendate="2014-4-15 00:00:00" fixdate="2014-4-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool rebuild_index requires named indexes argument</summary>
+      <description>In addition to explicitly listing the indexes to be rebuilt, nodetool rebuild_indexes will also accept just keyspace &amp; columnfamily arguments, indicating that all indexes for that ks/cf should be rebuilt.This doesn't actually work as CFS.rebuildSecondaryIndex requires the explicit list. In the 2 arg version, nodetool just passes an empty list here and so the rebuild becomes a no-op. As this has been the case since CASSANDRA-3860 (AFAICT, 80ea03f is the commit that removed this) we may as well just remove the option from nodetool, patch attached to do that.</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7052" opendate="2014-4-17 00:00:00" fixdate="2014-4-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Query on compact storage with limit returns extra rows</summary>
+      <description>I tested this on Cassandra 2.0.6 and 2.0.3 and got the same result on both:cqlsh&gt; create KEYSPACE "test" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};cqlsh&gt; USE "test";cqlsh:test&gt; CREATE COLUMNFAMILY "VerifyPagedColumnQueryStartAndEnd" ("keyId" text, "columnName" text, "value" text, PRIMARY KEY ("keyId", "columnName")) WITH COMPACT STORAGE;cqlsh:test&gt; INSERT INTO "VerifyPagedColumnQueryStartAndEnd" ("keyId", "columnName", "value") VALUES ( 'key', 'a', '1' ) ;cqlsh:test&gt; INSERT INTO "VerifyPagedColumnQueryStartAndEnd" ("keyId", "columnName", "value") VALUES ( 'key', 'b', '1' ) ;cqlsh:test&gt; INSERT INTO "VerifyPagedColumnQueryStartAndEnd" ("keyId", "columnName", "value") VALUES ( 'key', 'c', '1' ) ;cqlsh:test&gt; INSERT INTO "VerifyPagedColumnQueryStartAndEnd" ("keyId", "columnName", "value") VALUES ( 'key', 'd', '1' ) ;cqlsh:test&gt; INSERT INTO "VerifyPagedColumnQueryStartAndEnd" ("keyId", "columnName", "value") VALUES ( 'key', 'e', '1' ) ;cqlsh:test&gt; SELECT * FROM "VerifyPagedColumnQueryStartAndEnd" WHERE "keyId" = 'key' AND "columnName" &gt; '' AND "columnName" &lt;= 'e' LIMIT 2; keyId | columnName | value-------+------------+------- key | a | 1 key | b | 1 key | c | 1(3 rows)cqlsh:test&gt;</description>
+      <version>2.0.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.QueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7053" opendate="2014-4-17 00:00:00" fixdate="2014-4-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>USING TIMESTAMP for batches does not work</summary>
+      <description>When using the "USING TIMESTAMP &lt;timestamp&gt;" syntax for a batch statement, the supplied timestamp is ignored.</description>
+      <version>2.0.8</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7058" opendate="2014-4-19 00:00:00" fixdate="2014-4-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HHOM and BM direct delivery should not cause hints to be written on timeout</summary>
+      <description>Currently, a timed out HHOM hint delivery would create a further hint, with a wrong TTL. BM direct delivery code is using the same code snippet basically, so is also affected (with slightly worse consequences).</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7074" opendate="2014-4-23 00:00:00" fixdate="2014-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CFMetaData sometimes fails to return the ColumnDefinition given a full internal cell name</summary>
+      <description>CFMetaData#getColumnDefinitionFromColumnName breaks the loop when it finds a ColumnDefinition with a component index higher than the number of components in the input column name, but given the loop iterates over an unsorted/non-sequential collection, some ColumnDefinitions could be prematurely skipped.</description>
+      <version>2.0.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cache.SerializingCache.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7081" opendate="2014-4-24 00:00:00" fixdate="2014-5-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>select writetime(colname) returns 0 for static columns</summary>
+      <description>Selecting the write time for a static column returns 0 in Cassandra 2.0 (c3550fe) and an expected timestamp in 2.1 (trunk, acdbbb9). Would it be possible to include this timestamp in a 2.0 release too?&gt; CREATE TABLE test (partition_key text, cluster_key text, data text, st text static, PRIMARY KEY(partition_key, cluster_key));&gt; INSERT INTO test (partition_key, cluster_key, data, st) VALUES ( 'PK', 'CK', 'DATA', 'ST');&gt; SELECT writetime(st), writetime(data) FROM test where partition_key='PK'; writetime(st) | writetime(data)---------------+------------------ 0 | 1398314681729000(1 rows)</description>
+      <version>2.0.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ColumnGroupMap.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7087" opendate="2014-4-24 00:00:00" fixdate="2014-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use JMX_PORT for the RMI port to simplify nodetool connectivity</summary>
+      <description>Mentioned in the user list by Steven Robenalt there is a config option in Java7 to allow configuring the port used for the followup rmi connection in JMX. It simplifies things a lot to have both connections use 7199 since it could be reused for both.There's a little-known change in the way JMX uses ports that was add to JDK7u4 which simplifies the use of JMX in a firewalled environment. The standard RMI registry port for JMX is controlled by the com.sun.management.jmxremote.port property. The change to Java 7 was to introduce the related com.sun.management.jmxremote.rmi.port property, Setting this second property means that JMX will use that second port, rather than a randomly assigned port, for making the actual connection. This solution works well in the AWS VPC environment that I'm running in, and I've heard of others using it successfully as well.</description>
+      <version>2.0.8,2.1beta2</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7093" opendate="2014-4-25 00:00:00" fixdate="2014-5-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ConfigHelper.setInputColumnFamily incompatible with upper-cased keyspaces since 2.0.7</summary>
+      <description>Hi,We have a keyspace starting with an upper-case character: Visitors.We are trying to run a map reduce job on one of the column family of this keyspace.To specify the keyspace it seems we have to use:org.apache.cassandra.hadoop.ConfigHelper.setInputColumnFamily(conf, keyspace, columnFamily);If we do:ConfigHelper.setInputColumnFamily(conf, "Visitors", columnFamily); we get:com.datastax.driver.core.exceptions.InvalidQueryException: Keyspace 'visitors' does not exist at com.datastax.driver.core.exceptions.InvalidQueryException.copy(InvalidQueryException.java:35) at com.datastax.driver.core.DefaultResultSetFuture.extractCauseFromExecutionException(DefaultResultSetFuture.java:256) at com.datastax.driver.core.SessionManager.setKeyspace(SessionManager.java:335)...And if we do:ConfigHelper.setInputColumnFamily(conf, "\"Visitors\"", columnFamily); we get:Exception in thread "main" java.lang.RuntimeException: InvalidRequestException(why:No such keyspace: "Visitors") at org.apache.cassandra.hadoop.AbstractColumnFamilyInputFormat.getRangeMap(AbstractColumnFamilyInputFormat.java:339) at org.apache.cassandra.hadoop.AbstractColumnFamilyInputFormat.getSplits(AbstractColumnFamilyInputFormat.java:125) at org.apache.hadoop.mapred.JobClient.writeNewSplits(JobClient.java:962) at org.apache.hadoop.mapred.JobClient.writeSplits(JobClient.java:979)...This is working just fine if the keyspace is lowercase.And it was working just fine with Cassandra 2.0.6. But with Cassandra 2.0.7, and the addition of Datastax's java driver in the dependencies, I am getting this error.</description>
+      <version>2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlRecordReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlConfigHelper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7100" opendate="2014-4-27 00:00:00" fixdate="2014-5-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression in 2.0.x - Cql3 reader returns duplicate rows if the cluster column is reversed</summary>
+      <description>To reproduce it,cqlsh:test&gt; select * from wordfreq; title | occurances | word------------------------ alex123 | 4 | liu3 alex1 | 23456 | liu2 alex10 | 10 | liu10 alex12 | 34 | liu3 alex | 123456 | liu1 alex | 1000 | liuCREATE TABLE wordfreq ( title text, word text, occurances int, PRIMARY KEY (title,occurances)) WITH CLUSTERING ORDER by (occurances DESC);The hadoop job returns 7 rows instead of 6 rows. I will post a patch soon.</description>
+      <version>2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlPagingRecordReader.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7126" opendate="2014-4-30 00:00:00" fixdate="2014-5-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>relocate doesn&amp;#39;t update system.peers correctly</summary>
+      <description>While testing CASSANDRA-2434 I noticed the tokens being relocated aren't being removed from the source node.Here is a dtest https://github.com/tjake/cassandra-dtest/tree/taketoken</description>
+      <version>1.2.17,2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7132" opendate="2014-5-1 00:00:00" fixdate="2014-5-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a new Snitch for Google Cloud Platform</summary>
+      <description>In order to correctly identify the rack and datacenter, the snitch needs to query the metadata from the host. I will be attaching a diff to this issue shortly with the new snitch file.</description>
+      <version>2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7142" opendate="2014-5-2 00:00:00" fixdate="2014-5-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Suggest CTRL-C/D or semicolon after three blank lines in cqlsh</summary>
+      <description>After observing a few people use Cassandra and cqlsh for the first time, most of them miss a quote or a semi-colon in cqlsh and do something like this:cqlsh&gt; INSERT INTO users (name, email) VALUES ('joe', 'joe@gmail') ... ... ... ... ... If cqlsh gets three blank lines in a row, it could print something like:Statements are terminated with a ';'. You can press CTRL-C to cancel an imcomplete statement.</description>
+      <version>2.0.8,2.1rc1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7143" opendate="2014-5-2 00:00:00" fixdate="2014-5-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>shuffle broken on 2.0</summary>
+      <description>In 1.2, shuffle works correctly, creating the list of relocations and then following it, pausing correctly as needed: WARN 20:45:58,153 Pausing until token count stabilizes (target=3, actual=4)However on 2.0, it relocates all the ranges in one shot and never deletes entries from the list of tokens to relocate.</description>
+      <version>2.0.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ScheduledRangeTransferExecutorService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7147" opendate="2014-5-3 00:00:00" fixdate="2014-7-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a new snitch for Apache Cloudstack platforms</summary>
+      <description>The attached patch adds a new Snitch that queries meta data for a host on Apache Cloudstack environments. Since the metadata service is colocated with the DHCP service in Cloudstack, common lease file locations are looked up to retrieve.Since zone naming is freeform in Apache Cloudstack, the widely used &lt;country&gt;&lt;location&gt;&lt;az&gt; notation is assumed.The patch includes a simple unit test and has been tested on exoscale.ch, a public cloud based on Apache Cloudstack</description>
+      <version>1.2.18,2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7187" opendate="2014-5-7 00:00:00" fixdate="2014-5-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disabling compaction via schema is broken</summary>
+      <description>We disable compaction during startup, then enable it again without checking whether we actually should be enabled.</description>
+      <version>2.0.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.AbstractCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7242" opendate="2014-5-15 00:00:00" fixdate="2014-5-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>More compaction visibility into thread pool and per CF</summary>
+      <description>Two parts to this to help diagnose compactions issues/bottlenecks. Could be two different issues but pretty closely related. First is adding per column family pending compactions. When theres a lot of backed up compactions but multiple ones currently being compacted its hard to identify which CF is causing the backlog. In patch provided this doesnt cover the compactions in the thread pools queue like compactionstats does but not sure how big that gets ever or if needs to be... which brings me to the second idea.Second is to change compactionExecutor to extend the JMXEnabledThreadPoolExecutor. Big difference there would be the blocking rejection handler. With a 2^31 pending queue the blocking becoming an issue is a pretty extreme case in itself that would most likely OOM the server. So the different rejection policy shouldn't cause much of an issue but if it does can always override it to use default behavior. Would help identify scenarios where corrupted sstables or unhandled exceptions etc killing the compactions lead to a large backlog with nothing actively working. Also just for added visibility into this from tpstats.</description>
+      <version>2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.metrics.ColumnFamilyMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

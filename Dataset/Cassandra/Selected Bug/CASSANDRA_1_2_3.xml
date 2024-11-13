@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  <bug fixdate="2012-3-20 01:00:00" id="5081" opendate="2012-12-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support null values in PreparedStatements parameters</summary>
+      <description>Currently whenever developers want to use PreparedStatements, they need to ensure that all their parameters are non null or they need to have several PreparedStatements for each possible set of non null columns they want to store. This is obviously not a satisfying solution considering that 'null' values are a commonplace in applications. 'null' values should be allowed as parameters of PreparedStatements in Binary Protocol to solve this issue.This issue is obviously tightly coupled with CASSANDRA-3783 but they might be fixed separately.</description>
+      <version>1.2.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.UpdateStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Sets.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Maps.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.FunctionCall.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Constants.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2013-3-23 01:00:00" id="5181" opendate="2013-1-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-all 1.2.0 pom missing netty dependency</summary>
+      <description>It seems that cassandra depends on netty now, however the pom excludes this dependency.</description>
+      <version>1.2.3</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2013-2-26 01:00:00" id="5291" opendate="2013-2-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document how setting internode_{send|recv}_buff_size_in_bytes might give you worse performance</summary>
+      <description>By setting SO_SNDBUF (or RCVBUF) (which is what internode_{send|recv}buff_size_in_bytes does), the actual buffers will be limited by net.core.wmem_max and net.core.rmem_max which defaults to 131071 on Debian, but if you dont set it, it will use net.ipv4.tcp(w|r)mem which by default has a max value of 4194304.So, if you set internode_{send|recv}_buff_size_in_bytes, you will most likely not get the buffer size you want unless you have also tweaked your OS.Patch adds a few comments about this. Unsure if it should go in the config file, but it should at least be mentioned somewheresee:/proc/sys/net/core/wmem_max/proc/sys/net/core/rmem_max/proc/sys/net/ipv4/tcp_wmem/proc/sys/net/ipv4/tcp_rmemman tcp</description>
+      <version>1.2.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra.yaml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2013-2-26 01:00:00" id="5292" opendate="2013-2-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL3 shouldn&amp;#39;t lowercase DC names for NTS</summary>
+      <description>In CREATE and ALTER statements, when a property map is given (replication, compaction and compression options), CQL3 lowercase the map keys to provide case insensitivity. The goal is to allow things like: replication = { 'Class' : 'SimpleStrategy', 'Replication_factor' : '1' }However, this messes up with NTS, as it ends up lower-casing the datacenter names. As a consequence, replication = { 'class' : 'NetworkTopologyStrategy', 'DC1' : '1' }will currently create a DC that is really called 'dc1', which is a problem because DC names are interpreted case sensitively otherwise (at least in PropertyFileSnitch).That's the problem. Now I'm kind of hesitant on what is the right fix. I see the following possibilities: Remove the CQL3 lower-casing completely. I'll admit that providing case insensitivy for property map keys may not have been such a good idea in the first place. After all, those map keys are string literal, which rather suggest case sensitivity. However, making that change would be a break strictly speaking. Make DC name case insensitive. As much as I think DC names ought to be case insensitive, I'm not sure that's very doable in practice because that would imply storing DC names lower-cased internally, but DC names are exchanged over gossip and whatnot, so that would probably break all hell loose. Keep CQL3 case insensitivity for property map keys in general but special case internally for NTS. The problems I see with that is that 1) this will be ugly and 2) if we special case too much, we might break potential custom strategies inspired by NTS. I also had the idea of changing strategy options internally from Map&lt;String, String&gt; to some custom object that would be essentially a case insensitive string map (general case), but that would also hold the original case of keys so NTS (and any other likely-minded strategy) can do its stuff. This happens to not be a small patch however (I'm attaching the patch for reference because I wrote it, but I'm seriously wondering if it's not too overkill).</description>
+      <version>1.2.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.PropertyDefinitions.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2013-3-28 01:00:00" id="5300" opendate="2013-2-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Insufficient validation of UPDATE queries against counter cfs</summary>
+      <description>CREATE TABLE demo ( id int PRIMARY KEY, c counter)This is expected:insert into demo (id, c) VALUES ( 0, 20);Bad Request: INSERT statement are not allowed on counter tables, use UPDATE insteadThis should also be forbidden, but it is not:update demo set c = 20 where id = 0;select * from demo; id | c----+---- 0 | 20</description>
+      <version>1.2.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.Operation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2013-3-1 01:00:00" id="5305" opendate="2013-3-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>clqsh COPY is broken after strictening validation in 1.2.2 (quotes ints)</summary>
+      <description>cqlsh COPY is quoting values when it shouldn't, and that's throwing IRE in 1.2.2.</description>
+      <version>1.2.3</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2013-3-11 01:00:00" id="5329" opendate="2013-3-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair -pr with vnodes incompatibilty</summary>
+      <description>Hi,I have a cluster on 1.2.2 .This cluster is composed of 16 nodes in two datacenters (8 and 8) with an RF 3 :3. I used virtual nodes, 256 on each node.When I do “repair –pr" on a node, I can see that it’s doing repair only on the first vnode :&amp;#91;2013-03-07 14:42:56,922&amp;#93; Starting repair command #7, repairing 1 ranges for keyspace pns_fr&amp;#91;2013-03-07 14:42:57,835&amp;#93; Repair session eb38dfa0-872c-11e2-af2d-f36fae36bab1 for range (-9064588501660224828,-9063047458265491057] finished&amp;#91;2013-03-07 14:42:57,835&amp;#93; Repair command #7 finished&amp;#91;2013-03-07 14:42:57,852&amp;#93; Starting repair command #8, repairing 1 ranges for keyspace hbxtest&amp;#91;2013-03-07 14:42:59,307&amp;#93; Repair session ebc6c7c0-872c-11e2-af2d-f36fae36bab1 for range (-9064588501660224828,-9063047458265491057] finishedSo if I understand well, when I do a "repair –pr" on each node, I will repair only the first vnode on each node. (16 token ranges on 4096 ranges). This method doesn’t guarantee the consistency of the dataset.It seems to me that the "repair –pr" is not compatible with vnode cluster.</description>
+      <version>1.2.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

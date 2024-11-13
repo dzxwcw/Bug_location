@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="GEODE">
+  <bug id="9969" opendate="2022-1-18 00:00:00" fixdate="2022-3-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The region name starting with underscore lead to missing disk store after restart</summary>
+      <description>The problem is when using the region with a name starting with an underscore(allowed by documentation region_naming).If we stop one of the members and then rename the working dir(include disk store dir) to some new name and start the server with the name like renamed working dir, it will lead that we have the same disk-store-id in the listed disk-stores and in the missing disk store.This happens only if we are using the region with an underscore at the beginning.Steps to reproduce:Run locator and 4 servers, create region with name starting by underscore start locator --name=locator start server --name=server1 --server-port=40401 start server --name=server2 --server-port=40402 start server --name=server3 --server-port=40403 start server --name=server4 --server-port=40404 create region --name=_test-region --type=PARTITION_REDUNDANT_PERSISTENT --redundant-copies=1 --total-num-buckets=10 --enable-synchronous-disk=false query --query="select * from /_test-region"From another terminal (Kill server and rename working dir) kill -9 $(cat server4/vf.gf.server.pid) mv server4/ server5gfsh&gt;list disk-storesMember Name |               Member Id                | Disk Store Name | Disk Store ID----------- | -------------------------------------- | --------------- | ------------------------------------server1     | 192.168.0.145(server1:16916)&lt;v1&gt;:41001 | DEFAULT         | d5d17b43-4a06-408b-917f-08e5b2533ebeserver2     | 192.168.0.145(server2:17004)&lt;v2&gt;:41002 | DEFAULT         | 31d47cb4-718e-4b58-bde3-ae15b4657910server3     | 192.168.0.145(server3:17094)&lt;v3&gt;:41003 | DEFAULT         | f12850c6-a73b-443e-9ee0-87f0819ae6bcserver5     | 192.168.0.145(server5:17428)&lt;v6&gt;:41004 | DEFAULT         | 7a552fb3-e43d-4fa8-baa8-f6dc794cbf74gfsh&gt;show missing-disk-storesMissing Disk Stores           Disk Store ID             |     Host      | Directory------------------------------------ | ------------- | --------------------------------------------------------------------7a552fb3-e43d-4fa8-baa8-f6dc794cbf74 | 192.168.0.145 | /home/mkevo/apache-geode-1.15.0-build.0/bin/server4/.No missing colocated region foundStart a new server with a name like you rename your working dir from the restarted server. start server --name=server5 --server-port=40405Now we have the following output:gfsh&gt;list disk-storesMember Name | Member Id | Disk Store Name | Disk Store ID----------- | -------------------------------------- | --------------- | ------------------------------------server1 | 192.168.0.145(server1:16916)&lt;v1&gt;:41001 | DEFAULT | d5d17b43-4a06-408b-917f-08e5b2533ebeserver2 | 192.168.0.145(server2:17004)&lt;v2&gt;:41002 | DEFAULT | 31d47cb4-718e-4b58-bde3-ae15b4657910server3 | 192.168.0.145(server3:17094)&lt;v3&gt;:41003 | DEFAULT | f12850c6-a73b-443e-9ee0-87f0819ae6bcserver5 | 192.168.0.145(server5:17428)&lt;v6&gt;:41004 | DEFAULT | 7a552fb3-e43d-4fa8-baa8-f6dc794cbf74gfsh&gt;show missing-disk-storesMissing Disk Stores Disk Store ID | Host | Directory------------------------------------ | ------------- | --------------------------------------------------------------------7a552fb3-e43d-4fa8-baa8-f6dc794cbf74 | 192.168.0.145 | /home/mkevo/apache-geode-1.15.0-build.0/bin/server4/.No missing colocated region found</description>
+      <version>1.12.8,1.13.6,1.14.2,1.15.0</version>
+      <fixedVersion>1.15.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.acceptanceTest.java.org.apache.geode.cache.persistence.MissingDiskStoreAfterServerRestartAcceptanceTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.PartitionedRegionHelperJUnitTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.PartitionedRegionHelper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9972" opendate="2022-1-18 00:00:00" fixdate="2022-1-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>remove &amp;#39;wait overnight&amp;#39; step from release process</summary>
+      <description>now that maven central syncs within 1 hour and closer.cgi mirrors use the new dlcdn which syncs within 15 minutes, we can eliminate the overnight step in the release steps</description>
+      <version>None</version>
+      <fixedVersion>1.15.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-tools.release.README.md</file>
+      <file type="M">dev-tools.release.promote.rc.sh</file>
+      <file type="M">dev-tools.release.create.support.branches.sh</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

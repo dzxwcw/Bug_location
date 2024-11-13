@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2383" opendate="2011-3-25 00:00:00" fixdate="2011-7-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>log4j unable to load properties file from classpath</summary>
+      <description>when cassandra home folder is placed inside a folder which has space characters in its name,log4j settings are not properly loaded and warning messages are shown.</description>
+      <version>0.7.8</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractCassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2740" opendate="2011-6-4 00:00:00" fixdate="2011-7-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool decommission should throw an error when there are extra params</summary>
+      <description>removetoken takes a token parameter, but decommission works against the node where the call is issued. This allows confusion such as 'nodetool -h localhost decommission &lt;ip or token&gt;' actually decommissioning the local node, instead of whatever was passed to it.</description>
+      <version>0.7.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2770" opendate="2011-6-14 00:00:00" fixdate="2011-7-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose data_dir though jmx</summary>
+      <description>Going to implement this right away to get into next versons.</description>
+      <version>0.7.8,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2809" opendate="2011-6-22 00:00:00" fixdate="2011-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>In the Cli, update column family &lt;cf&gt; with comparator; create Column metadata</summary>
+      <description>Using cassandra-cli, I can't update the comparator of a column family with the type I want and when I did it with BytesType, Column metadata appear for each of my existing columns.Step to reproduce:[default@unknown] create keyspace Test with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy' and strategy_options = [{replication_factor:1}];[default@unknown] use Test;Authenticated to keyspace: Test[default@Test] create column family test;[default@Test] describe keyspace;... ColumnFamily: test Key Validation Class: org.apache.cassandra.db.marshal.BytesType Default column value validator: org.apache.cassandra.db.marshal.BytesType Columns sorted by: org.apache.cassandra.db.marshal.BytesType Row cache size / save period in seconds: 0.0/0 Key cache size / save period in seconds: 200000.0/14400 Memtable thresholds: 0.571875/122/1440 (millions of ops/MB/minutes) GC grace seconds: 864000 Compaction min/max thresholds: 4/32 Read repair chance: 1.0 Replicate on write: false Built indexes: []...[default@Test] update column family test with comparator = 'LongType';comparators do not match.why?? the CF is empty[default@Test] update column family test with comparator = 'BytesType';f8e4dcb0-9cca-11e0-0000-d0583497e7ffWaiting for schema agreement...... schemas agree across the cluster[default@Test] describe keyspace;... ColumnFamily: test Key Validation Class: org.apache.cassandra.db.marshal.BytesType Default column value validator: org.apache.cassandra.db.marshal.BytesType Columns sorted by: org.apache.cassandra.db.marshal.BytesType Row cache size / save period in seconds: 0.0/0 Key cache size / save period in seconds: 200000.0/14400 Memtable thresholds: 0.571875/122/1440 (millions of ops/MB/minutes) GC grace seconds: 864000 Compaction min/max thresholds: 4/32 Read repair chance: 1.0 Replicate on write: false Built indexes: []...[default@Test] set test[ascii('row1')][long(1)]=integer(35);set test[ascii('row1')][long(2)]=integer(36);set test[ascii('row1')][long(3)]=integer(38);set test[ascii('row2')][long(1)]=integer(45);set test[ascii('row2')][long(2)]=integer(42);set test[ascii('row2')][long(3)]=integer(33);[default@Test] list test;Using default limit of 100-------------------RowKey: 726f7731=&gt; (column=0000000000000001, value=35, timestamp=1308744931122000)=&gt; (column=0000000000000002, value=36, timestamp=1308744931124000)=&gt; (column=0000000000000003, value=38, timestamp=1308744931125000)-------------------RowKey: 726f7732=&gt; (column=0000000000000001, value=45, timestamp=1308744931127000)=&gt; (column=0000000000000002, value=42, timestamp=1308744931128000)=&gt; (column=0000000000000003, value=33, timestamp=1308744932722000)2 Rows Returned.[default@Test] update column family test with comparator = 'LongType';comparators do not match.same question than before, my columns contains only long, why I can't?[default@Test] update column family test with comparator = 'BytesType';[default@Test] describe keyspace; Keyspace: Test: Replication Strategy: org.apache.cassandra.locator.SimpleStrategy Options: [replication_factor:1] Column Families: ColumnFamily: test Key Validation Class: org.apache.cassandra.db.marshal.BytesType Default column value validator: org.apache.cassandra.db.marshal.BytesType Columns sorted by: org.apache.cassandra.db.marshal.BytesType Row cache size / save period in seconds: 0.0/0 Key cache size / save period in seconds: 200000.0/14400 Memtable thresholds: 0.571875/122/1440 (millions of ops/MB/minutes) GC grace seconds: 864000 Compaction min/max thresholds: 4/32 Read repair chance: 1.0 Replicate on write: false Built indexes: [] Column Metadata: Column Name: (0000000000000001) Validation Class: org.apache.cassandra.db.marshal.IntegerType Column Name: (0000000000000003) Validation Class: org.apache.cassandra.db.marshal.IntegerType Column Name: (0000000000000002) Validation Class: org.apache.cassandra.db.marshal.IntegerTypeColumn Metadata appear from nowhere. I don't think that it's expected.</description>
+      <version>0.7.8,0.8.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2821" opendate="2011-6-24 00:00:00" fixdate="2011-7-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CLI remove ascii column</summary>
+      <description>&amp;#91;default@sdo&amp;#93; incr counters&amp;#91;ascii(&amp;#39;EU&amp;#39;)&amp;#93;&amp;#91;ascii(&amp;#39;null&amp;#39;)&amp;#93;;Value incremented.&amp;#91;default@sdo&amp;#93; list counters;Using default limit of 100-------------------RowKey: 4555=&gt; (counter=6e756c6c, value=1)1 Row Returned.&amp;#91;default@sdo&amp;#93; del counters&amp;#91;ascii(&amp;#39;EU&amp;#39;)&amp;#93;&amp;#91;ascii(&amp;#39;null&amp;#39;)&amp;#93;;org.apache.cassandra.db.marshal.MarshalException: cannot parse'FUNCTION_CALL' as hex bytes&amp;#91;default@sdo&amp;#93;Suggested workaround, although not tested:assume counters comparator as bytes;del counters&amp;#91;&amp;#39;EU&amp;#39;&amp;#93;&amp;#91;0&amp;#93;;</description>
+      <version>0.7.8,0.8.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2856" opendate="2011-7-5 00:00:00" fixdate="2011-7-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>log unavailableexception details at debug level</summary>
+      <description></description>
+      <version>0.7.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DatacenterReadCallback.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2872" opendate="2011-7-8 00:00:00" fixdate="2011-7-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>While dropping and recreating an index, incremental snapshotting can hang</summary>
+      <description>When creating a hard link (at list with JNA), link() hang if the target of thelink already exists. In theory though, we should not hit that situationbecause we use a new directory for each manual snapshot and the generationnumber of the sstables should prevent this from hapenning with incrementsnapshot.However, when you drop, then recreate a secondary index, if the sstables aredeleted after the drop and before we recreate the index, the recreated indexsstables will start with a generation to 0. Thus, when we start backuping themincrementally, it will conflict with the sstables of the previously droppedindex.First, we should check for the target existance because calling link() to atleast avoid hanging. But then we must make sure that when we drop, thenrecreate an index, we will either not name the sstables the same way or theincremental snapshot use a different directory.</description>
+      <version>0.7.8,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2899" opendate="2011-7-14 00:00:00" fixdate="2011-7-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cli silently fails when classes are quoted</summary>
+      <description>For example: CREATE COLUMN FAMILY autocomplete_meta WITH comparator = 'UTF8Type' AND default_validation_class = 'UTF8Type' AND key_validation_class = 'UTF8Type'Neither validation class is actually set, but if you remove the quotes everything works.</description>
+      <version>0.7.8,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2928" opendate="2011-7-21 00:00:00" fixdate="2011-7-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Hinted Handoff replay</summary>
+      <description>Broken in CASSANDRA-2668. Brandon explains:the Ack and Ack2 verb handlers are applying a new ep state every time there is a generation change via Gossiper.applyStateLocally, so it's always unset initially when the node starts up. state.hasToken() is set in the Gossiper's status check, which won't have happened when the onAlive event is sent to SS.</description>
+      <version>0.7.8,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.EndpointState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

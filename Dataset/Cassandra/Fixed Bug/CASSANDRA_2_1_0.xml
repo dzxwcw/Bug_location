@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="7145" opendate="2014-5-3 00:00:00" fixdate="2014-9-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>FileNotFoundException during compaction</summary>
+      <description>I can't finish any compaction because my nodes always throw a "FileNotFoundException". I've already tried the following but nothing helped:1. nodetool flush2. nodetool repair (ends with RuntimeException; see attachment)3. node restart (via dse cassandra-stop)Whenever I restart the nodes, another type of exception is logged (see attachment) somewhere near the end of startup process. This particular exception doesn't seem to be critical because the nodes still manage to finish the startup and become online.I don't have specific steps to reproduce the problem that I'm experiencing with compaction and repair. I'm in the middle of migrating 4.8 billion rows from MySQL via SSTableLoader. Some things that may or may not be relevant:1. I didn't drop and recreate the keyspace (so probably not related to CASSANDRA-4857)2. I do the bulk-loading in batches of 1 to 20 millions rows. When a batch reaches 100% total progress (i.e. starts to build secondary index), I kill the sstableloader process and cancel the index build3. I restart the nodes occasionally. It's possible that there is an on-going compaction during one of those restarts.Related StackOverflow question (mine): http://stackoverflow.com/questions/23435847/filenotfoundexception-during-compaction</description>
+      <version>1.2.19,2.0.11,2.1.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7561" opendate="2014-7-17 00:00:00" fixdate="2014-8-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>On DROP we should invalidate CounterKeyCache as well as Key/Row cache</summary>
+      <description>We should also probably ensure we don't attempt to auto save any of the caches while they are in an inconsistent state (i.e. there are keys present to be saved that should not be restored, or that would throw exceptions when we save (e.g. CounterCacheKey))</description>
+      <version>2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CacheService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7599" opendate="2014-7-23 00:00:00" fixdate="2014-8-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dtest on low cardinality secondary indexes failing in 2.1</summary>
+      <description>test_low_cardinality_indexes in secondary_indexes_test.py is failing when tested on the cassandra-2.1 branch. This test has been failing on cassci for a while (at least the last 10 builds) and can easily be reproduced locally as well. It appears to still work on 2.0.======================================================================FAIL: test_low_cardinality_indexes (secondary_indexes_test.TestSecondaryIndexes)----------------------------------------------------------------------Traceback (most recent call last): File "/home/shawn/git/cstar5/cassandra-dtest/tools.py", line 213, in wrapped f(obj) File "/home/shawn/git/cstar5/cassandra-dtest/secondary_indexes_test.py", line 89, in test_low_cardinality_indexes check_request_order() File "/home/shawn/git/cstar5/cassandra-dtest/secondary_indexes_test.py", line 84, in check_request_order self.assertTrue('Executing indexed scan' in relevant_events[-1][0], str(relevant_events[-1]))AssertionError: (u'Enqueuing request to /127.0.0.2', '127.0.0.1')The test checks that a series of messages are found in the trace after a select query against an index is carried out. It fails to find an 'Executing indexed scan' from node 1 (which takes the query, note both node2 and node3 produced this message). Brief investigation seemed to show that whichever node you create the patient_cql_connection on will not produce this message, indicating perhaps it does not carry out the scan. Should also note that changing 'numrows' (rows initially added) or 'b' (value on index column we query for) does not appear to make a difference.</description>
+      <version>2.1.0</version>
+      <fixedVersion>Feature/2iIndex,Test/dtest/python</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7635" opendate="2014-7-29 00:00:00" fixdate="2014-8-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make hinted_handoff_throttle_in_kb configurable via nodetool</summary>
+      <description>Transfer of stored hints can peg the CPU of the node performing the sending of the hints. We have a throttle "hinted_handoff_throttle_delay_in_ms", but it requires a restart. It would be helpful if this were configurable via nodetool to avoid the reboot.</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7650" opendate="2014-7-30 00:00:00" fixdate="2014-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose auto_bootstrap as a system property override</summary>
+      <description>This one-line change gives the auto_bootstrap config parameter the ability to be overridden by a system property.As I understand things, setting this false is generally a one-time initial set-up item, and providing this will be potentially easier than swapping out yaml file items when the need to set this false arises.The handling is the same as was already implemented for replace_address and the like, look to the system property, and default that to the yaml config value.This also will also allow a start-up agent (like Priam) to influence the setting from within it's control over Cassandra's start-up behaviourPatch was generated against 1.2 branch but applies ok to 2.0 as well. (It would be great if this could be applied to both code lines)</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7663" opendate="2014-7-31 00:00:00" fixdate="2014-8-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Removing a seed causes previously removed seeds to reappear</summary>
+      <description>When you remove a seed from a cluster, Gossiper.removeEndpoint ensures it is removed from the seed list. However, it also resets the seed list to be the original list, which would bring back any previously removed seeds. What is the reasoning for having the call to buildSeedsList()? If it wasn’t there then I think the problem would be solved.</description>
+      <version>1.2.19,2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.locator.SimpleSeedProvider.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7684" opendate="2014-8-4 00:00:00" fixdate="2014-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>flush makes rows invisible to cluster key equality query</summary>
+      <description>CREATE KEYSPACE test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 };USE test;CREATE TYPE point_t (x double, y double);CREATE TABLE points (partitionkey int, b boolean static, clusteringkey point_t, PRIMARY KEY (partitionkey, clusteringkey) );INSERT INTO points (partitionkey, clusteringkey) VALUES (1, {x:-104.9925100000,y:39.7476520000});select * from points WHERE partitionkey=1 AND clusteringkey = {x:-104.9925100000,y:39.7476520000}; partitionkey | clusteringkey | b--------------+-------------------------+------ 1 | {x: -104.99, y: 39.748} | null(1 rows)cqlsh:test&gt; update points set b = true where partitionkey=1;cqlsh:test&gt; select * from points WHERE partitionkey=1 AND clusteringkey = {x:-104.9925100000,y:39.7476520000}; partitionkey | clusteringkey | b--------------+-------------------------+------ 1 | {x: -104.99, y: 39.748} | True(1 rows)// run bin/nodetool flush herecqlsh:test&gt; select * from points WHERE partitionkey=1 AND clusteringkey = {x:-104.9925100000,y:39.7476520000};(0 rows)cqlsh:test&gt; select * from points WHERE partitionkey=1; partitionkey | clusteringkey | b--------------+-------------------------+------ 1 | {x: -104.99, y: 39.748} | True(1 rows)i.e. the data is not lost, it's just invisible when read from sstable, but visible when read from memtable.</description>
+      <version>2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.UserTypesTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.AbstractCompoundCellNameType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7685" opendate="2014-8-4 00:00:00" fixdate="2014-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prepared marker for collections inside UDT do not handle null values</summary>
+      <description>The fix for CASSANDRA-7472 does not handle null values. The following causes an NPE to be thrown:// CREATE TYPE phone (alias text, number text)// CREATE TYPE address (street text, phones set&lt;phone&gt;)// CREATE TABLE user (id int PRIMARY KEY, addr address)PreparedStatement ps = session.prepare("INSERT INTO user (id, addr) VALUES (1, { street: 'foo', phones: ? })");BoundStatement bs = ps.bind().setSet(0, null);session.execute(bs);</description>
+      <version>2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.UserTypes.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7687" opendate="2014-8-4 00:00:00" fixdate="2014-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh DESC CLUSTER fails retrieving ring information</summary>
+      <description>Details: https://datastax-oss.atlassian.net/browse/PYTHON-111Applies only to cqlsh using the datastax python-driver.Patch attached.</description>
+      <version>2.1.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7694" opendate="2014-8-5 00:00:00" fixdate="2014-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expected Compaction Interruption is logged as ERROR</summary>
+      <description>As seen in the attached log, occasionally a major compaction will interrupt other running compactions. This is not an error and is expected behavior. However this is logged at ERROR.</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.DebuggableThreadPoolExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7695" opendate="2014-8-5 00:00:00" fixdate="2014-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inserting the same row in parallel causes bad data to be returned to the client</summary>
+      <description>Running the attached test program against a cassandra 2.1 server results in scrambled data returned by the SELECT statement. Running it against latest stable works fine.Attached: Program that reproduces the failure Example output files from mentioned test-program with the scrambled output.Failure mode:The value returned by 'get' is scrambled, the size is correct but some bytes have shifted locations in the returned buffer.Cluster info:For the test we set up a single cassandra node using the stock configuration file.</description>
+      <version>2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Frame.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7707" opendate="2014-8-6 00:00:00" fixdate="2014-8-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>blobAs() function results not validated</summary>
+      <description>The results of the blobAs*() functions are not validated.Here are some examples:Non-type1 UUID inserted into timeuuid column:create table foo (k int primary key, v timeuuid);insert into foo (0, blobAsTimeuuid(0x00000000000000000000000000000000));Blob with length &gt; 4 inserted into an int column:create table bar (k int primary key, v int);insert into bar (k, v) VALUES (0, blobAsInt(0x0000000000));Non-ascii characters inserted into an ascii column:create table baz (k int primary key, v ascii);insert into baz (k, v) VALUES (0, blobAsAscii(0xFFFFFFFF));Some of these (like the int column) could cause issues that look like corruption.</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.FunctionCall.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.BytesConversionFcts.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7717" opendate="2014-8-7 00:00:00" fixdate="2014-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-stress: add sample yamls to distro</summary>
+      <description>C* stress is missing sample yaml files in distro. They are in git - but not in the downloadable tgz .</description>
+      <version>2.1.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.rules</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7744" opendate="2014-8-11 00:00:00" fixdate="2014-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dropping the last collection column turns CompoundSparseCellNameType$WithCollection into CompoundDenseCellNameType</summary>
+      <description>Dropping the last collection column turns CompoundSparseCellNameType$WithCollection into CompoundDenseCellNameTypeTo reproducecqlsh:test&gt; create table test (id int primary key, col map&lt;int,int&gt;);cqlsh:test&gt; alter table test drop col;cqlsh:test&gt; alter table test add col list&lt;int&gt;;code=2200 [Invalid query] message="Cannot add new column to a COMPACT STORAGE table"</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTableStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7745" opendate="2014-8-11 00:00:00" fixdate="2014-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Background LCS compactions stall with pending compactions remaining</summary>
+      <description>We've hit a scenario where background LCS compactions will stall. compactionstats output shows hundreds of pending compactions but none active. The thread dumps show no CompactionExecutor threads running, and no compaction activity is being logged to system.log. This seems to happen when there are no writes to the node. There are no flushes logged either, and when writes resume, compactions seem to resume as well, but still don't ever get to 0.</description>
+      <version>1.2.19,2.0.10,2.1.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7753" opendate="2014-8-11 00:00:00" fixdate="2014-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Level compaction for Paxos table</summary>
+      <description>Paxos table uses size tiered compaction which causes stable per read to be high. Converting to level has improved the performance. I think we should consider making this as default or to change the default setting of size tiered.</description>
+      <version>2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7763" opendate="2014-8-13 00:00:00" fixdate="2014-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cql_tests static_with_empty_clustering test failure</summary>
+      <description>======================================================================FAIL: static_with_empty_clustering_test (cql_tests.TestCQL)----------------------------------------------------------------------Traceback (most recent call last): File "/home/ryan/git/datastax/cassandra-dtest/tools.py", line 213, in wrapped f(obj) File "/home/ryan/git/datastax/cassandra-dtest/cql_tests.py", line 4082, in static_with_empty_clustering_test assert_one(cursor, "SELECT * FROM test", ['partition1', '', 'static value', 'value']) File "/home/ryan/git/datastax/cassandra-dtest/assertions.py", line 40, in assert_one assert res == [expected], resAssertionError: [[u'partition1', u'', None, None], [u'partition1', u'', None, None], [u'partition1', u'', None, u'value']]-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------dtest: DEBUG: cluster ccm directory: /tmp/dtest-Ex54V7--------------------- &gt;&gt; end captured logging &lt;&lt; -------------------------------------------------------------------------------------------Ran 1 test in 6.866sFAILED (failures=1)regression from CASSANDRA-7455?</description>
+      <version>2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.composites.CompoundSparseCellNameType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.AbstractCType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7798" opendate="2014-8-19 00:00:00" fixdate="2014-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Empty clustering column not caught for CQL3 update to compact storage counter table</summary>
+      <description>If you update a compact storage counter column through cql3 you can set an empty column name, which is invalid. The server catches this for normal tables, but misses it for counters, and you end up with an assertion when the mutation gets serialized.CREATE TABLE nullcoltest ( key text, column1 text, value counter, PRIMARY KEY (key, column1)) WITH COMPACT STORAGE;UPDATE nullcoltest SET value = value + 1 WHERE key = 'k1' AND column1 = '';ERROR [COMMIT-LOG-WRITER] 2014-08-19 16:11:12,179 CassandraDaemon.java (line 199) Exception in thread Thread[COMMIT-LOG-WRITER,5,main]java.lang.AssertionError at org.apache.cassandra.db.ColumnSerializer.serialize(ColumnSerializer.java:56) at org.apache.cassandra.db.ColumnFamilySerializer.serialize(ColumnFamilySerializer.java:77) at org.apache.cassandra.db.RowMutation$RowMutationSerializer.serialize(RowMutation.java:278) at org.apache.cassandra.db.commitlog.CommitLogSegment.write(CommitLogSegment.java:264) at org.apache.cassandra.db.commitlog.CommitLog$LogRecordAdder.run(CommitLog.java:357) at org.apache.cassandra.db.commitlog.PeriodicCommitLogExecutorService$1.runMayThrow(PeriodicCommitLogExecutorService.java:51) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) at java.lang.Thread.run(Thread.java:744)</description>
+      <version>1.2.19,2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Constants.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7802" opendate="2014-8-20 00:00:00" fixdate="2014-8-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Need to export JVM_OPTS from init.d script</summary>
+      <description>Since 2.0, the init.d script was refactored and requires JVM variables to be exported for them to actually be picked up and used. In this case, JVM_OPTS never gets exported, so user defined variables from /etc/default/cassandra are never applied.This also affects the latest 2.1 rc, and I assume all previous versions.Pull request: https://github.com/apache/cassandra/pull/42Diff: https://github.com/apache/cassandra/pull/42.diffPatch: https://github.com/apache/cassandra/pull/42.patch</description>
+      <version>2.0.11,2.1.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7806" opendate="2014-8-20 00:00:00" fixdate="2014-8-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: Fix column name formatting for functions, [applied], udt fields</summary>
+      <description>cqlsh is using the python driver's default row factory (named_tuple_factory) which can change result column names to make valid python identifiers. Instead, cqlsh should use ordered_dict_factory so that the original result column names are preserved (and so is the ordering).</description>
+      <version>2.1.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7810" opendate="2014-8-21 00:00:00" fixdate="2014-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>tombstones gc&amp;#39;d before being locally applied</summary>
+      <description>single node environmentCREATE KEYSPACE test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 };use test;create table foo (a int, b int, primary key(a,b));alter table foo with gc_grace_seconds = 0;insert into foo (a,b) values (1,2);select * from foo; one row returned. so far, so good.delete from foo where a=1 and b=2;select * from foo; 0 rows. still rainbows and kittens.bin/nodetool flush;bin/nodetool compact;select * from foo; a | b--+-- 1 | 2 (1 rows)gahhh.looks like the tombstones were considered obsolete and thrown away before being applied to the compaction? gc_grace just means the interval after which they won't be available to remote nodes repair - they should still apply locally regardless (and do correctly in 2.0.9)</description>
+      <version>1.2.19,2.0.11,2.1.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RangeTombstoneTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RangeTombstone.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnIndex.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7831" opendate="2014-8-26 00:00:00" fixdate="2014-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>recreating a counter column after dropping it leaves in unusable state</summary>
+      <description>create table counter_bug (t int, c counter, primary key (t));update counter_bug set c = c +1 where t = 1;select * from counter_bug ; t | c--+-- 1 | 1(1 rows)alter table counter_bug drop c;alter table counter_bug add c counter;update counter_bug set c = c +1 where t = 1;select * from counter_bug;(0 rows)update counter_bug set c = c +1 where t = 2;select * from counter_bug;(0 rows)</description>
+      <version>2.0.11,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7834" opendate="2014-8-26 00:00:00" fixdate="2014-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Case sensitivity problem in cqlsh when specifying keyspace in select</summary>
+      <description>The dtest cqlsh_tests.py:TestCqlsh.test_with_empty_values is currently failing. Upon investigation, the issue is a case sensitivity problem in cqlsh. If I have a keyspace, 'cassandra', the following queries all work:use cassandra;use CASSANDRA;select * from cassandra.table;The following query worked in 2.0 but does not work in cqlsh in 2.1:select * from CASSANDRA.tableIt should be noted that the final query also works when accessing C* through the python driver, so it should work in cqlsh.</description>
+      <version>2.1.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7836" opendate="2014-8-26 00:00:00" fixdate="2014-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Data loss after moving tokens</summary>
+      <description>The dtest topology_test:TestTopology.movement_test is failing on 2.1.0 and 2.1-HEAD. The test, which has been attached, goes through the following workflow: Create an unbalanced three node cluster without vnodes Create a keyspace with RF=1 Load data into the cluster Flush the cluster with nodetool flush Move the tokens around to balance the cluster, using nodetool move Run nodetool cleanupAt this point, the test checks that all 10,000 of the originally inserted rows are still there. In 2.0.10 that is true, however in 2.1, only ~4000 rows exist.</description>
+      <version>2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamPlan.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7847" opendate="2014-8-29 00:00:00" fixdate="2014-9-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow quoted identifiers for triggers&amp;#39; names</summary>
+      <description>Current implementation doesn't allow quoted/case sensitive identifiers for triggers' names, and doesn't handle those names in case-insensitive manner either.mstepura-mac:cassandra mikhail$ bin/cqlshConnected to Test Cluster at 127.0.0.1:9042.[cqlsh 5.0.1 | Cassandra 2.1.1-SNAPSHOT | CQL spec 3.2.0 | Native protocol v3]Use HELP for help.cqlsh&gt; use stress;cqlsh:stress&gt; create TRIGGER "ZooZoo" ON t1 USING 'org.apache.cassandra.triggers.InvertedIndex';&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:15 mismatched input 'ZooZoo' expecting IDENT (create TRIGGER ["ZooZo]o" ON...)"&gt;cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; create TRIGGER ZooZoo ON t1 USING 'org.apache.cassandra.triggers.InvertedIndex';cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; drop TRIGGER zoozoo ON stress.t1 ;code=2200 [Invalid query] message="Trigger zoozoo was not found"cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; drop TRIGGER "ZooZoo" ON stress.t1 ;&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:13 mismatched input 'ZooZoo' expecting IDENT (drop TRIGGER ["ZooZo]o" ON...)"&gt;cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; drop TRIGGER ZooZoo ON stress.t1 ;</description>
+      <version>2.1.0,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CreateTriggerStatementTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">NEWS.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7863" opendate="2014-9-2 00:00:00" fixdate="2014-9-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: Use frozen&lt;&gt; for tuples and UDTs in DESCRIBE output</summary>
+      <description>cqlsh was not updated by CASSANDRA-7857 to use frozen&lt;&gt; where necessary in DESCRIBE output.</description>
+      <version>2.1.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.1.0.post.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7869" opendate="2014-9-3 00:00:00" fixdate="2014-9-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NPE while freezing a tuple containing a list</summary>
+      <description>Detected in 2.1.0-rc7 (not released yet):cqlsh:test&gt; CREATE TABLE mytable (k int PRIMARY KEY, v_0 frozen&lt;tuple&lt;list&lt;int&gt;&gt;&gt;);&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="Failed parsing statement: [CREATE TABLE mytable (k int PRIMARY KEY, v_0 frozen&lt;tuple&lt;list&lt;int&gt;&gt;&gt;);] reason: NullPointerException null"&gt;</description>
+      <version>2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.TupleTypeTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.CQL3Type.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7895" opendate="2014-9-5 00:00:00" fixdate="2014-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ALTER TYPE &lt;name&gt; RENAME TO &lt;name&gt; no longer parses as valid cql</summary>
+      <description>Type renaming seems to be broken. The error looks like perhaps the syntax has changed or there's a problem parsing the cql.cqlsh:test&gt; create type foo (somefield int);cqlsh:test&gt; alter type foo rename to bar;&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:22 no viable alternative at input 'to' (alter type foo rename [to] bar...)"&gt;</description>
+      <version>2.1.0,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

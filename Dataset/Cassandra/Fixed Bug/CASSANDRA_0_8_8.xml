@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2786" opendate="2011-6-17 00:00:00" fixdate="2011-11-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>After a minor compaction, deleted key-slices are visible again</summary>
+      <description>After a minor compaction, deleted key-slices are visible again.Steps to reproduce:1) Insert a row named "test".2) Insert 500000 rows. During this step, row "test" is included in a major compaction: file-1, file-2, file-3 and file-4 compacted to file-5 (includes "test").3) Delete row named "test".4) Insert 500000 rows. During this step, row "test" is included in a minor compaction: file-6, file-7, file-8 and file-9 compacted to file-10 (should include tombstoned "test").After step 4, row "test" is live again.Test environment:Single node with empty database.Standard configured super-column-family (I see this behavior with several gc_grace settings (big and small values):create column family Customers with column_type = 'Super' and comparator = 'BytesType;In Cassandra 0.7.6 I observe the expected behavior, i.e. after step 4, the row is still deleted.I've included a .NET program to reproduce the problem. I will add a Java version later on.</description>
+      <version>0.8.8,1.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.EchoedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.CompactionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.PrecompactedRow.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2855" opendate="2011-7-4 00:00:00" fixdate="2011-11-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Skip rows with empty columns when slicing entire row</summary>
+      <description>We have been finding that range ghosts appear in results from Hadoop via Pig. This could also happen if rows don't have data for the slice predicate that is given. This leads to having to do a painful amount of defensive checking on the Pig side, especially in the case of range ghosts.We would like to add an option to skip rows that have no column values in it. That functionality existed before in core Cassandra but was removed because of the performance penalty of that checking. However with Hadoop support in the RecordReader, that is batch oriented anyway, so individual row reading performance isn't as much of an issue. Also we would make it an optional config parameter for each job anyway, so people wouldn't have to incur that penalty if they are confident that there won't be those empty rows or they don't care.It could be parameter cassandra.skip.empty.rows and be true/false.</description>
+      <version>0.8.8</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilyRecordReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3126" opendate="2011-9-2 00:00:00" fixdate="2011-10-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>unable to remove column metadata via CLI</summary>
+      <description>I cant find way how to remove all columns definitions without CF import/export.&amp;#91;default@int4&amp;#93; update column family sipdb with column_metadata = [];Syntax error at position 51: required (...)+ loop did not match anything at input ']'&amp;#91;default@int4&amp;#93; update column family sipdb with column_metadata = &amp;#91;{}&amp;#93;;Command not found: `update column family sipdb with column_metadata = &amp;#91;{}&amp;#93;;`. Type 'help;' or '?' for help.&amp;#91;default@int4&amp;#93;</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.Cli.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3170" opendate="2011-9-9 00:00:00" fixdate="2011-10-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Schema versions output should be on separate lines for separate versions</summary>
+      <description>On the CLI if you do a 'describe cluster;' it would be really nice to have different versions on different lines or some way to call out multiple versions more. Right now it's a UUID with a list of nodes for one, but with multiple versions, it's on the same line - another UUID and another list of nodes. That's hard to distinguish between one version and multiple versions at a glance.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3178" opendate="2011-9-12 00:00:00" fixdate="2011-11-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Counter shard merging is not thread safe</summary>
+      <description>The first part of the counter shard merging process is done during counter replication. This was done there because it requires that all replica are made aware of the merging (we could only rely on nodetool repair for that but that seems much too fragile, it's better as just a safety net). However this part isn't thread safe as multiple threads can do the merging for the same shard at the same time (which shouldn't really "corrupt" the counter value per se, but result in an incorrect context).Synchronizing that part of the code would be very costly in term of performance, so instance I propose to move the part of the shard merging done during replication to compaction. It's a better place anyway. The only downside is that it means compaction will sometime send mutations to other node as a side effect, which doesn't feel very clean but is probably not a big deal either.</description>
+      <version>0.8.8,1.0.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.CounterMutationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.context.CounterContextTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CounterMutation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CounterColumn.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.context.CounterContext.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.PrecompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3186" opendate="2011-9-12 00:00:00" fixdate="2011-11-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool should not NPE when rack/dc info is not yet available</summary>
+      <description>As the title says. What happens is the persisted ring is loaded, but if those nodes are down and you're using a snitch like ec2 that gets rack/dc info from gossip, nodetool NPEs instead of showing that the node is down.</description>
+      <version>0.8.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.Ec2Snitch.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3196" opendate="2011-9-13 00:00:00" fixdate="2011-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra-CLI command should have --version option</summary>
+      <description>Implementing "cassandra-cli --version" command line option would make it easier to write bug reports and check the versions of tools in use. Or if you want to make it a CLI command inside the tool, I don't know. --version option seems to be the standard way.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3214" opendate="2011-9-15 00:00:00" fixdate="2011-12-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make CFIF use rpc_endpoint prior to trying endpoint</summary>
+      <description>Following up on CASSANDRA-3187 , we probably need to attempt to use the rpc_endpoint address first, and then fall back to the gossip endpoint if we don't get what we want.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilyInputFormat.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3292" opendate="2011-10-1 00:00:00" fixdate="2011-10-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>creating column family sets durable_writes to true</summary>
+      <description>&amp;#91;default@rapidshare&amp;#93; describe keyspace rapidshare;Keyspace: rapidshare: Replication Strategy: org.apache.cassandra.locator.NetworkTopologyStrategy Durable Writes: false Options: &amp;#91;datacenter1:1&amp;#93; Column Families:&amp;#91;default@rapidshare&amp;#93; create column family t1;1ba19300-ebfa-11e0-0000-34912694d0bfWaiting for schema agreement...... schemas agree across the cluster&amp;#91;default@rapidshare&amp;#93; describe keyspace rapidshare;Keyspace: rapidshare: Replication Strategy: org.apache.cassandra.locator.NetworkTopologyStrategy Durable Writes: true Options: &amp;#91;datacenter1:1&amp;#93; Column Families: ColumnFamily: t1 Key Validation Class: org.apache.cassandra.db.marshal.BytesType Default column value validator: org.apache.cassandra.db.marshal.BytesType Columns sorted by: org.apache.cassandra.db.marshal.BytesType Row cache size / save period in seconds: 0.0/0 Key cache size / save period in seconds: 200000.0/14400 Memtable thresholds: 0.028124999999999997/1440/6 (millions of ops/minutes/MB) GC grace seconds: 864000 Compaction min/max thresholds: 4/32 Read repair chance: 1.0 Replicate on write: true Built indexes: []</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.RenameKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.RenameColumnFamily.java</file>
+      <file type="M">src.avro.internode.genavro</file>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.DefsTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.config.DatabaseDescriptorTest.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.UpdateKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.DropColumnFamily.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.AddColumnFamily.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3297" opendate="2011-10-3 00:00:00" fixdate="2011-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>truncate can still result in data being replayed after a restart</summary>
+      <description>Our first stab at fixing this was CASSANDRA-2950.</description>
+      <version>0.8.8,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RecoveryManagerTruncateTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Truncation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegment.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3342" opendate="2011-10-11 00:00:00" fixdate="2011-10-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-cli allows setting min_compaction_threshold to 1</summary>
+      <description>{{&amp;#91;root@Apture&amp;#93; update column family MagicLinks with min_compaction_threshold=1 and max_compaction_threshold=20;b98e3b80-f3a3-11e0-0000-76abb4a6dbbfWaiting for schema agreement...... schemas agree across the cluster}}I'm told that a min_compaction_threshold of 1 is nonsensical. I had a spell where my servers stopped doing compactions. Once I upped the min_compaction_threshold, they started compacting again. I'm unable to confirm for sure that this was the case.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3344" opendate="2011-10-11 00:00:00" fixdate="2011-10-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compaction throttling can be too slow</summary>
+      <description>Compaction throttling needs to know how many active compactions are running (to divide bandwith for each active compaction).The way active compaction is counted can be broken because it counts the number of active threads in the executor BUT the thread starts by acquiring a lock.If the lock can't be acquired immediately : the thread is seen as "active" but does not participate in IO operations.The case can happen when major compaction are triggered (major compaction acquire a write lock, while minor compactions acquire a read lock).Having compaction througput to 16Mb/s, we observed is the following (two times) : only 1 active compaction (a long one for a few hours) starting at 16Mb/s, then after some time running at 2Mb/s, thus taking a very long time to complete many pending compactionsUsing JMX and monitoring the stack trace of the compaction threads showed that : 1 thread was effectively compacting 1 thread was waiting to acquire the write lock (due to a major compaction) 6 threads were waiting to acquire the read lock (probably due to the thread above trying to acquire the write lock)Attached is a proposed patch (very simple, not yet tested) which counts only active compactions.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3350" opendate="2011-10-11 00:00:00" fixdate="2011-10-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Can&amp;#39;t USE numeric keyspace names in CQL</summary>
+      <description>Cassandra allows keyspace names to start with a digit or an underscore (see o.a.c.db.migration.Migration.isLegalName), but CQL's USE statement only accepts a CQL identifier, which must start with a letter. So there's no way to use a keyspace named "142" or "&amp;#95;hi&amp;#95;" in CQL, for example.The USE statement should accept string literals and integers as well as identifiers, and CQL identifiers (IDENT) should probably allow starting with the underscore.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3351" opendate="2011-10-12 00:00:00" fixdate="2011-10-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>If node fails to join a ring it will stay in joining state indefinately</summary>
+      <description>While attempting to add a new node to my ring something went wrong and I had to terminate the node on ec2. After this the node keeps appearing in the ring command in "joining" state and never goes away. Per driftx on the Cassandra channel if I do a whole cluster restart it should go away, but since this is a production system this is not really possible. Additionally if I could join a node with same IP again this should go away, but being on ec2 this is not always easy. So not sure if this truly qualifies as a bug or more like a feature request, but I feel there should be a way to remove a node in any state if I wish without joining a node with same ip or doing a whole cluster restart.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3358" opendate="2011-10-13 00:00:00" fixdate="2011-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>2GB row size limit in ColumnIndex offset calculation</summary>
+      <description>Index offset is calculated using int instead of long resulting in overflow at 2GB row size. As a result affected columns can not be retrieved. Fix: use long instead of int</description>
+      <version>0.7.10,0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnIndexer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3384" opendate="2011-10-19 00:00:00" fixdate="2011-10-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>it would be nice if "describe keyspace" in cli shows "Cache Provider"</summary>
+      <description>Describe keyspace in the cli doesn't show the cache provider it would be nice to show it to verify the settings.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3386" opendate="2011-10-19 00:00:00" fixdate="2011-10-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid lock contention in hint rows</summary>
+      <description>As pointed out by Yang in CASSANDRA-3385, hint writes are keyed by target IP, to make replay efficient. However, this means that we'll hit a lot of lock contention in table.apply where we synchronize for potential index updates.</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3390" opendate="2011-10-20 00:00:00" fixdate="2011-10-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ReadResponseSerializer.serializedSize() calculation is wrong</summary>
+      <description>in ReadResponse.javathe following code public long serializedSize(ReadResponse response, int version) { int size = DBConstants.intSize; size += (response.isDigestQuery() ? response.digest() : ByteBufferUtil.EMPTY_BYTE_BUFFER).remaining(); size += DBConstants.boolSize; if (response.isDigestQuery()) size += response.digest().remaining(); else size += Row.serializer().serializedSize(response.row(), version); return size; }adds the digest size 2 timesthis triggers assertion error in at least ReadVerbHandler</description>
+      <version>0.8.8,1.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3399" opendate="2011-10-24 00:00:00" fixdate="2011-10-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Truncate disregards running compactions when deleting sstables</summary>
+      <description>All truncation do is `cfs.markCompacted(truncatedSSTables)` without holding any lock or anything. Which have the effect of actually deleting sstables that may be compacting. More precisely there is three problems: It removes those compacting sstables from the current set of active sstables for the cfs. But when they are done compacting, DataTracker.replaceCompactedSSTables() will be called and it assumes that the compacted sstable are parts of the current set of active sstables. In other words, we'll get an exception looking like the one of CASSANDRA-3306. The result of the compaction will be added as a new active sstable (actually no, because the code will throw an exception before because of the preceding point, but that's something we should probably deal with). Currently, compaction don't 'acquire references' on SSTR. That's because the code assumes we won't compact twice the same sstable and that compaction is the only mean to delete an sstable. With these two assumption, acquiring references is not necessary, but truncate break that first assumption.As for solution, I see two possibilities: make the compaction lock be per-cf instead of global (which I think is easy and a good idea anyway) and grab the write lock to do the markCompacted call. The big downside is that truncation will potentially take much longer. had two phases: mark the sstable that are not compacting as compacted and set the dataTracker as 'truncated at', and let it deal with the other sstable when their compaction is done. A bit like what is proposed for CASSANDRA-3116</description>
+      <version>0.8.8,1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3405" opendate="2011-10-26 00:00:00" fixdate="2011-10-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Row cache provider reported wrong in cassandra-cli</summary>
+      <description>When doing "show schema;" in the CLI, the row_cache_provider is reported as ConcurrentLinkedHashCacheProvider while it really is SerializingCacheProviderSame goes for "describe keyspace" (after CASSANDRA-3384) on the 0.8 branch</description>
+      <version>0.8.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3414" opendate="2011-10-28 00:00:00" fixdate="2011-10-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Not possible to change row_cache_provider on existing cf</summary>
+      <description>row_cache_provider is not possible to change using update column family xyz with row_cache_provider='something' in 0.8It does work in 1.0.0Reason is that the field is not added to the avro record, patch attached fixes that</description>
+      <version>0.8.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3520" opendate="2011-11-22 00:00:00" fixdate="2011-11-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unit test are hanging on 0.8 branch</summary>
+      <description>As the summary says, the unit test on current 0.8 are just hanging after CliTest (it's apparently not the case on windows, but it is on Linux and MacOSX).Not sure what's going on, but what I can tell is that it's enough to run CliTest to have it hang after the test successfully pass (i.e, JUnit just wait indefinitely for the VM to exit). Even weirder, it seems that it is the counter increment in the CliTest that make it hang, if you comment those statement, it stop hanging. However, nothing seems to go wrong with the increment itself (the test passes) and it doesn't even trigger anything (typically sendToHintedEndpoint is not called because there is only one node).Looking at the stack when the VM is hanging (attached), there is nothing specific to counters in there, and nothing that struck me at odd (but I could miss something). There do is a few thrift thread running (CASSANDRA-3335), but why would that only be a problem for the tests in that situation is a mystery to me.</description>
+      <version>0.8.8</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

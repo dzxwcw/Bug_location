@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CALCITE">
+  <bug id="2185" opendate="2018-2-16 00:00:00" fixdate="2018-2-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Additional unit tests for Spark Adapter</summary>
+      <description>Add some unit tests covering more aspects of the Spark Adapter.</description>
+      <version>None</version>
+      <fixedVersion>1.16.0</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">spark.src.test.java.org.apache.calcite.test.SparkAdapterTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2187" opendate="2018-2-17 00:00:00" fixdate="2018-2-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix build issue caused by CALCITE-2170</summary>
+      <description>CALCITE-2170 introduced the use of Guava Function not existing in 14 Version that cause the build to fail when {code}guava.version=14.0.1{code}</description>
+      <version>None</version>
+      <fixedVersion>1.16.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidQuery.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2193" opendate="2018-2-26 00:00:00" fixdate="2018-2-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update version of Cassandra driver</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2222" opendate="2018-3-23 00:00:00" fixdate="2018-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add Quarter as part of valid floor units to push down to Druid.</summary>
+      <description>Current list of valid floor units that can be pushed as valid floor unit is missing Quarters, something that Druid can actually do. This is a performance bug.For instance query SELECT floor_year(`__time`), max(added), sum(variation)FROM druid_table_1Is currently planned as {"queryType":"scan","dataSource":"wikipedia","intervals":["1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z"],"virtualColumns":[{"type":"expression","name":"vc","expression":"\"__time\"","outputType":"LONG"}],"columns":["vc","added","variation"],"resultFormat":"compactedList"}And it can be optimized to {"queryType":"timeseries","dataSource":"wikipedia","descending":false,"granularity":"quarter","aggregations":[{"type":"doubleMax","name":"$f1","fieldName":"added"},{"type":"doubleSum","name":"$f2","fieldName":"variation"}],"intervals":["1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z"],"context":{"skipEmptyBuckets":true}}</description>
+      <version>1.16.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.test.java.org.apache.calcite.test.DruidAdapterIT.java</file>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.TimeExtractionFunction.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2232" opendate="2018-3-30 00:00:00" fixdate="2018-3-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Assertion error on AggregatePullUpConstantsRule while adjusting Aggregate indices</summary>
+      <description>Executing the following query:select ename, salfrom (select '1', ename, sal from emp where ename = 'John') subqgroup by ename, sal;results in the following error:java.lang.AssertionError: Cannot add expression of different type to set:set type is RecordType(VARCHAR(20) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary" NOT NULL ENAME, INTEGER NOT NULL SAL) NOT NULLexpression type is RecordType(INTEGER NOT NULL ENAME, INTEGER NOT NULL SAL) NOT NULLset is rel#21:LogicalAggregate(input=HepRelVertex#20,group={1, 5})expression is LogicalProject#24</description>
+      <version>1.16.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.AggregateProjectPullUpConstantsRule.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2236" opendate="2018-4-3 00:00:00" fixdate="2018-4-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Druid adapter: Avoid duplication of fields names during Druid query planing</summary>
+      <description>This issue occurs if two projects layers use the same fields name, it will lead to a Druid query with a duplicated field names.I can not reproduce this in Calcite but it is reproducible in Hive (it has to deal on how different layers of project are getting names)Here is an example of faulty query where "$f4" is used twice.{"queryType":"groupBy","dataSource":"druid_tableau.calcs","granularity":"all","dimensions":[{"type":"default","dimension":"key","outputName":"key","outputType":"STRING"}],"limitSpec":{"type":"default"},"aggregations":[{"type":"doubleSum","name":"$f1","fieldName":"num0"},{"type":"filtered","filter":{"type":"not","field":{"type":"selector","dimension":"num0","value":null}},"aggregator":{"type":"count","name":"$f2","fieldName":"num0"}},{"type":"doubleSum","name":"$f3","expression":"(\"num0\" * \"num0\")"},{"type":"doubleSum","name":"$f4","expression":"(\"num0\" * \"num0\")"}],"postAggregations":[{"type":"expression","name":"$f4","expression":"pow(((\"$f4\" - ((\"$f1\" * \"$f1\") / \"$f2\")) / \"$f2\"),0.5)"}],"intervals":["1900-01-01T00:00:00.000Z/3000-01-01T00:00:00.000Z"]}</description>
+      <version>1.16.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidQuery.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2247" opendate="2018-4-10 00:00:00" fixdate="2018-5-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Simplify AND and OR conditions using predicates</summary>
+      <description>Simplify expressions like: a = 1 AND (a = 1 OR a = 2) to a = 1Conditions to apply will be: in an AND condition there exists a comparison(c) and an OR (o) o and c only reference 1 variableSee HIVE-19097 for more info.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RexProgramTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexSimplify.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2262" opendate="2018-4-17 00:00:00" fixdate="2018-5-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Druid adapter: Allow count(*) to be pushed when other aggregate functions are present</summary>
+      <description>Currently only select count(*) from druid_table is pushed as Timeseries.The goal of this patch is to allow the push of more complicated queries like  select count(*), sum(metric) from table  </description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.test.java.org.apache.calcite.test.DruidAdapterIT.java</file>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidQuery.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2265" opendate="2018-4-18 00:00:00" fixdate="2018-5-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Strange cast created for ROW comparison</summary>
+      <description>A comparison using ROWs results in queries that can't be executed by the database due to strange casts like CAST(ROW('Blake', 'Manager') AS ROW)Direct query against HSQLDB: sqlline&gt;  !connect jdbc:hsqldb:res:scott SCOTT TIGER...0: jdbc:hsqldb:res:scott&gt; SELECT empno FROM emp WHERE (ename, job) &lt; ('Blake', 'Manager');+--------+| EMPNO  |+--------+| 7499   || 7698   || 7876   |+--------+ Query through calcite: sqlline&gt; !connect jdbc:calcite:schemaType=jdbc;schema.jdbcDriver=org.hsqldb.jdbcDriver;schema.jdbcUrl=jdbc:hsqldb:res:scott;schema.jdbcUser=SCOTT;schema.jdbcPassword=TIGER SCOTT TIGERConnecting to jdbc:calcite:schemaType=jdbc;schema.jdbcDriver=org.hsqldb.jdbcDriver;schema.jdbcUrl=jdbc:hsqldb:res:scott;schema.jdbcUser=SCOTT;schema.jdbcPassword=TIGER...Connected to: Calcite (version 1.17.0-SNAPSHOT)Driver: Calcite JDBC Driver (version 1.17.0-SNAPSHOT)Autocommit status: trueTransaction isolation: TRANSACTION_REPEATABLE_READ0: jdbc:calcite:schemaType=jdbc&gt; SELECT empno FROM emp WHERE (ename, job) &lt; ('Blake', 'Manager');Error: Error while executing SQL "SELECT empno FROM emp WHERE (ename, job) &lt; ('Blake', 'Manager')": while executing SQL [SELECT "EMPNO"FROM "EMP"WHERE ROW("ENAME", "JOB") &lt; CAST(ROW('Blake', 'Manager') AS ROW)] (state=,code=0)java.sql.SQLException: Error while executing SQL "SELECT empno FROM emp WHERE (ename, job) &lt; ('Blake', 'Manager')": while executing SQL [SELECT "EMPNO"FROM "EMP"WHERE ROW("ENAME", "JOB") &lt; CAST(ROW('Blake', 'Manager') AS ROW)]at org.apache.calcite.avatica.Helper.createException(Helper.java:56)at org.apache.calcite.avatica.Helper.createException(Helper.java:41)at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:156)at org.apache.calcite.avatica.AvaticaStatement.execute(AvaticaStatement.java:209)at sqlline.Commands.execute(Commands.java:823)at sqlline.Commands.sql(Commands.java:733)at sqlline.SqlLine.dispatch(SqlLine.java:795)at sqlline.SqlLine.begin(SqlLine.java:668)at sqlline.SqlLine.start(SqlLine.java:373)at sqlline.SqlLine.main(SqlLine.java:265)Caused by: java.lang.RuntimeException: while executing SQL [SELECT "EMPNO"FROM "EMP"WHERE ROW("ENAME", "JOB") &lt; CAST(ROW('Blake', 'Manager') AS ROW)]at org.apache.calcite.runtime.ResultSetEnumerable.enumerator(ResultSetEnumerable.java:153)at org.apache.calcite.linq4j.AbstractEnumerable.iterator(AbstractEnumerable.java:33)at org.apache.calcite.avatica.MetaImpl.createCursor(MetaImpl.java:82)at org.apache.calcite.avatica.AvaticaResultSet.execute(AvaticaResultSet.java:174)at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:67)at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:44)at org.apache.calcite.avatica.AvaticaConnection$1.execute(AvaticaConnection.java:630)at org.apache.calcite.jdbc.CalciteMetaImpl.prepareAndExecute(CalciteMetaImpl.java:619)at org.apache.calcite.avatica.AvaticaConnection.prepareAndExecuteInternal(AvaticaConnection.java:638)at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:149)... 7 moreCaused by: java.sql.SQLSyntaxErrorException: type not found or user lacks privilege: ROWat org.hsqldb.jdbc.JDBCUtil.sqlException(Unknown Source)at org.hsqldb.jdbc.JDBCUtil.sqlException(Unknown Source)at org.hsqldb.jdbc.JDBCStatement.fetchResult(Unknown Source)at org.hsqldb.jdbc.JDBCStatement.execute(Unknown Source)at org.apache.commons.dbcp.DelegatingStatement.execute(DelegatingStatement.java:264)at org.apache.commons.dbcp.DelegatingStatement.execute(DelegatingStatement.java:264)at org.apache.calcite.runtime.ResultSetEnumerable.enumerator(ResultSetEnumerable.java:143)... 16 moreCaused by: org.hsqldb.HsqlException: type not found or user lacks privilege: ROWat org.hsqldb.error.Error.error(Unknown Source)at org.hsqldb.error.Error.error(Unknown Source)at org.hsqldb.ParserDQL.readTypeDefinition(Unknown Source)at org.hsqldb.ParserDQL.readCastExpressionOrNull(Unknown Source)at org.hsqldb.ParserDQL.XreadSimpleValueExpressionPrimary(Unknown Source)at org.hsqldb.ParserDQL.XreadAllTypesValueExpressionPrimary(Unknown Source)at org.hsqldb.ParserDQL.XreadAllTypesPrimary(Unknown Source)at org.hsqldb.ParserDQL.XreadAllTypesFactor(Unknown Source)at org.hsqldb.ParserDQL.XreadAllTypesTerm(Unknown Source)at org.hsqldb.ParserDQL.XreadAllTypesCommonValueExpression(Unknown Source)at org.hsqldb.ParserDQL.XreadRowOrCommonValueExpression(Unknown Source)at org.hsqldb.ParserDQL.XreadRowValuePredicand(Unknown Source)at org.hsqldb.ParserDQL.XreadPredicateRightPart(Unknown Source)at org.hsqldb.ParserDQL.XreadBooleanPrimaryOrNull(Unknown Source)at org.hsqldb.ParserDQL.XreadBooleanTestOrNull(Unknown Source)at org.hsqldb.ParserDQL.XreadBooleanFactorOrNull(Unknown Source)at org.hsqldb.ParserDQL.XreadBooleanTermOrNull(Unknown Source)at org.hsqldb.ParserDQL.XreadBooleanValueExpression(Unknown Source)at org.hsqldb.ParserDQL.readWhereGroupHaving(Unknown Source)at org.hsqldb.ParserDQL.XreadTableExpression(Unknown Source)at org.hsqldb.ParserDQL.XreadQuerySpecification(Unknown Source)at org.hsqldb.ParserDQL.XreadSimpleTable(Unknown Source)at org.hsqldb.ParserDQL.XreadQueryPrimary(Unknown Source)at org.hsqldb.ParserDQL.XreadQueryTerm(Unknown Source)at org.hsqldb.ParserDQL.XreadQueryExpressionBody(Unknown Source)at org.hsqldb.ParserDQL.XreadQueryExpression(Unknown Source)at org.hsqldb.ParserDQL.compileCursorSpecification(Unknown Source)at org.hsqldb.ParserCommand.compilePart(Unknown Source)at org.hsqldb.ParserCommand.compileStatements(Unknown Source)at org.hsqldb.Session.executeDirectStatement(Unknown Source)at org.hsqldb.Session.execute(Unknown Source)... 21 more </description>
+      <version>1.16.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.CalciteSuite.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.type.SqlTypeFactoryTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.SqlTypeUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.StandardConvertletTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2266" opendate="2018-4-19 00:00:00" fixdate="2018-11-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement SQL 2016 JSON functions</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">server.src.main.codegen.config.fmpp</file>
+      <file type="M">core.src.main.codegen.templates.Parser.jj</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexImpTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.SubQueryRemoveRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.CalciteResource.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.SqlFunctions.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.StandardConvertletTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.dialect.HsqldbSqlDialect.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.dialect.MysqlSqlDialect.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonApiCommonSyntaxOperator.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonArrayAggAggFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonArrayFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonExistsFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonObjectAggAggFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonObjectFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonQueryFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonValueExpressionOperator.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlJsonValueFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlStdOperatorTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlJsonEncoding.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlJsonQueryEmptyOrErrorBehavior.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlJsonQueryWrapperBehavior.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlJsonValueEmptyOrErrorBehavior.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.ReturnTypes.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.BuiltInMethod.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlTester.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlTests.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.BookstoreSchema.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RexProgramTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlJsonFunctionsTest.java</file>
+      <file type="M">druid.src.test.java.org.apache.calcite.adapter.druid.DruidQueryFilterTest.java</file>
+      <file type="M">druid.src.test.java.org.apache.calcite.test.DruidAdapterIT.java</file>
+      <file type="M">druid.src.test.java.org.apache.calcite.test.DruidAdapterIT2.java</file>
+      <file type="M">elasticsearch.src.test.java.org.apache.calcite.adapter.elasticsearch.ElasticSearchAdapterTest.java</file>
+      <file type="M">site..docs.reference.md</file>
+      <file type="M">babel.src.main.codegen.config.fmpp</file>
+      <file type="M">core.pom.xml</file>
+      <file type="M">core.src.main.codegen.config.fmpp</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlKind.java</file>
+      <file type="M">core.src.main.resources.org.apache.calcite.runtime.CalciteResource.properties</file>
+      <file type="M">core.src.test.codegen.config.fmpp</file>
+      <file type="M">core.src.test.java.org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlParserTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.AbstractSqlTester.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlAdvisorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.CalciteSuite.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlFunctionsTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.test.resources.sql.agg.iq</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2275" opendate="2018-4-23 00:00:00" fixdate="2018-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Do not push down NOT condition in JOIN</summary>
+      <description>Using logical NOT operator in Join condition leads to mistakenly push down this condition. Then LogicalProject is created with RexCall expression. It prevents for further inferring predicates (by using JoinPushTransitivePredicatesRule, for instance).Query example:select * from sales.emp d join sales.emp e on e.deptno = d.deptno and d.deptno not in (4, 6)</description>
+      <version>1.16.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdPredicates.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.RelOptUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2287" opendate="2018-4-27 00:00:00" fixdate="2018-5-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>StackOverflowError from FlatList equals()</summary>
+      <description>The equals() method of `Flat3List` and `Flat4List` may invoke each other in an infinite loop.See also https://issues.apache.org/jira/browse/HIVE-18427 We found this problem when such lists are used as keys in `RelMetadataQuery.map`; occasionally there are hashcode collisions between `Flat3List` and `Flat4List`, hence their equals() methods will be invoked.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.FlatLists.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.util.UtilTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2293" opendate="2018-5-1 00:00:00" fixdate="2018-5-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade forbidden-apis to 2.5 (for JDK 10)</summary>
+      <description>Upgrade forbidden-apis to 2.5. (Current version cannot parse JDK 10 .class files.)</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2301" opendate="2018-5-5 00:00:00" fixdate="2018-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JDBC adapter: use query timeout from the top-level statement</summary>
+      <description>It's not a good idea to have the magic number here. Also, databases may not get back within 10 second for various reasons (e.g., in the case of JDBC schema).</description>
+      <version>1.16.0</version>
+      <fixedVersion>1.19.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.resources.org.apache.calcite.runtime.CalciteResource.properties</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.BuiltInMethod.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.ResultSetEnumerable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.CalciteResource.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.jdbc.CalciteConnectionImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.DataContext.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.jdbc.JdbcToEnumerableConverter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2320" opendate="2018-5-21 00:00:00" fixdate="2018-5-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>UDF in WHERE expression incorrectly pushed down to jdbc schema</summary>
+      <description>Checks whether CHOOSENCUSTOMFUNCTION function is properly computed and not passed to subschema, like jdbcSELECT * FROM SIMPLE_CUSTOMER WHERE email = CHOOSENCUSTOMER();where CHOOSENCUSTOMER is UDF leads to Caused by: java.lang.RuntimeException: while executing SQL [SELECT "FIRSTNAME", "LASTNAME", "EMAIL"&gt; FROM "CUSTOMER"&gt; WHERE "EMAIL" = "CHOOSENCUSTOMER"()]&gt; at org.apache.calcite.runtime.ResultSetEnumerable.enumerator(ResultSetEnumerable.java:153)&gt; at org.apache.calcite.linq4j.AbstractEnumerable.iterator(AbstractEnumerable.java:33)&gt; at org.apache.calcite.avatica.MetaImpl.createCursor(MetaImpl.java:90)&gt; at org.apache.calcite.avatica.AvaticaResultSet.execute(AvaticaResultSet.java:174)&gt; at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:67)&gt; at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:44)&gt; at org.apache.calcite.avatica.AvaticaConnection$1.execute(AvaticaConnection.java:630)&gt; at org.apache.calcite.jdbc.CalciteMetaImpl.prepareAndExecute(CalciteMetaImpl.java:619)&gt; at org.apache.calcite.avatica.AvaticaConnection.prepareAndExecuteInternal(AvaticaConnection.java:638)&gt; at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:149)&gt; ... 24 more&gt; Caused by: java.sql.SQLSyntaxErrorException: user lacks privilege or object not found: CHOOSENCUSTOMER&gt; at org.hsqldb.jdbc.JDBCUtil.sqlException(Unknown Source)&gt; at org.hsqldb.jdbc.JDBCUtil.sqlException(Unknown Source)&gt; at org.hsqldb.jdbc.JDBCStatement.fetchResult(Unknown Source)&gt; at org.hsqldb.jdbc.JDBCStatement.execute(Unknown Source)&gt; at org.apache.commons.dbcp.DelegatingStatement.execute(DelegatingStatement.java:264)&gt; at org.apache.commons.dbcp.DelegatingStatement.execute(DelegatingStatement.java:264)&gt; at org.apache.calcite.runtime.ResultSetEnumerable.enumerator(ResultSetEnumerable.java:143)&gt; ... 33 more&gt; Caused by: org.hsqldb.HsqlException: user lacks privilege or object not found: CHOOSENCUSTOMER&gt; at org.hsqldb.error.Error.error(Unknown Source)&gt; at org.hsqldb.error.Error.error(Unknown Source)&gt; at org.hsqldb.Routine.getMethods(Unknown Source)&gt; at org.hsqldb.Routine.createRoutines(Unknown Source)&gt; at org.hsqldb.ParserDQL.readColumnOrFunctionExpression(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadSimpleValueExpressionPrimary(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadAllTypesValueExpressionPrimary(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadAllTypesPrimary(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadAllTypesFactor(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadAllTypesTerm(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadAllTypesCommonValueExpression(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadRowOrCommonValueExpression(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadRowValuePredicand(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadPredicateRightPart(Unknown Source)&gt; at org.hsqldb.ParserDQL.XreadBooleanPrimaryOrNull(Unknown Source)</description>
+      <version>1.16.0,1.17.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">plus.src.test.resources.sql.functions.iq</file>
+      <file type="M">plus.src.main.resources.chinook.chinook.json</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.jdbc.JdbcRules.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2333" opendate="2018-5-29 00:00:00" fixdate="2018-5-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Stop releasing ZIPs</summary>
+      <description>There was some discussion on the mailing list regarding releasing our source in just 1 format.See https://mail-archives.apache.org/mod_mbox/calcite-dev/201804.mbox/%3CD60019E6-FC62-4C24-B2F0-5278E51E5626%40apache.org%3EThere is some consensus around just releasing a tar.gz. I think this is a good idea and is something we should aim for, for the Calcite 1.17 and Avatica 1.12 releases.The following changes will be needed: Update build script for avatica-go. Update maven config for avatica. Update calcite config for calcite.We will need to update the website to deal the zip files not existing. My proposal is that we edit the old release posts to include a `has_zip: true` property. For the old releases, the website should render a link to the zip. For the new releases, we do not need to do anything.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0,avatica-1.12.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.config.assemblies.source-assembly.xml</file>
+      <file type="M">site..docs.howto.md</file>
+      <file type="M">site.downloads.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2347" opendate="2018-6-1 00:00:00" fixdate="2018-6-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>embedded ElasticSearch node for ES adapter unit tests</summary>
+      <description>Currently ES adapter integration tests require manual startup of elastic cluster. Elastic node can also be started programmatically and embedded in a java application. Init costs are small enough to be run as part of unit test.The plan is to migrate (re-use) exiting IT to be executed as part of unit test as well.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">elasticsearch5.src.test.resources.elasticsearch-zips-model.json</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.test.Elasticsearch5AdapterIT.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Table.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Schema.java</file>
+      <file type="M">elasticsearch5.pom.xml</file>
+      <file type="M">elasticsearch2.src.test.resources.elasticsearch-zips-model.json</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.test.Elasticsearch2AdapterIT.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Table.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Schema.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Enumerator.java</file>
+      <file type="M">elasticsearch2.pom.xml</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchProject.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.AbstractElasticsearchTable.java</file>
+      <file type="M">pom.xml</file>
+      <file type="M">elasticsearch5.src.test.resources.log4j2.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2358" opendate="2018-6-12 00:00:00" fixdate="2018-6-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use null literal instead of empty string as argument for timestamp_parse Druid expression</summary>
+      <description>With the new ability to support null values in Druid, empty string is not equal to null anymore.To enable auto format parser timestamp_parse Druid function expects null literal as format argument.I have added a connection config parameter to allow smooth transition from old Druid version to version 0.13.0 and above.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidSqlCastConverter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionProperty.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionConfigImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2359" opendate="2018-6-12 00:00:00" fixdate="2018-6-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inconsistent behavior when casting interval literals to integer</summary>
+      <description>Ensure casting intervals to integers always returns the result in termsof the trailing unit.Currently we have the following behavior: Casting a standalone day interval literal returns results in terms of the field. Casting a standalone year interval literal returned results in terms of months. Casting a day interval expression returned results in terms of milliseconds. Casting a year interval expression returned results in terms of months.</description>
+      <version>1.16.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexBuilder.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexToLixTranslator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2376" opendate="2018-6-22 00:00:00" fixdate="2018-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unify ES2 and ES5 adapters. Migrate to low-level rest client</summary>
+      <description>This is an effort to migrate Elastic Search adapters to use low-level rest client. Current native transport client has been deprecated in 7.0 (to be removed in 8.x).Another advantage of low-level client is that it is compatible with any ES server version and has few (non-core) dependencies. As part of this improvement, both ES2 and ES5 adapters will be unified and reside under new maven module elasticsearch (contrary to separate elasticsearch2 and elasticsearch5).Breaking changesUsing new artifactId and SchemaFactory implementation will force clients to change their configuration and dependencies. No other breaking changes (except configuration) are expected.  </description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">elasticsearch.src.test.resources.log4j2.xml</file>
+      <file type="M">elasticsearch.src.test.java.org.apache.calcite.adapter.elasticsearch.EmbeddedElasticsearchPolicy.java</file>
+      <file type="M">elasticsearch.src.test.java.org.apache.calcite.adapter.elasticsearch.EmbeddedElasticsearchNode.java</file>
+      <file type="M">pom.xml</file>
+      <file type="M">elasticsearch5.src.test.resources.zips-mini.json</file>
+      <file type="M">elasticsearch5.src.test.resources.log4j2.xml</file>
+      <file type="M">elasticsearch5.src.test.resources.log4j.properties</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.test.ElasticsearchChecker.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.test.Elasticsearch5AdapterIT.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.adapter.elasticsearch5.EmbeddedElasticsearchPolicy.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.adapter.elasticsearch5.EmbeddedElasticsearchNode.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5AdapterTest.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.package-info.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Table.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5SchemaFactory.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Schema.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Enumerator.java</file>
+      <file type="M">elasticsearch5.pom.xml</file>
+      <file type="M">elasticsearch2.src.test.resources.zips-mini.json</file>
+      <file type="M">elasticsearch2.src.test.resources.log4j.properties</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.test.ElasticsearchChecker.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.test.Elasticsearch2AdapterIT.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.adapter.elasticsearch2.EmbeddedElasticsearchPolicy.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.adapter.elasticsearch2.EmbeddedElasticsearchNode.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2AdapterTest.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.package-info.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Table.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2SchemaFactory.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Schema.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Enumerator.java</file>
+      <file type="M">elasticsearch2.pom.xml</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.package-info.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.MapProjectionFieldVisitor.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchToEnumerableConverterRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchToEnumerableConverter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchTableScan.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchSort.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchSchema.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchRules.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchRel.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchProject.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchMethod.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.ElasticsearchFilter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.elasticsearch.AbstractElasticsearchTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2379" opendate="2018-6-25 00:00:00" fixdate="2018-7-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CVSS dependency-check-maven fails for calcite-spark module</summary>
+      <description>Check for vulnerabilities among dependencies fails for calcite-spark module."mvn install -Ppedantic -DskipTests=true" fails for lib py4j-0.10.4.jar.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ubenchmark.pom.xml</file>
+      <file type="M">spark.pom.xml</file>
+      <file type="M">site..docs.howto.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2380" opendate="2018-6-25 00:00:00" fixdate="2018-6-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Elasticsearch, MongoDB, Druid adapters have javadoc errors</summary>
+      <description>javadoc generation fails for some adapters.Commands to reproduce:$ mvn -DskipTests clean javadoc:javadoc javadoc:test-javadoc$ mvn -DskipTests clean site</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">mongodb.src.test.java.org.apache.calcite.test.MongoAssertions.java</file>
+      <file type="M">mongodb.src.test.java.org.apache.calcite.adapter.mongodb.MongoDatabaseRule.java</file>
+      <file type="M">mongodb.src.test.java.org.apache.calcite.adapter.mongodb.MongoAdapterTest.java</file>
+      <file type="M">mongodb.src.main.java.org.apache.calcite.adapter.mongodb.MongoToEnumerableConverter.java</file>
+      <file type="M">mongodb.src.main.java.org.apache.calcite.adapter.mongodb.MongoTable.java</file>
+      <file type="M">mongodb.src.main.java.org.apache.calcite.adapter.mongodb.MongoSchema.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.test.ElasticChecker.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.adapter.elasticsearch5.EmbeddedElasticRule.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.adapter.elasticsearch5.EmbeddedElasticNode.java</file>
+      <file type="M">elasticsearch5.src.test.java.org.apache.calcite.adapter.elasticsearch5.ElasticSearch5AdapterTest.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Table.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Schema.java</file>
+      <file type="M">elasticsearch5.src.main.java.org.apache.calcite.adapter.elasticsearch5.Elasticsearch5Enumerator.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.test.ElasticChecker.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.adapter.elasticsearch2.EmbeddedElasticRule.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.adapter.elasticsearch2.EmbeddedElasticNode.java</file>
+      <file type="M">elasticsearch2.src.test.java.org.apache.calcite.adapter.elasticsearch2.ElasticSearch2AdapterTest.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Table.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Schema.java</file>
+      <file type="M">elasticsearch2.src.main.java.org.apache.calcite.adapter.elasticsearch2.Elasticsearch2Enumerator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2381" opendate="2018-6-26 00:00:00" fixdate="2018-7-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update HOWTOs to clarify a few gotchas</summary>
+      <description>Some issues I ran into while releasing Avatica 1.12.0 that should be clarified in the HOWTO document on the website: GPG signs using a default key (I think this is the first key, if no default is set). I had multiple keys and my Apache key was not my first key. I was not 100% sure that `-DdevelopmentVersion` should be the version after the current release. It took a while to work out how to authenticate against Apache's maven repo. See http://www.apache.org/dev/publishing-maven-artifacts.html#dev-env for solutionThe HOWTO for Calcite should also be updated to aid future release managers.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0,avatica-1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.howto.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2384" opendate="2018-6-26 00:00:00" fixdate="2018-7-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Performance issue in getPulledUpPredicates</summary>
+      <description>Performance issue in getPulledUpPredicates. It seems to have been introduced in the fix for CALCITE-2247, and causes Performance issue in getPulledUpPredicates to exceed its 20 second timeout. (See the email thread: risdenk noticed this problem, and michaelmior isolated the commit that caused the problem.)This issue has lots of history: that test was introduced to check CALCITE-1960 and CALCITE-2205. kgyrtkirk, Can you please take a look at this?</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.Bug.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexSimplify.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2396" opendate="2018-7-3 00:00:00" fixdate="2018-7-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TIMESTAMPADD and DATETIME_PLUS should allow NULL intervals</summary>
+      <description>TIMESTAMPADD(&lt;time_unit&gt;, NULL, &lt;datetime&gt;) and &lt;datetime&gt; + NULL should be permitted and return NULL.</description>
+      <version>1.16.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTestCase.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlTimestampAddFunction.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2403" opendate="2018-7-5 00:00:00" fixdate="2018-7-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade quidem to 0.9</summary>
+      <description>Upgrade quidem to 0.9.It allows custom command handlers, and Babel uses these to validate but not execute queries with non-Calcite extensions.Quidem 0.9 requires Java 8 or higher.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2416" opendate="2018-7-16 00:00:00" fixdate="2018-8-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Assertion error when determining monotonicity</summary>
+      <description>CREATE TABLE test ( x integer, y integer);SELECT 2 * 2 * x FROM test; Causes:Exception in thread "main" java.lang.AssertionError: Internal error: invalid literal: 2 * 2 Re-raising CALCITE-1504 which was fixed via CALCITE-1486</description>
+      <version>1.15.0,1.16.0,1.17.0</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlLiteral.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlMonotonicBinaryOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2419" opendate="2018-7-18 00:00:00" fixdate="2018-7-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use embedded Cassandra for unit tests</summary>
+      <description>Inspired by the work of asereda on Elasticsearch and MongoDB, I've been playing with running Cassandra unit tests using an embedded version of Cassandra.</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.config.checkstyle.suppressions.xml</file>
+      <file type="M">pom.xml</file>
+      <file type="M">cassandra.src.test.resources.model.json</file>
+      <file type="M">cassandra.src.test.java.org.apache.calcite.test.CassandraAdapterIT.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraSchemaFactory.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraSchema.java</file>
+      <file type="M">cassandra.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2427" opendate="2018-7-24 00:00:00" fixdate="2018-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Sub-queries not supported in DML statements</summary>
+      <description>It appears that subqueries are not supported in DML statements.The yield in a NPE.Respective testcase is disabled with reference to CALCITE-1527.@Ignore("CALCITE-1527")@Test public void testUpdateSubQuery() {final String sql = "update emp\n"+ "set empno = (\n"+ " select min(empno) from emp as e where e.deptno = emp.deptno)";sql(sql).ok();}  </description>
+      <version>1.14.0,1.15.0,1.16.0</version>
+      <fixedVersion>1.20.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.tools.PlannerTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelConverterTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.SqlToRelConverter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2428" opendate="2018-7-30 00:00:00" fixdate="2018-12-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra unit test fails to parse JDK version string</summary>
+      <description>Unit test fails because java.version string is parsed incorrectly</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.util.TestUtil.java</file>
+      <file type="M">cassandra.src.test.java.org.apache.calcite.test.CassandraAdapterTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2663" opendate="2018-11-9 00:00:00" fixdate="2018-12-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CREATE FUNCTION and DROP FUNCTION DDL commands</summary>
+      <description>support create function and drop function statement like apache hive:CREATE [OR REPLACE] FUNCTION [IF NOT EXISTS] [db_name.]function_name AS class_name  [USING JAR|FILE|ARCHIVE 'file_uri' [, JAR|FILE|ARCHIVE 'file_uri'] ];DROP FUNCTION [IF EXISTS] function_name;   </description>
+      <version>1.16.0,1.17.0</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.reference.md</file>
+      <file type="M">server.src.test.java.org.apache.calcite.test.ServerParserTest.java</file>
+      <file type="M">server.src.main.java.org.apache.calcite.sql.ddl.SqlDropObject.java</file>
+      <file type="M">server.src.main.java.org.apache.calcite.sql.ddl.SqlDdlNodes.java</file>
+      <file type="M">server.src.main.codegen.includes.parserImpls.ftl</file>
+      <file type="M">server.src.main.codegen.config.fmpp</file>
+      <file type="M">core.src.test.java.org.apache.calcite.util.UtilTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlUnParserTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlParserTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.Util.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlKind.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2925" opendate="2019-3-15 00:00:00" fixdate="2019-3-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Exclude maven-wrapper.jar from source distribution</summary>
+      <description>During the 1.19.0 release julianhyde found that the Maven wrapper jar (.mvn/wrapper/maven-wrapper.jar) is included in the source distribution. We should exclude it.</description>
+      <version>None</version>
+      <fixedVersion>1.19.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.config.assemblies.source-assembly.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3102" opendate="2019-5-30 00:00:00" fixdate="2019-6-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Deprecation warnings following [CALCITE-2969]</summary>
+      <description>Following CALCITE-2969 there are a couple of dozen deprecation warnings. Our policy is to tolerate no deprecation warnings. So we either need to stop using deprecated APIs or silence the warnings.This is a blocker for 1.20.</description>
+      <version>None</version>
+      <fixedVersion>1.20.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.history.md</file>
+      <file type="M">core.src.main.java.org.apache.calcite.tools.Programs.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.JoinToCorrelateRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.mutable.MutableRels.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdUniqueKeys.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdSize.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdRowCount.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdPopulationSize.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdNodeTypes.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdDistinctRowCount.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdColumnUniqueness.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdCollation.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.logical.LogicalCorrelate.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.core.Correlate.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.EnumerableSemiJoinRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.EnumerableSemiJoin.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.EnumerableMergeJoinRule.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3106" opendate="2019-5-31 00:00:00" fixdate="2019-6-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bump commons-pool2 from 2.6.0 to 2.6.2</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.20.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3107" opendate="2019-5-31 00:00:00" fixdate="2019-6-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bump commons-dbcp2 from 2.5.0 to 2.6.0</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.20.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3435" opendate="2019-10-21 00:00:00" fixdate="2019-11-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enable decimal modulus operation to allow numeric with non-zero scale</summary>
+      <description>mod's return type ischain(DECIMAL_MOD_NULLABLE, ARG1_NULLABLE),but mod(33.5,7)'s result is 5.5, not in line with ARG1_NULLABLE.This causes floor(mod(33.5,7)) wrongly returns 5.5</description>
+      <version>1.16.0,1.21.0</version>
+      <fixedVersion>1.22.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.type.RelDataTypeSystemTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.SqlFunctions.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeSystem.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3437" opendate="2019-10-22 00:00:00" fixdate="2019-11-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Elasticsearch Match query is not supported</summary>
+      <description>Currently, Calcite only builds "term" queries for text fields on elasticsearch. It doesn't support [Match|https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-match-query.html] queries due to which full-text or contains search is not allowed.Expected query:{ "query": { "constant_score": { "filter": { "match": { "name": "Customer Name" } } } }} Expected behavior:For SqlStdOperatorTable.CONTAINS, calcite should build match query. </description>
+      <version>None</version>
+      <fixedVersion>1.22.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">elasticsearch.src.test.java.org.apache.calcite.adapter.elasticsearch.QueryBuildersTest.java</file>
+      <file type="M">elasticsearch.src.main.java.org.apache.calcite.adapter.elasticsearch.QueryBuilders.java</file>
+      <file type="M">elasticsearch.src.main.java.org.apache.calcite.adapter.elasticsearch.PredicateAnalyzer.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.CalciteAssert.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="390" opendate="2014-8-27 00:00:00" fixdate="2014-7-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Infer predicates for semi-join</summary>
+      <description>TransitiveInference doesn't work with Semi Join.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0-incubating</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelMetadataTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdPredicates.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2015-2-18 01:00:00" id="10371" opendate="2015-9-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Decommissioned nodes can remain in gossip</summary>
+      <description>This may apply to other dead states as well. Dead states should be expired after 3 days. In the case of decom we attach a timestamp to let the other nodes know when it should be expired. It has been observed that sometimes a subset of nodes in the cluster never expire the state, and through heap analysis of these nodes it is revealed that the epstate.isAlive check returns true when it should return false, which would allow the state to be evicted. This may have been affected by CASSANDRA-8336.</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-2-17 01:00:00" id="10888" opendate="2015-12-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tombstone error warning does not log partition key</summary>
+      <description>Log partition key if read fails due to the ERROR threshold on read tombstoned cells.Right now I can specify a warning and an error threshold for C* when reading from a partition with many tombstones.If the query reads more than the “warning threshold” then C* writes a warning to the log with the partition key.But if a query reads more than the “error threshold” then C* aborts the query and writes to the log – but not the partition key, this time. What I am missing is: Could C* also please write the partition key in case of query abort due to tombstones?</description>
+      <version>2.1.14,2.2.6</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-2-20 01:00:00" id="11041" opendate="2016-1-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make it clear what timestamp_resolution is used for with DTCS</summary>
+      <description>We have had a few cases lately where users misunderstand what timestamp_resolution does, we should; make the option not autocomplete in cqlsh update documentation log a warning</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyOptions.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-21 01:00:00" id="11053" opendate="2016-1-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY FROM on large datasets: fix progress report and optimize performance part 4</summary>
+      <description>DescriptionRunning COPY from on a large dataset (20G divided in 20M records) revealed two issues: The progress report is incorrect, it is very slow until almost the end of the test at which point it catches up extremely quickly. The performance in rows per second is similar to running smaller tests with a smaller cluster locally (approx 35,000 rows per second). As a comparison, cassandra-stress manages 50,000 rows per second under the same set-up, therefore resulting 1.5 times faster.See attached file copy_from_large_benchmark.txt for the benchmark details.Doc-impacting changes to COPY FROM options A new option was added: PREPAREDSTATEMENTS - it indicates if prepared statements should be used; it defaults to true. The default value of CHUNKSIZE changed from 1000 to 5000. The default value of MINBATCHSIZE changed from 2 to 10.</description>
+      <version>2.1.14,2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.setup.py</file>
+      <file type="M">pylib.cqlshlib.util.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-4-30 01:00:00" id="11467" opendate="2016-3-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paging loses rows in certain conditions</summary>
+      <description>The bug occurs under the following conditions: RandomPartitioner a compact storage CF querying across rows a tombstone in the first column of a row on the pagesize boundary you need to be querying at least 2*pagesize + 1 recordsAttached is a go program using gocql which reproduces the bug fairly minimally.</description>
+      <version>2.1.14,2.2.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-7 01:00:00" id="11529" opendate="2016-4-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Checking if an unlogged batch is local is inefficient</summary>
+      <description>Based on CASSANDRA-11363 report I noticed that on CASSANDRA-9303 we introduced the following check to avoid printing a WARN in case an unlogged batch statement is local: for (IMutation im : mutations) { keySet.add(im.key()); for (ColumnFamily cf : im.getColumnFamilies()) ksCfPairs.add(String.format("%s.%s", cf.metadata().ksName, cf.metadata().cfName));++ if (localMutationsOnly)+ localMutationsOnly &amp;= isMutationLocal(localTokensByKs, im); } + // CASSANDRA-9303: If we only have local mutations we do not warn+ if (localMutationsOnly)+ return;+ NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES, unloggedBatchWarning, keySet.size(), keySet.size() == 1 ? "" : "s", ksCfPairs.size() == 1 ? "" : "s", ksCfPairs);The isMutationLocal check uses StorageService.instance.getLocalRanges(mutation.getKeyspaceName()), which underneaths uses AbstractReplication.getAddressRanges to calculate local ranges. Recalculating this at every unlogged batch can be pretty inefficient, so we should at the very least cache it every time the ring changes.</description>
+      <version>2.1.14,2.2.6,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-2-14 01:00:00" id="7238" opendate="2014-5-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool Status performance is much slower with VNodes On</summary>
+      <description>Nodetool status on a 1000 Node cluster without vnodes returns in several seconds. With vnodes on (256) there are OOM errors with the default XMX of 32. Adjusting the XMX to 128 allows nodetool status to complete but the execution takes roughly 10 minutes.TestedXMX | Status32 | OOM64 | OOM: GC Overhead128 | Finishes in ~10 minutes500 | Finishes in ~10 minutes1000 | Finishes in ~10 minutes</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

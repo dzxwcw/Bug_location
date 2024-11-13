@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="10918" opendate="2018-11-18 00:00:00" fixdate="2018-2-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>incremental Keyed state with RocksDB throws cannot create directory error in windows</summary>
+      <description>Facing error while enabling keyed state with RocksDBBackend with checkpointing to a local windows directory Caused by: org.rocksdb.RocksDBException: Failed to create dir: /c:/tmp/data/job_dbe01128760d4d5cb90809cd94c2a936_op_StreamMap_b5c8d46f3e7b141acf271f12622e752b__3_8__uuid_45c1f62b-a198-44f5-add5-7683079b03f8/chk-1.tmp: Invalid argument                at org.rocksdb.Checkpoint.createCheckpoint(Native Method)                at org.rocksdb.Checkpoint.createCheckpoint(Checkpoint.java:51)                at org.apache.flink.contrib.streaming.state.RocksDBKeyedStateBackend$RocksDBIncrementalSnapshotOperation.takeSnapshot(RocksDBKeyedStateBackend.java:2549)                at org.apache.flink.contrib.streaming.state.RocksDBKeyedStateBackend$IncrementalSnapshotStrategy.performSnapshot(RocksDBKeyedStateBackend.java:2008)                at org.apache.flink.contrib.streaming.state.RocksDBKeyedStateBackend.snapshot(RocksDBKeyedStateBackend.java:498)                at org.apache.flink.streaming.api.operators.AbstractStreamOperator.snapshotState(AbstractStreamOperator.java:406)                ... 13 more  </description>
+      <version>1.6.2,1.9.2,1.10.0</version>
+      <fixedVersion>1.10.1,1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.RocksDBStateUploaderTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.RocksDBStateDownloaderTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.snapshot.RocksIncrementalSnapshotStrategy.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBStateUploader.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBStateDownloader.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.restore.RocksDBIncrementalRestoreOperation.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.StateSnapshotTransformerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.SnapshotDirectoryTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.SnapshotDirectory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.DirectoryStateHandle.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.util.FileUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14641" opendate="2019-11-7 00:00:00" fixdate="2019-11-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix description of metric `fullRestarts`</summary>
+      <description>The metric `fullRestarts` counts both full restarts and fine grained restarts since 1.9.2.We should update the metric description doc accordingly.We need to pointing out the the metric counts full restarts in 1.9.1 or earlier versions, and turned to count all kinds of restarts since 1.9.2.</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.9.2,1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.monitoring.metrics.zh.md</file>
+      <file type="M">docs.monitoring.metrics.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14701" opendate="2019-11-11 00:00:00" fixdate="2019-1-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Slot leaks if SharedSlotOversubscribedException happens</summary>
+      <description>If a SharedSlotOversubscribedException happens, the MultiTaskSlot will release some of its child SingleTaskSlot. The triggered releasing will trigger a re-allocation of the task slot right inside SingleTaskSlot#release(...). So that a previous allocation in SloSharingManager#allTaskSlots will be replaced by the new allocation because they share the same slotRequestId.However, the SingleTaskSlot#release(...) will then invoke MultiTaskSlot#releaseChild to release the previous allocation with the slotRequestId, which will unexpectedly remove the new allocation from the SloSharingManager.In this way, slot leak happens because the pending slot request is not tracked by the SloSharingManager and cannot be released when its payload terminates.A test case testNoSlotLeakOnSharedSlotOversubscribedException which exhibits this issue can be found in this commit.The slot leak blocks the TPC-DS queries on flink 1.10, see FLINK-14674.To solve it, I'd propose to strengthen the MultiTaskSlot#releaseChild to only remove its true child task slot from the SloSharingManager, i.e. add a check if (child == allTaskSlots.get(child.getSlotRequestId())) before invoking allTaskSlots.remove(child.getSlotRequestId()).</description>
+      <version>1.9.2</version>
+      <fixedVersion>1.9.2,1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.slotpool.SlotSharingManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15010" opendate="2019-12-2 00:00:00" fixdate="2019-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Temp directories flink-netty-shuffle-* are not cleaned up</summary>
+      <description>Starting a Flink cluster with 2 TMs and stopping it again will leave 2 temporary directories (and not delete them): flink-netty-shuffle-&lt;uid&gt;</description>
+      <version>1.9.0,1.9.1,1.9.2</version>
+      <fixedVersion>1.9.3,1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.FileChannelManagerImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15864" opendate="2020-2-3 00:00:00" fixdate="2020-2-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade jackson-databind dependency to 2.10.1 for security reasons</summary>
+      <description>The module flink-kubernetes defines an explicit dependency on jackson-databind:2.9.8. This is problematic since this jackson version contains security vulnerabilities. See FLINK-14104 for more information.If possible, I would suggest to remove the explicit version tag and to rely on the parent's dependency management.</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-kubernetes.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-kubernetes.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15897" opendate="2020-2-4 00:00:00" fixdate="2020-2-4 01:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>Defer the deserialization of the Python UDF execution results</summary>
+      <description>Currently, the Python UDF execution results are deserialized and then buffered in a collection when received from the Python worker. The deserialization could be deferred when sending the execution results to the downstream operator. That's to say, it buffers the serialized bytes instead of the deserialized Java objects in the buffer. This could reduce the memory footprint of the Java operator.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.operators.python.PythonScalarFunctionOperatorTestBase.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.operators.python.PythonScalarFunctionOperatorTest.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.operators.python.PassThroughPythonFunctionRunner.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.operators.python.BaseRowPythonScalarFunctionOperatorTest.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.functions.python.PythonScalarFunctionRunnerTest.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.functions.python.BaseRowPythonScalarFunctionRunnerTest.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.functions.python.AbstractPythonScalarFunctionRunnerTest.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.runners.python.PythonScalarFunctionRunner.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.runners.python.BaseRowPythonScalarFunctionRunner.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.runners.python.AbstractPythonScalarFunctionRunner.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.operators.python.PythonScalarFunctionOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.operators.python.BaseRowPythonScalarFunctionOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.operators.python.AbstractPythonScalarFunctionOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.functions.python.PythonScalarFunctionFlatMap.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.operators.python.AbstractPythonFunctionOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.python.AbstractPythonFunctionRunner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1591" opendate="2015-2-20 00:00:00" fixdate="2015-3-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove window merge before flatten as an optimization</summary>
+      <description>After a Window Reduce or Map transformation there is always a merge step when the transformation was parallel or grouped.This merge step should be removed when the windowing operator is followed by flatten to avoid unnecessary bottlenecks in the program.This feature should be added as an optimization step to the WindowingOptimizer class.</description>
+      <version>None</version>
+      <fixedVersion>0.9</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.WindowingOptimzier.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.StreamGraph.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15917" opendate="2020-2-5 00:00:00" fixdate="2020-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Root Exception not shown in Web UI</summary>
+      <description>Description On the job details page in the Exceptions → Root Exception tab, exceptions that cause the job to restart are not displayed. This is already a problem since 1.9.0 if jobmanager.execution.failover-strategy: region is configured, which we do in the default flink-conf.yaml.Workarounds Users that run into this problem can set jobmanager.scheduler: legacy and unset jobmanager.execution.failover-strategy in their flink-conf.yamlHow to reproduce In flink-conf.yaml set restart-strategy: fixed-delay so enable job restarts.$ bin/start-cluster.sh$ bin/flink run -d examples/streaming/TopSpeedWindowing.jar$ bin/taskmanager.sh stopAssert that no exception is displayed in the Web UI.Expected behavior The stacktrace of the exception should be displayed. Whether the exception should be also shown if only a partial region of the job failed is up for discussion.</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.DefaultSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.SchedulerBase.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.DefaultScheduler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15918" opendate="2020-2-5 00:00:00" fixdate="2020-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Uptime Metric not reset on Job Restart</summary>
+      <description>DescriptionThe uptime metric is not reset when the job restarts, which is a change in behavior compared to Flink 1.8.This change of behavior exists since 1.9.0 if jobmanager.execution.failover-strategy: region is configured,which we do in the default flink-conf.yaml.WorkaroundsUsers that find this behavior problematic can set jobmanager.scheduler: legacy and unset jobmanager.execution.failover-strategy: region in their flink-conf.yamlHow to reproducetrivialExpected behavioruptime should be reset on any vertex restart.</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.DefaultSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.concurrent.ManuallyTriggeredScheduledExecutor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.SchedulerBase.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.DefaultScheduler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionGraph.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15929" opendate="2020-2-6 00:00:00" fixdate="2020-2-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>test_set_requirements_with_cached_directory failed on travis</summary>
+      <description>The Python tests "test_set_requirements_with_cached_directory" is instable. It failed on travis with the following exception:E Caused by: org.apache.beam.vendor.guava.v26_0_jre.com.google.common.util.concurrent.UncheckedExecutionException: java.lang.IllegalStateException: Process died with exit code 0E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache$Segment.get(LocalCache.java:2050)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache.get(LocalCache.java:3952)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache.getOrLoad(LocalCache.java:3974)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache$LocalLoadingCache.get(LocalCache.java:4958)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache$LocalLoadingCache.getUnchecked(LocalCache.java:4964)E at org.apache.beam.runners.fnexecution.control.DefaultJobBundleFactory$SimpleStageBundleFactory.&lt;init&gt;(DefaultJobBundleFactory.java:211)E at org.apache.beam.runners.fnexecution.control.DefaultJobBundleFactory$SimpleStageBundleFactory.&lt;init&gt;(DefaultJobBundleFactory.java:202)E at org.apache.beam.runners.fnexecution.control.DefaultJobBundleFactory.forStage(DefaultJobBundleFactory.java:185)E at org.apache.flink.python.AbstractPythonFunctionRunner.open(AbstractPythonFunctionRunner.java:179)E at org.apache.flink.table.runtime.operators.python.AbstractPythonScalarFunctionOperator$ProjectUdfInputPythonScalarFunctionRunner.open(AbstractPythonScalarFunctionOperator.java:193)E at org.apache.flink.streaming.api.operators.python.AbstractPythonFunctionOperator.open(AbstractPythonFunctionOperator.java:139)E at org.apache.flink.table.runtime.operators.python.AbstractPythonScalarFunctionOperator.open(AbstractPythonScalarFunctionOperator.java:143)E at org.apache.flink.table.runtime.operators.python.BaseRowPythonScalarFunctionOperator.open(BaseRowPythonScalarFunctionOperator.java:86)E at org.apache.flink.streaming.runtime.tasks.StreamTask.initializeStateAndOpen(StreamTask.java:1007)E at org.apache.flink.streaming.runtime.tasks.StreamTask.lambda$beforeInvoke$0(StreamTask.java:454)E at org.apache.flink.streaming.runtime.tasks.StreamTaskActionExecutor$SynchronizedStreamTaskActionExecutor.runThrowing(StreamTaskActionExecutor.java:94)E at org.apache.flink.streaming.runtime.tasks.StreamTask.beforeInvoke(StreamTask.java:449)E at org.apache.flink.streaming.runtime.tasks.StreamTask.invoke(StreamTask.java:461)E at org.apache.flink.runtime.taskmanager.Task.doRun(Task.java:707)E at org.apache.flink.runtime.taskmanager.Task.run(Task.java:532)E at java.lang.Thread.run(Thread.java:748)E Caused by: java.lang.IllegalStateException: Process died with exit code 0E at org.apache.beam.runners.fnexecution.environment.ProcessManager$RunningProcess.isAliveOrThrow(ProcessManager.java:74)E at org.apache.beam.runners.fnexecution.environment.ProcessEnvironmentFactory.createEnvironment(ProcessEnvironmentFactory.java:125)E at org.apache.beam.runners.fnexecution.control.DefaultJobBundleFactory$1.load(DefaultJobBundleFactory.java:178)E at org.apache.beam.runners.fnexecution.control.DefaultJobBundleFactory$1.load(DefaultJobBundleFactory.java:162)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache$LoadingValueReference.loadFuture(LocalCache.java:3528)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache$Segment.loadSync(LocalCache.java:2277)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache$Segment.lockedGetOrLoad(LocalCache.java:2154)E at org.apache.beam.vendor.guava.v26_0_jre.com.google.common.cache.LocalCache$Segment.get(LocalCache.java:2044)E ... 20 moreinstance: https://api.travis-ci.org/v3/job/646511525/log.txt</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.tox.ini</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15953" opendate="2020-2-7 00:00:00" fixdate="2020-3-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Job Status is hard to read for some Statuses</summary>
+      <description>The job status RESTARTING is rendered in a white font on white background which makes it hard to read (see attachments).</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.10.1,1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.app.config.ts</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16018" opendate="2020-2-12 00:00:00" fixdate="2020-3-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve error reporting when submitting batch job (instead of AskTimeoutException)</summary>
+      <description>While debugging the Shaded Hadoop S3A end-to-end test (minio) pre-commit test, I noticed that the JobSubmission is not producing very helpful error messages.Environment: A simple batch wordcount job a unavailable minio s3 filesystem serviceWhat happens from a user's perspective: The job submission fails after 10 seconds with a AskTimeoutException:2020-02-07T11:38:27.1189393Z akka.pattern.AskTimeoutException: Ask timed out on [Actor[akka://flink/user/dispatcher#-939201095]] after [10000 ms]. Message of type [org.apache.flink.runtime.rpc.messages.LocalFencedMessage]. A typical reason for `AskTimeoutException` is that the recipient actor didn't send a reply.2020-02-07T11:38:27.1189538Z at akka.pattern.PromiseActorRef$$anonfun$2.apply(AskSupport.scala:635)2020-02-07T11:38:27.1189616Z at akka.pattern.PromiseActorRef$$anonfun$2.apply(AskSupport.scala:635)2020-02-07T11:38:27.1189713Z at akka.pattern.PromiseActorRef$$anonfun$1.apply$mcV$sp(AskSupport.scala:648)2020-02-07T11:38:27.1189789Z at akka.actor.Scheduler$$anon$4.run(Scheduler.scala:205)2020-02-07T11:38:27.1189883Z at scala.concurrent.Future$InternalCallbackExecutor$.unbatchedExecute(Future.scala:601)2020-02-07T11:38:27.1189973Z at scala.concurrent.BatchingExecutor$class.execute(BatchingExecutor.scala:109)2020-02-07T11:38:27.1190067Z at scala.concurrent.Future$InternalCallbackExecutor$.execute(Future.scala:599)2020-02-07T11:38:27.1190159Z at akka.actor.LightArrayRevolverScheduler$TaskHolder.executeTask(LightArrayRevolverScheduler.scala:328)2020-02-07T11:38:27.1190267Z at akka.actor.LightArrayRevolverScheduler$$anon$4.executeBucket$1(LightArrayRevolverScheduler.scala:279)2020-02-07T11:38:27.1190358Z at akka.actor.LightArrayRevolverScheduler$$anon$4.nextTick(LightArrayRevolverScheduler.scala:283)2020-02-07T11:38:27.1190465Z at akka.actor.LightArrayRevolverScheduler$$anon$4.run(LightArrayRevolverScheduler.scala:235)2020-02-07T11:38:27.1190540Z at java.lang.Thread.run(Thread.java:748)What a user would expect: An error message indicating why the job submission failed.</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.9.3,1.10.1,1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.WebOptions.java</file>
+      <file type="M">docs..includes.generated.web.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16222" opendate="2020-2-21 00:00:00" fixdate="2020-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use plugins mechanism for initializing MetricReporters</summary>
+      <description>https://issues.apache.org/jira/browse/FLINK-11952 introduced Plugins mechanism into Flink. Metrics reporters initialization mechanism can profit from using this new functionality. Instead of placing MetricsReporters JARs into /libs, it should be additionally possible (and encouraged) to convert them into plugins and use the /plugins folder for initialization via independent plugin classloaders.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.flink-metrics-reporter-prometheus-test.src.test.java.org.apache.flink.metrics.prometheus.tests.PrometheusReporterEndToEndITCase.java</file>
+      <file type="M">docs.monitoring.metrics.zh.md</file>
+      <file type="M">docs.monitoring.metrics.md</file>
+      <file type="M">flink-yarn.src.main.java.org.apache.flink.yarn.YarnTaskExecutorRunner.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.recovery.JobManagerHAProcessFailureRecoveryITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.recovery.AbstractTaskManagerProcessFailureRecoveryTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskManagerRunnerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.metrics.ReporterSetupTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.metrics.MetricRegistryImplTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskManagerRunner.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.minicluster.MiniCluster.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.entrypoint.ClusterEntrypoint.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.entrypoint.MesosTaskExecutorRunner.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.entrypoint.MesosSessionClusterEntrypoint.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.entrypoint.MesosJobClusterEntrypoint.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.plugin.PluginManager.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.plugin.PluginLoader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.metrics.ReporterSetup.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16242" opendate="2020-2-23 00:00:00" fixdate="2020-2-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BinaryGeneric serialization error cause checkpoint failure</summary>
+      <description>The serialization error occurs from time to time when we're using RoaringBitmap as the accumulator of a UDAF.I've attached the screenshot of the error.</description>
+      <version>1.9.2</version>
+      <fixedVersion>1.9.3,1.10.1,1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.typeutils.BaseRowSerializerTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.typeutils.BaseRowSerializer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16393" opendate="2020-3-2 00:00:00" fixdate="2020-3-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Kinesis consumer unnecessarily creates record emitter thread w/o source sync</summary>
+      <description>The asynchronous record emitter depends on the periodic watermark calculation. If no periodic watermark is configured then records will be directly emitted by the shard consumer threads and the record emitter thread never used. We should skip the thread creation in that case.</description>
+      <version>1.8.3,1.9.2,1.10.0</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.java.org.apache.flink.streaming.connectors.kinesis.internals.KinesisDataFetcher.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16408" opendate="2020-3-3 00:00:00" fixdate="2020-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bind user code class loader to lifetime of a slot</summary>
+      <description>In order to avoid class leaks due to creating multiple user code class loaders and loading class multiple times in a recovery case, I would suggest to bind the lifetime of a user code class loader to the lifetime of a slot. More precisely, the user code class loader should live at most as long as the slot which is using it.</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.TaskExecutorLocalStateStoresManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.heartbeat.TestingHeartbeatServices.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskManagerServicesConfiguration.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskManagerRunner.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskManagerConfiguration.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TestingJobManagerTable.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.JobManagerTable.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.JobManagerConnection.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.DefaultJobManagerTable.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.JobManagerRunnerImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.execution.librarycache.TestingLibraryCacheManager.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.execution.librarycache.ContextClassLoaderLibraryCacheManager.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.execution.librarycache.BlobLibraryCacheRecoveryITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.execution.librarycache.BlobLibraryCacheManagerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.JobManagerSharedServices.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.JobManagerRunnerImpl.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.execution.librarycache.LibraryCacheManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.execution.librarycache.BlobLibraryCacheManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.DefaultJobManagerRunnerFactory.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskManagerServicesBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskExecutorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskExecutorPartitionLifecycleTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.slot.TestingTaskSlotTable.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskManagerServices.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.TaskCheckpointingBehaviourTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.SynchronousCheckpointITCase.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskTerminationTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.InterruptSensitiveRestoreTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.JvmExitOnFatalErrorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TestTaskBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskAsyncCallTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskSubmissionTestEnvironment.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.DefaultJobTableTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.Task.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskExecutor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.JobTable.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.DefaultJobTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16410" opendate="2020-3-3 00:00:00" fixdate="2020-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PrometheusReporterEndToEndITCase fails with ClassNotFoundException</summary>
+      <description>Logs: https://dev.azure.com/rmetzger/Flink/_build/results?buildId=5883&amp;view=logs&amp;j=b1623ac9-0979-5b0d-2e5e-1377d695c991&amp;t=e7804547-1789-5225-2bcf-269eeaa37447[INFO] Running org.apache.flink.metrics.prometheus.tests.PrometheusReporterEndToEndITCase[ERROR] Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 0.005 s &lt;&lt;&lt; FAILURE! - in org.apache.flink.metrics.prometheus.tests.PrometheusReporterEndToEndITCase[ERROR] testReporter(org.apache.flink.metrics.prometheus.tests.PrometheusReporterEndToEndITCase) Time elapsed: 0.005 s &lt;&lt;&lt; ERROR!java.lang.NoClassDefFoundError: org/apache/flink/runtime/rest/messages/RequestBody at org.apache.flink.metrics.prometheus.tests.PrometheusReporterEndToEndITCase.&lt;init&gt;(PrometheusReporterEndToEndITCase.java:119)Caused by: java.lang.ClassNotFoundException: org.apache.flink.runtime.rest.messages.RequestBody at org.apache.flink.metrics.prometheus.tests.PrometheusReporterEndToEndITCase.&lt;init&gt;(PrometheusReporterEndToEndITCase.java:119)[INFO]</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-common.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16471" opendate="2020-3-6 00:00:00" fixdate="2020-3-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>develop PostgresCatalog</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-jdbc.src.main.java.org.apache.flink.api.java.io.jdbc.dialect.JDBCDialects.java</file>
+      <file type="M">flink-connectors.flink-jdbc.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch2.src.test.resources.log4j2-test.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16472" opendate="2020-3-6 00:00:00" fixdate="2020-3-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>support precision of timestamp and time data types</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-dist.src.main.flink-bin.bin.config.sh</file>
+      <file type="M">flink-connectors.flink-jdbc.src.test.java.org.apache.flink.api.java.io.jdbc.catalog.PostgresCatalogITCase.java</file>
+      <file type="M">flink-connectors.flink-jdbc.src.main.java.org.apache.flink.api.java.io.jdbc.catalog.PostgresCatalog.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16473" opendate="2020-3-6 00:00:00" fixdate="2020-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add documentation for JDBCCatalog and PostgresCatalog</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.connect.zh.md</file>
+      <file type="M">docs.dev.table.connect.md</file>
+      <file type="M">docs.dev.table.catalogs.zh.md</file>
+      <file type="M">docs.dev.table.catalogs.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16485" opendate="2020-3-7 00:00:00" fixdate="2020-4-7 01:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>Support vectorized Python UDF in the batch mode of old planner</summary>
+      <description>Currently, vectorized Python UDF is only supported in the batch/stream mode for the blink planner and stream mode for the old planner. The aim of this Jira is to add support in the batch mode for the old planner.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetPythonCalc.scala</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.functions.python.PythonTableFunctionFlatMap.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.functions.python.PythonScalarFunctionFlatMap.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.functions.python.AbstractPythonStatelessFunctionFlatMap.java</file>
+      <file type="M">flink-python.pyflink.table.tests.test.pandas.udf.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16486" opendate="2020-3-7 00:00:00" fixdate="2020-4-7 01:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>Add documentation for vectorized Python UDF</summary>
+      <description>As the title described, the aim of this JIRA is to add documentation for vectorized Python UDF.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.python.index.zh.md</file>
+      <file type="M">docs.dev.table.python.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16581" opendate="2020-3-13 00:00:00" fixdate="2020-4-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support state ttl for Mini-Batch deduplication using StateTtlConfig</summary>
+      <description>This lead to OOM with long running streaming job.We should check all unbounded operations, should not lack state TTL</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.deduplicate.MiniBatchDeduplicateKeepLastRowFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.deduplicate.MiniBatchDeduplicateKeepFirstRowFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.deduplicate.DeduplicateKeepLastRowFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.deduplicate.DeduplicateKeepFirstRowFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.deduplicate.DeduplicateFunctionTestBase.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.join.stream.StreamingSemiAntiJoinOperator.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.join.stream.StreamingJoinOperator.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.join.stream.state.OuterJoinRecordStateViews.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.join.stream.state.JoinRecordStateViews.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.join.stream.AbstractStreamingJoinOperator.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.deduplicate.MiniBatchDeduplicateKeepLastRowFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.deduplicate.MiniBatchDeduplicateKeepFirstRowFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.deduplicate.DeduplicateKeepLastRowFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.deduplicate.DeduplicateKeepFirstRowFunction.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecDeduplicate.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16694" opendate="2020-3-20 00:00:00" fixdate="2020-6-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Resuming Externalized Checkpoint end-to-end test failed on travis</summary>
+      <description>Running 'Resuming Externalized Checkpoint (rocks, incremental, scale down) end-to-end test' failed on travis (release-1.9 branch) with the error:The job exceeded the maximum log length, and has been terminated.https://api.travis-ci.org/v3/job/664469537/log.txthttps://travis-ci.org/github/apache/flink/builds/664469494This error is probably because of metrics logging and it's masking some other underlying issue, potentially FLINK-16695 as they happened in the same build.</description>
+      <version>1.9.2</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.resume.externalized.checkpoints.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1720" opendate="2015-3-18 00:00:00" fixdate="2015-3-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Integrate ScalaDoc in Scala sources into overall JavaDoc</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.9</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-test-utils.pom.xml</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-scala.pom.xml</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-examples.pom.xml</file>
+      <file type="M">flink-staging.flink-hcatalog.pom.xml</file>
+      <file type="M">flink-staging.flink-expressions.pom.xml</file>
+      <file type="M">flink-scala.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17763" opendate="2020-5-16 00:00:00" fixdate="2020-5-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>No log files when starting scala-shell</summary>
+      <description>I see the following error when starting scala shell. Starting Flink Shell:ERROR StatusLogger No Log4j 2 configuration file found. Using default configuration (logging only errors to the console), or user programmatically provided configurations. Set system property 'log4j2.debug' to show Log4j 2 internal initialization logging. See https://logging.apache.org/log4j/2.x/manual/configuration.html for instructions on how to configure Log4j 2</description>
+      <version>1.9.2,1.10.0</version>
+      <fixedVersion>1.9.4,1.10.2,1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-scala-shell.start-script.start-scala-shell.sh</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

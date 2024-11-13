@@ -1,0 +1,603 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  
+  
+  <bug fixdate="2011-8-24 01:00:00" id="2045" opendate="2011-1-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Simplify HH to decrease read load when nodes come back</summary>
+      <description>Currently when HH is enabled, hints are stored, and when a node comes back, we begin sending that node data. We do a lookup on the local node for the row to send. To help reduce read load (if a node is offline for long period of time) we should store the data we want forward the node locally instead. We wouldn't have to do any lookups, just take byte[] and send to the destination.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.RowMutationVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RowMutation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2011-7-31 01:00:00" id="2082" opendate="2011-1-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Saved row cache continues to be read past max cache size</summary>
+      <description>Scenario: Node has a saved row cache of size n node OOMs Make row cache size = .5n to prevent OOM while we debug, restart node. n items are still read from the row cache, making startup take twice as long as needed.(This is intended as a straightforward bug, not as a hackish CASSANDRA-1966.)</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RowCacheTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2011-8-11 01:00:00" id="2447" opendate="2011-4-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove auto-bootstrap option</summary>
+      <description>We already optimize auto-bootstrap to be no-op if there are no non-system tables.Given that, the only penalty imposed by autobootstrap is a 30s sleep waiting for gossip. Feels worth it to avoid the confusion this option causes, and the problems if you don't turn it on when it should be.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2011-8-3 01:00:00" id="2594" opendate="2011-5-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>run cassandra under numactl --interleave=all</summary>
+      <description>By default, Linux attempts to be smart about memory allocations such that data is close to the NUMA node on which it runs. For big database type of applications, this is not the best thing to do if the priority is to avoid disk I/O. In particular with Cassandra, we're heavily multi-threaded anyway and there is no particular reason to believe that one NUMA node is "better" than another.Consequences of allocating unevenly among NUMA nodes can include excessive page cache eviction when the kernel tries to allocate memory - such as when restarting the JVM.With that briefly stated background, I propse the following patch to make the Cassandra script run Cassandra with numactl --interleave=all if numactl seems to be available.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-4 01:00:00" id="2606" opendate="2011-5-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose through JMX the ability to repair only the primary range</summary>
+      <description>CASSANDRA-2324 introduces the ability to do a repair only on a given range. This ticket proposes to add a nodetool repairPrimaryRange to trigger the repair of only the primary range of a node. This allows to repair a full cluster without any work duplication (or at least make it much simpler). This also introdude a global_repair command to clustertool to trigger the primary range repair on each node of the cluster one after another (we could do all in parallel, but that's probably not nice on the cluster).</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-8-10 01:00:00" id="2630" opendate="2011-5-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CLI - &amp;#39;describe column family&amp;#39; would be nice</summary>
+      <description>I end up verifying column families a lot and using 'describe keyspace &lt;keyspace&gt;;' spits out a whole bunch of data since our keyspace has a lot of metadata. It would be really useful to have a 'describe &lt;column family&gt;;' for a given column family in the currently authenticated keyspace.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.resources.org.apache.cassandra.cli.CliHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliUtils.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.Cli.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-6-20 01:00:00" id="2679" opendate="2011-5-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move some column creation logic into Column factory functions</summary>
+      <description>Expiring and Counter columns have extra creation logic that is better encapsulated when implemented inside a factory function.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ExpiringColumn.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CounterColumn.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnSerializer.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-6-13 01:00:00" id="2764" opendate="2011-6-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>generate-eclipse-files still referencing drivers/ source</summary>
+      <description>In trunk, running ant generate-eclipse-files will reference the old drivers top-level directory. The result is that the generated project, once loaded into Eclipse causes errors about the non-existent source directories.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-8-21 01:00:00" id="2806" opendate="2011-6-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose gossip/FD info to JMX</summary>
+      <description/>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetectorMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-12 01:00:00" id="2883" opendate="2011-7-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add Support for BigDecimal Java data type as the "DecimalType" AbstractType</summary>
+      <description>The JDBC Driver suite needs support for BigDecimal to complete it's data type support for ResultSet and PreparedStatement. This datatype could also be used to represent numeric (non-integer) counter values. This is a very simple addition to the collection of data types supported by Cassandra. It is quite versatile like BigInteger. It can represent decimal numbers of virtually any precision and scale. It is represented in Java as an arbitrary precision integer unscaled value ( think IntegerType )and a 32-bit integer scale factor, which could be represented as a IntegerType as well. This could share much of the logic from the BigInteger (IntegerType) implementation. CQL would need to add a datatype (decimal?). Decimal literal support is already provided in CQL.This is low hanging fruit.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.CreateColumnFamilyStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.Cql.g</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-7-18 01:00:00" id="2914" opendate="2011-7-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Simplify HH to always store hints on the coordinator</summary>
+      <description>Moved from CASSANDRA-2045:Since we're storing the full mutation post-2045, there's no benefit to be gained from storing the hint on the replica node, only an increase in complexity. Let's switch it to always store hints on the coordinator instead.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.AbstractReplicationStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RowMutation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2011-7-25 01:00:00" id="2945" opendate="2011-7-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add test for counter merge shard path</summary>
+      <description>This is a relevant test and this happens to have a corner case for CASSANDRA-2843.</description>
+      <version>1.0.0</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.NodeId.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2011-8-14 01:00:00" id="3032" opendate="2011-8-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>clean up KSMetadata, CFMetadata</summary>
+      <description>There are too many conversion methods between Thrift and Avro and Native, which is a potential source of bugs.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">test.unit.org.apache.cassandra.thrift.ThriftValidationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.DefsTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.config.DatabaseDescriptorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.config.ColumnDefinitionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.UpdateKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.UpdateColumnFamily.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.Migration.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.AddKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.migration.AddColumnFamily.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DefsTable.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.DropIndexStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.ColumnDefinition.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-8-14 01:00:00" id="3033" opendate="2011-8-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[patch] ensure full read of chuck</summary>
+      <description>code ignores result of RandomAccessFile.read which could potentially return less bytes than was requested. Code loops to read all bytes desired.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressedSequentialWriter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-8-14 01:00:00" id="3034" opendate="2011-8-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[patch] BufferedInputStream.skip only skips bytes that are in the buffer, so keep skipping until done</summary>
+      <description>code calls skip(remaining) without checking result. Skip isn't guaranteed to skip what you requested, especially BufferedInputStream, so keep skipping until the remaining bytes is 0.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.IncomingTcpConnection.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2011-9-22 01:00:00" id="3068" opendate="2011-8-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix count()</summary>
+      <description>count() has been broken since it was introduced in CASSANDRA-1704.</description>
+      <version>1.0.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.system.test.cql.py</file>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+      <file type="M">doc.cql.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2011-8-26 01:00:00" id="3085" opendate="2011-8-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Race condition in sstable reference counting</summary>
+      <description>DataTracker gives us an atomic View of memtable/sstables, but acquiring references is not atomic. So it is possible to acquire references to an SSTableReader object that is no longer valid, as in this example:View V contains sstables {A, B}. We attempt a read in thread T using this View.Meanwhile, A and B are compacted to {C}, yielding View W. No references exist to A or B so they are cleaned up.Back in thread T we acquire references to A and B. This does not cause an error, but it will when we attempt to read from them next.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.RowIteratorFactory.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CollationController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2011-10-5 01:00:00" id="3137" opendate="2011-9-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement wrapping intersections for ConfigHelper&amp;#39;s InputKeyRange</summary>
+      <description>Before there was no support for multiple intersections between the split's range and the job's configured range.After CASSANDRA-3108 it is now possible.</description>
+      <version>0.8.7,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilyInputFormat.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-7 01:00:00" id="3148" opendate="2011-9-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use TreeMap backed column families for the SSTable simple writers</summary>
+      <description>SSTable*SimpleWriter classes are not intended to be used concurrently (and indeed they are not thread safe), so there is no point in using CLSM backed column families.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ArrayBackedSortedColumnsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableSimpleWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableSimpleUnsortedWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ThreadSafeSortedColumns.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RowMutation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Row.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ReadResponse.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilySerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ArrayBackedSortedColumns.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2011-9-8 01:00:00" id="3159" opendate="2011-9-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Multiple classpath entries in the cassandra-all.jar</summary>
+      <description>from CASSANDRA-2936Sep 8, 2011 8:47:45 AM java.util.jar.Attributes readWARNING: Duplicate name in Manifest: Class-Path.Ensure that the manifest does not have duplicate entries, andthat blank lines separate individual sections in both yourmanifest and in the META-INF/MANIFEST.MF entry in the jar file.</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-8 01:00:00" id="3160" opendate="2011-9-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PIG_OPTS bash variable interpolation doesn&amp;#39;t work correctly when PIG_OPTS is set in the environment.</summary>
+      <description>PIG_OPTS bash variable interpolation doesn't work correctly when PIG_OPTS is set in the environment due to variable preceding quotes.</description>
+      <version>0.8.6,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">contrib.pig.bin.pig.cassandra</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2011-9-12 01:00:00" id="3184" opendate="2011-9-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update the versions that are referenced in the generated POMs so that they match the versions in svn&amp;#39;s lib folder</summary>
+      <description>Update the versions before the release so that the release uses the same dependencies for Maven downloaded dependencies</description>
+      <version>1.0.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-13 01:00:00" id="3193" opendate="2011-9-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Gossip teardown causes test failures</summary>
+      <description>Just look at any recent jenkins or buildbot attempt for the semi-nonsensical NBHM.remove NPE</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.IncomingTcpConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.DebuggableThreadPoolExecutor.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2011-9-16 01:00:00" id="3219" opendate="2011-9-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodes started at the same time end up with the same token</summary>
+      <description>Since autoboostrap is defaulted to on when you start a cluster at once (http://screenr.com/5G6) you can end up with nodes being assigned the same token.INFO 17:34:55,688 Node /67.23.43.14 is now part of the cluster INFO 17:34:55,698 InetAddress /67.23.43.14 is now UP INFO 17:34:55,698 Nodes /67.23.43.14 and tjake2/67.23.43.15 have the same token 8823900603000512634329811229926543166. Ignoring /67.23.43.14 INFO 17:34:55,698 Node /98.129.220.182 is now part of the cluster INFO 17:34:55,698 InetAddress /98.129.220.182 is now UP INFO 17:34:55,698 Nodes /98.129.220.182 and tjake2/67.23.43.15 have the same token 8823900603000512634329811229926543166. Ignoring /98.129.220.182</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.BootStrapper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-19 01:00:00" id="3229" opendate="2011-9-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove ability to disable dynamic snitch entirely</summary>
+      <description>We've moved dynamic snitch from "new, default to off" to "well tested, default to true," and it's time now to take the next step to "there is no reason to disable it, and keeping the option around just lets people shoot their foot off."</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-19 01:00:00" id="3230" opendate="2011-9-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>clientutil jar missing from artifacts</summary>
+      <description>The new clientutil jar is not being included in binary release artifacts</description>
+      <version>1.0.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-23 01:00:00" id="3245" opendate="2011-9-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t fail when numactl is installed, but NUMA policies are not supported</summary>
+      <description>When numactl is installed but NUMA policies are not supported, trying to run cassandra gives only:numactl: This system does not support NUMA policy..and the startup script fails there.We should probably fail a little more gracefully. Possibly the best way to tell if numactl will work is by using:numactl --hardwarebut I don't have ready access to a machine with proper NUMA support at the moment so I can't check how easy it is to tell the difference in the output.It looks just as reliable (if possibly a bit more brittle) to check for the existence of the directory /sys/devices/system/node. If that directory doesn't exist, we shouldn't even try to use or run numactl.</description>
+      <version>1.0.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-23 01:00:00" id="3247" opendate="2011-9-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader ignores option doesn&amp;#39;t work correctly</summary>
+      <description>The --ignores option is supposed to take an argument but it doesn't.</description>
+      <version>0.8.7,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2011-9-27 01:00:00" id="3266" opendate="2011-9-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>missed CQL term rename</summary>
+      <description>The CQL grammar was missed in the rename of bytea to blob.</description>
+      <version>1.0.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.Cql.g</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2009-8-30 01:00:00" id="327" opendate="2009-7-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Thrift interface needs a Ruby namespace</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">interface.cassandra.thrift</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-30 01:00:00" id="3282" opendate="2011-9-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CLI does not support removing compression options from a ColumnFamily</summary>
+      <description>This may be an issue with ThriftValidator as well - not accepting a null or empty compression properties map as a disable flag.</description>
+      <version>1.0.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.cli.CliHelp.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-30 01:00:00" id="3284" opendate="2011-9-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>help create column family refers to outdated fields</summary>
+      <description>help create column family in cassandra-cli refers to old, unsupported options. memtable_operations: Number of operations in millions before the memtable is flushed. Default is memtable_throughput / 64 * 0.3 memtable_throughput: Maximum size in MB to let a memtable get to before it is flushed. Default is to use 1/16 the JVM heap size.</description>
+      <version>1.0.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.cli.CliHelp.yaml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2011-10-1 01:00:00" id="3291" opendate="2011-10-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>1.0 needs to clean out old-style hints</summary>
+      <description>(Only marking this Minor because the manual workaround of deleting hint files is trivial.)</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-10-3 01:00:00" id="3295" opendate="2011-10-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>reduce default heap size</summary>
+      <description>With off-heap caching now the default and with auto-flushed memtables demonstrated to do a good job with smaller heaps, I think it's time to reduce heap sizes to decrease GC pause times.How does this sound? half the ram, up to 512MB, or 1/4 the ram, up to 4 GBi.e.:max(min(1/2 ram, 512MB), min(1/4 ram, 4GB))</description>
+      <version>1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2011-10-4 01:00:00" id="3309" opendate="2011-10-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool Doesnt close the open JMX connection causing it to leak Threads</summary>
+      <description>When nodetool is used intensively we will see 1000's of "JMX server connection timeout"Fix is to close the connections when no longer needed.</description>
+      <version>0.8.7,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2011-10-7 01:00:00" id="3329" opendate="2011-10-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>make HSHA the default Thrift server</summary>
+      <description>HSHA has been an option since 0.8.3 (CASSANDRA-1405) and has been stable. Besides making possible lots of unpooled connections such as are common in some environments (cough PHP), we've seen EC2 in particular have trouble with lots of threads (CASSANDRA-2170).</description>
+      <version>1.0.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2012-2-15 01:00:00" id="3913" opendate="2012-2-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect InetAddress equality test</summary>
+      <description>CASSANDRA-3485 introduced some InetAddress checks using == instead of .equals.</description>
+      <version>1.0.0,1.0.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-3-27 01:00:00" id="4089" opendate="2012-3-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Typo fix: key_valiation_class -&gt; key_validation_class</summary>
+      <description>There is a typo in the Cli help docs for the update column family command.</description>
+      <version>1.0.0</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.cli.CliHelp.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

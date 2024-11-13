@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2015-11-9 01:00:00" id="10027" opendate="2015-8-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ALTER TABLE TYPE check broken</summary>
+      <description>I stumbled onto the fact that 2.2.0 will allow you to ALTER TYPE of a varint to the new date type. I thought that was an odd conversion to allow, so I attempted to query it. I received an error on all subsequent queries, unless I exited or truncated the table.After truncating, I could then INSERT and query as normal. But the new varint values inserted simply were reflected as an offset of the minimum varint value.I'm not sure why that's happening, but if we could simply prevent type conversion between varint and date (and just show the "types are incompatible" message) that should fix this.Steps to reproduce:aploetz@cqlsh:typeconversion&gt; CREATE TABLE varinttest (key int PRIMARY KEY, c1 varint);aploetz@cqlsh:typeconversion&gt; INSERT INTO varinttest (key, c1) VALUES (1,1);aploetz@cqlsh:typeconversion&gt; SELECT * FROM varinttest ; key | c1-----+---- 1 | 1(1 rows)aploetz@cqlsh:typeconversion&gt; ALTER TABLE varinttest ALTER c1 TYPE date;aploetz@cqlsh:typeconversion&gt; SELECT * FROM varinttest ;Traceback (most recent call last): File "/usr/bin/cqlsh.py", line 1150, in perform_simple_statement rows = future.result(self.session.default_timeout) File "/usr/share/cassandra/lib/cassandra-driver-internal-only-2.6.0c2.post.zip/cassandra-driver-2.6.0c2.post/cassandra/cluster.py", line 3296, in result raise self._final_exceptionerror: unpack requires a string argument of length 4aploetz@cqlsh:typeconversion&gt; SELECT * FROM varinttest ;NoHostAvailable: ('Unable to complete the operation against any hosts', {&lt;Host: 127.0.0.1 PloetzLabs&gt;: ConnectionShutdown('Connection to 127.0.0.1 is defunct',)})aploetz@cqlsh:typeconversion&gt; TRUNCATE varinttest ;aploetz@cqlsh:typeconversion&gt; SELECT * FROM varinttest ; key | c1-----+----(0 rows)aploetz@cqlsh:typeconversion&gt; INSERT INTO varinttest (key, c1) VALUES (1,1);aploetz@cqlsh:typeconversion&gt; INSERT INTO varinttest (key, c1) VALUES (2,2);aploetz@cqlsh:typeconversion&gt; INSERT INTO varinttest (key, c1) VALUES (3,3);aploetz@cqlsh:typeconversion&gt; SELECT * FROM varinttest ; key | c1-----+------------- 1 | -2147483647 2 | -2147483646 3 | -2147483645(3 rows)</description>
+      <version>2.2.4,3.0.1,3.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.SimpleDateType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-11-25 01:00:00" id="10188" opendate="2015-8-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader does not use MAX_HEAP_SIZE env parameter</summary>
+      <description>Currently the sstableloader script hard codes java's max heap size parameter to 256MB. The issue was discussed in CASSANDRA-7385 and it looks like the agreed solution was to allow the value to change through parameters that were going to be introduced as part of CASSANDRA-5969. This parameter wasn't added to sstableloader, making it inconsistent with the other utilities and provides a problem loading large files.</description>
+      <version>2.1.12,2.2.4,3.0.1,3.1,3.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.sstableloader</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-10-1 01:00:00" id="10242" opendate="2015-9-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Validate rack information on startup</summary>
+      <description>Moving to a new rack means that different data should be stored on a node. We already persist rack information in a system table; we should fail startup if this doesn't match what the snitch thinks it should be. (Either the snitch is wrong, and needs to be fixed, or the machine has been moved and needs to be rebootstrapped.)</description>
+      <version>2.1.12,2.2.4,3.0.0rc2</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">conf.cassandra-rackdc.properties</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-12-1 01:00:00" id="10243" opendate="2015-9-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Warn or fail when changing cluster topology live</summary>
+      <description>Moving a node from one rack to another in the snitch, while it is alive, is almost always the wrong thing to do.</description>
+      <version>2.1.12,2.2.4,3.0.1,3.1,3.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.locator.YamlFileNetworkTopologySnitchTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.locator.GossipingPropertyFileSnitchTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.SnitchProperties.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.GossipingPropertyFileSnitch.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.YamlFileNetworkTopologySnitch.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.PropertyFileSnitch.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-10-3 01:00:00" id="10264" opendate="2015-9-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to use conditions on static columns for DELETE</summary>
+      <description>cqlsh:test&gt; create table static_table(id int, stat int static, ord int, val text, primary key(id,ord));cqlsh:test&gt; insert into static_table (id,stat,ord,val) VALUES ( 1, 1, 1, '1');cqlsh:test&gt; delete from static_table where id=1 and ord=1 if stat != 1;Invalid syntax at line 1, char 55 delete from static_table where id=1 and ord=1 if stat != 1; ^Same error if using =, &lt;, &lt;=, &gt;= or &gt; conditionAccording to thobbs the syntax should work. Plus, the error message is wrong</description>
+      <version>2.1.12,2.2.4,3.0.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.InsertUpdateIfConditionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-11-7 01:00:00" id="10280" opendate="2015-9-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make DTCS work well with old data</summary>
+      <description>Operational tasks become incredibly expensive if you keep around a long timespan of data with DTCS - with default settings and 1 year of data, the oldest window covers about 180 days. Bootstrapping a node with vnodes with this data layout will force cassandra to compact very many sstables in this window.We should probably put a cap on how big the biggest windows can get. We could probably default this to something sane based on max_sstable_age (ie, say we can reasonably handle 1000 sstables per node, then we can calculate how big the windows should be to allow that)</description>
+      <version>2.1.12,2.2.4,3.0.1,3.1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyOptions.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">NEWS.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-10-13 01:00:00" id="10509" opendate="2015-10-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix dtest cqlsh_tests.cqlsh_copy_tests.CqlshCopyTest.test_bulk_round_trip</summary>
+      <description>Test failing on 2.2 after fixing CASSANDRA-10507:http://cassci.datastax.com/view/Dev/view/stef1927/job/stef1927-10507-2.2-dtest/lastCompletedBuild/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_bulk_round_trip/</description>
+      <version>2.2.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeNamesQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-10-21 01:00:00" id="10559" opendate="2015-10-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support encrypted and plain traffic on the same port</summary>
+      <description>To be able to migrate clusters in a rolling way from plain to encrypted traffic it would be very helpful if we could have Cassandra accept both on the same port.</description>
+      <version>2.1.12,2.2.4,3.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.NativeTransportServiceTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.EncryptionOptions.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-10-23 01:00:00" id="10577" opendate="2015-10-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix cqlsh COPY commands that use NULL</summary>
+      <description>Looks like this commit:https://github.com/apache/cassandra/commit/806378c8c295fb062f94eb8bf0f719b398d27745broke some of the behavior of cqlsh COPY:http://cassci.datastax.com/view/cassandra-3.0/job/cassandra-3.0_dtest/280/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_null_as_null_indicator/history/http://cassci.datastax.com/view/cassandra-3.0/job/cassandra-3.0_dtest/280/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_undefined_as_null_indicator/history/The NULL tests are the only ones that fail, so it doesn't look like any other parts of it are broken:http://cassci.datastax.com/view/cassandra-3.0/job/cassandra-3.0_dtest/280/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/</description>
+      <version>2.1.12,2.2.4,3.0.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-11-7 01:00:00" id="10672" opendate="2015-11-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>jacoco instrumentation breaks UDF validation</summary>
+      <description>The jacoco agent injects a synthetic method into UDF classes as part of instrumentation for code coverage. Currently the UDF code checks the method count on java UDF classes, and it fails due to the jacoco synthetic method increasing the method count.This causes a number of false test failures when running unit tests with jacoco instrumentation.A simple fix is just to ignore synthetic methods in the counting process.</description>
+      <version>2.2.4,3.0.1,3.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.JavaSourceUDFFactory.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-11-12 01:00:00" id="10692" opendate="2015-11-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t remove level info when doing upgradesstables</summary>
+      <description>Seems we blow away the level info when doing upgradesstables. Introduced in CASSANDRA-8004</description>
+      <version>2.1.12,2.2.4</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.LeveledCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.WrappingCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-11-23 01:00:00" id="10755" opendate="2015-11-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PreparedStatement is the same id for different Japanese katakana characters with same length</summary>
+      <description>String q1 = "UPDATE table SET value='タニャア' WHERE key=? AND key2=?";String q2 = "UPDATE table SET value='ャアタニ' WHERE key=? AND key2=?";when using session.prepare().q1 and q2 will return the prepared-statement with the same prepared ID, but the query in prepared-statement is correct.So if I update using q1 first, all later q2 will not be able to update.( It's means , it still updates q1)Please note that the Japanese katakana is the same length in q1 and q2.I know it's a bad use case for putting value into prepared-query itself. Is it related to how Cassandra cache prepared statement?</description>
+      <version>2.1.12,2.2.4,3.0.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.MD5Digest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-11-26 01:00:00" id="10775" opendate="2015-11-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSTable compression ratio is not serialized properly</summary>
+      <description>While reviewing CASSANDRA-10225, I found out that the compression ratio returned by the StatsMetadata for some compressed sstables was - 1 (NO_COMPRESSION_RATIO). After investigation it seems that the wrong compression ratio was serialized to disk.</description>
+      <version>2.2.4,3.0.1,3.1</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.big.BigTableWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-11-29 01:00:00" id="7645" opendate="2014-7-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: show partial trace if incomplete after max_trace_wait</summary>
+      <description>If a trace hasn't completed within max_trace_wait, cqlsh will say the trace is unavailable and not show anything. It (and the underlying python driver) determines when the trace is complete by checking if the duration column in system_traces.sessions is non-null. If duration is null but we still have some trace events when the timeout is hit, cqlsh should print whatever trace events we have along with a warning about it being incomplete.</description>
+      <version>2.2.4,3.0.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-11-9 01:00:00" id="8935" opendate="2015-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: Make the column order in COPY FROM more apparent</summary>
+      <description>When running COPY FROM, we should print the order of columns that we're expecting to make it more obvious when the data is not properly aligned. Otherwise, the user will simply see a type or syntax error and have to try to decipher it.</description>
+      <version>2.1.12,2.2.4,3.0.1,3.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-11-14 01:00:00" id="8970" opendate="2015-3-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow custom time_format on cqlsh COPY TO</summary>
+      <description>When executing a COPY TO from cqlsh, the user is currently has no control over the format of exported timestamp columns. If the user has indicated a time_format in their cqlshrc file, that format will be used. Otherwise, the system default format will be used.The problem comes into play when the timestamp format used on a COPY TO, is not valid when the data is sent back into Cassandra with a COPY FROM.For instance, if a user has time_format = %Y-%m-%d %H:%M:%S%Z specified in their cqlshrc, COPY TO will format timestamp columns like this:userid|posttime|postcontent0|2015-03-14 14:59:00CDT|rtyeryerweh0|2015-03-14 14:58:00CDT|sdfsdfsdgfjdsgojr0|2015-03-12 14:27:00CDT|sdgfjdsgojrExecuting a COPY FROM on that same file will produce an "unable to coerce to formatted date(long)" error.Right now, the only way to change the way timestamps are formatted is to exit cqlsh, modify the time_format property in cqlshrc, and restart cqlsh. The ability to specify a COPY option of TIME_FORMAT with a Python strftime format, would allow the user to quickly alter the timestamp format for export, without reconfiguring cqlsh.aploetz@cqlsh:stackoverflow&gt; COPY posts1 TO '/home/aploetz/posts1.csv' WITH DELIMITER='|' AND HEADER=true AND TIME_FORMAT='%Y-%m-%d %H:%M:%S%z;</description>
+      <version>2.1.12,2.2.4,3.0.0rc2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-11-26 01:00:00" id="9043" opendate="2015-3-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve COPY command to work with Counter columns</summary>
+      <description>Noticed today that the copy command doesn't work with counter column tables.This makes sense given that we need to use UPDATE instead of INSERT with counters.Given that we're making improvements in the COPY command in 3.0 with CASSANDRA-7405, can we also tweak it to work with counters?</description>
+      <version>2.1.12,2.2.4,3.0.1,3.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-11-5 01:00:00" id="9304" opendate="2015-5-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY TO improvements</summary>
+      <description>COPY FROM has gotten a lot of love. COPY TO not so much. One obvious improvement could be to parallelize reading and writing (write one page of data while fetching the next).</description>
+      <version>2.1.12,2.2.4,3.0.1,3.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">pylib.cqlshlib.displaying.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-11-18 01:00:00" id="9844" opendate="2015-7-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reevaluate inspections in generate-idea-files target</summary>
+      <description>Current default inspections generated by the generate-idea-files ant target are generally fine.However there's room to improvement especially wrt Java8 lambda warnings that have (negative) performance impacts.So, this ticket is about to revisit all inspections wrt performance</description>
+      <version>2.2.4,3.0.1,3.1,3.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ide.idea.inspectionProfiles.Project.Default.xml</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

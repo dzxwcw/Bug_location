@@ -1,0 +1,643 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="14896" opendate="2019-11-21 00:00:00" fixdate="2019-9-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Kinesis connector doesn&amp;#39;t shade jackson dependency</summary>
+      <description>flink-kinesis-connector depends on aws java sdk which is shaded to org.apache.flink.kinesis.shaded.com.amazonaws. However, the aws sdk has a transitive dependency to jackson wich is not shaded in the artifact. This creates problem when running flink on YARN: The aws sdk requires jackson-core v2.6 but hadoop pulls in 2.3. See here. If YARN uses the loads wrong jackson version from classpath. Jod fails with2019-11-20 17:23:11,563 ERROR org.apache.flink.runtime.webmonitor.handlers.JarRunHandler - Unhandled exception.org.apache.flink.client.program.ProgramInvocationException: The program caused an error:     at org.apache.flink.client.program.OptimizerPlanEnvironment.getOptimizedPlan(OptimizerPlanEnvironment.java:93)    at org.apache.flink.client.program.PackagedProgramUtils.createJobGraph(PackagedProgramUtils.java:80)    at org.apache.flink.runtime.webmonitor.handlers.utils.JarHandlerUtils$JarHandlerContext.toJobGraph(JarHandlerUtils.java:126)    at org.apache.flink.runtime.webmonitor.handlers.JarRunHandler.lambda$getJobGraphAsync$6(JarRunHandler.java:142)    at java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1590)    at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)    at java.lang.Thread.run(Thread.java:748)Caused by: java.lang.NoSuchMethodError: com.fasterxml.jackson.databind.ObjectMapper.enable([Lcom/fasterxml/jackson/core/JsonParser$Feature;)Lcom/fasterxml/jackson/databind/ObjectMapper;    at com.amazonaws.partitions.PartitionsLoader.&lt;clinit&gt;(PartitionsLoader.java:54)    at com.amazonaws.regions.RegionMetadataFactory.create(RegionMetadataFactory.java:30)    at com.amazonaws.regions.RegionUtils.initialize(RegionUtils.java:65)    at com.amazonaws.regions.RegionUtils.getRegionMetadata(RegionUtils.java:53)    at com.amazonaws.regions.RegionUtils.getRegion(RegionUtils.java:107)    at com.amazonaws.client.builder.AwsClientBuilder.getRegionObject(AwsClientBuilder.java:256)    at com.amazonaws.client.builder.AwsClientBuilder.setRegion(AwsClientBuilder.java:460)    at com.amazonaws.client.builder.AwsClientBuilder.configureMutableProperties(AwsClientBuilder.java:424)    at com.amazonaws.client.builder.AwsAsyncClientBuilder.build(AwsAsyncClientBuilder.java:80)...The flink-kinesis-connector should do as other connectors: shade jackson or use the flink-shaded-jackson core dependency</description>
+      <version>1.9.0,1.16.0,1.15.2</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-sql-connector-kinesis.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-sql-connector-kinesis.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="26890" opendate="2022-3-28 00:00:00" fixdate="2022-11-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DynamoDB consumer error consuming partitions close to retention</summary>
+      <description>BackgroundThe Amazon Kinesis Data Streams consumer supports consuming from Amazon DynamoDB via the DynamoDB Streams Kinesis Adapter. ProblemWe have seen instances of consumer throwing ResouceNotFoundException when attempting to invoke GetShardIterator.com.amazonaws.services.kinesis.model.ResourceNotFoundException: Requested resource not found: Shard does not exist According to the DynamoDB team, the DescribeStream call may return shard IDs that are no longer valid, and this exception needs to be handled by the client. SolutionModify the DynamoDB consumer to treat ResourceNotFoundException as a shard closed signal.</description>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.17.0,1.15.3,1.16.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.java.org.apache.flink.streaming.connectors.kinesis.proxy.DynamoDBStreamsProxy.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="27400" opendate="2022-4-25 00:00:00" fixdate="2022-9-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pulsar connector subscribed the system topic when using the regex</summary>
+      <description>Pulsar has a lot of internal topics which is used for metadata. It couldn't be consumed directly by the user. We accidentally exposed these topics to end-users when using the regex topics.</description>
+      <version>1.14.4,1.16.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.15.3,1.14.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.test.java.org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtilsTest.java</file>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.test.java.org.apache.flink.connector.pulsar.sink.writer.topic.TopicMetadataListenerTest.java</file>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.main.java.org.apache.flink.connector.pulsar.source.enumerator.topic.TopicNameUtils.java</file>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.main.java.org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.TopicPatternSubscriber.java</file>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.main.java.org.apache.flink.connector.pulsar.sink.writer.topic.TopicMetadataListener.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2805" opendate="2015-10-2 00:00:00" fixdate="2015-10-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make user jars available for all job managers to recover</summary>
+      <description>This is a bug in https://github.com/apache/flink/pull/1153.In case of multiple job managers, the user jars need to be accessible by all job managers (including those who arrive later).Since #1153 requires the file state backend to be configured, the simplest solution is to make the blob server aware of the configured recovery mode and put/get/delete the user jars from the file state backend as well.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmanager.RecoveryMode.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.blob.BlobUtils.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.blob.BlobServerConnection.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.blob.BlobServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="28355" opendate="2022-7-1 00:00:00" fixdate="2022-7-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Python Bash e2e tests don&amp;#39;t clean-up after they&amp;#39;ve ran, causing disk space issues</summary>
+      <description>The Bash based E2E tests that are used in Python aren't cleaned-up after they've ran. These cause disk space issues further downstream.See the CI run from https://github.com/apache/flink/pull/20114 for results, for example:&amp;#8211; When starting with the Bash e2e tests08:47:10 ##[group]Top 15 biggest directories in terms of used disk spaceJul 01 08:47:12 3983560 .Jul 01 08:47:12 1266692 ./flink-end-to-end-testsJul 01 08:47:12 624568 ./flink-distJul 01 08:47:12 624180 ./flink-dist/targetJul 01 08:47:12 500076 ./flink-dist/target/flink-1.16-SNAPSHOT-binJul 01 08:47:12 500072 ./flink-dist/target/flink-1.16-SNAPSHOT-bin/flink-1.16-SNAPSHOTJul 01 08:47:12 460812 ./flink-connectorsJul 01 08:47:12 392588 ./.gitJul 01 08:47:12 366396 ./.git/objectsJul 01 08:47:12 366388 ./.git/objects/packJul 01 08:47:12 349272 ./flink-tableJul 01 08:47:12 335592 ./.git/objects/pack/pack-38d46915823ebec2bc660fd160e5cfca5bc3e567.packJul 01 08:47:12 293044 ./flink-dist/target/flink-1.16-SNAPSHOT-bin/flink-1.16-SNAPSHOT/optJul 01 08:47:12 251272 ./flink-filesystemsJul 01 08:47:12 246596 ./flink-end-to-end-tests/flink-streaming-kinesis-testhttps://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=37425&amp;view=logs&amp;j=ef799394-2d67-5ff4-b2e5-410b80c9c0af&amp;t=860bfb5d-81b0-5968-f128-2a8b5362110d&amp;l=664&amp;#8211; After completing all Bash bashed e2e tests:2022-07-01T10:20:17.3594718Z Jul 01 10:20:17 ##[group]Top 15 biggest directories in terms of used disk space2022-07-01T10:20:18.7520631Z Jul 01 10:20:18 5425892 .2022-07-01T10:20:18.7521823Z Jul 01 10:20:18 1521472 ./flink-end-to-end-tests2022-07-01T10:20:18.7522566Z Jul 01 10:20:18 1242528 ./flink-python2022-07-01T10:20:18.7523244Z Jul 01 10:20:18 952336 ./flink-python/dev2022-07-01T10:20:18.7524159Z Jul 01 10:20:18 878764 ./flink-python/dev/.conda2022-07-01T10:20:18.7524870Z Jul 01 10:20:18 834200 ./flink-python/dev/.conda/lib2022-07-01T10:20:18.7525619Z Jul 01 10:20:18 726528 ./flink-python/dev/.conda/lib/python3.72022-07-01T10:20:18.7526397Z Jul 01 10:20:18 683256 ./flink-python/dev/.conda/lib/python3.7/site-packages2022-07-01T10:20:18.7527101Z Jul 01 10:20:18 624568 ./flink-dist2022-07-01T10:20:18.7527768Z Jul 01 10:20:18 624180 ./flink-dist/target2022-07-01T10:20:18.7528494Z Jul 01 10:20:18 500076 ./flink-dist/target/flink-1.16-SNAPSHOT-bin2022-07-01T10:20:18.7529298Z Jul 01 10:20:18 500072 ./flink-dist/target/flink-1.16-SNAPSHOT-bin/flink-1.16-SNAPSHOT2022-07-01T10:20:18.7530046Z Jul 01 10:20:18 460812 ./flink-connectors2022-07-01T10:20:18.7530546Z Jul 01 10:20:18 392588 ./.git2022-07-01T10:20:18.7531014Z Jul 01 10:20:18 366396 ./.git/objectshttps://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=37425&amp;view=logs&amp;j=ef799394-2d67-5ff4-b2e5-410b80c9c0af&amp;t=860bfb5d-81b0-5968-f128-2a8b5362110d&amp;l=9631</description>
+      <version>1.16.0,1.15.2,1.14.6</version>
+      <fixedVersion>1.16.0,1.15.2,1.14.6</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.dev.lint-python.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.pyflink.yarn.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.pyflink.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.kubernetes.pyflink.application.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="28570" opendate="2022-7-15 00:00:00" fixdate="2022-8-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Introduces a StreamNonDeterministicPlanResolver to validate and try to solve (lookup join only) the non-deterministic updates problem which may cause wrong result or error</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.16.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.nodes.exec.stream.LookupJoinJsonPlanTest.jsonplan.testJoinTemporalTableWithProjectionPushDown.out</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.nodes.exec.stream.LookupJoinJsonPlanTest.jsonplan.testJoinTemporalTable.out</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.optimize.StreamCommonSubGraphBasedOptimizer.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalWindowDeduplicate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalRank.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalOverAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalOverAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalLookupJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalCorrelateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdModifiedMonotonicity.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.delegation.StreamPlanner.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.utils.LookupJoinUtil.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecLookupJoin.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.common.CommonExecLookupJoin.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecLookupJoin.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.api.config.OptimizerConfigOptions.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.optimizer.config.configuration.html</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.stream.sql.join.LookupJoinTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdUpsertKeysTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdUniqueKeysTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdHandlerTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.utils.FlinkRexUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.common.CommonPhysicalLookupJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.common.CommonPhysicalJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdUpsertKeys.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdUniqueKeys.scala</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.catalog.ConnectorCatalogTable.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.utils.FlinkRelOptUtilTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.utils.RelTreeWriterImpl.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.utils.FlinkRelOptUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalPythonGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalLocalGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalIncrementalGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalGroupTableAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalGroupAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalGlobalGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.RankTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.join.TemporalJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.join.JoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.agg.AggregateTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.nodes.exec.operator.StreamOperatorNameTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalSink.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalLocalWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalGroupWindowAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalGlobalWindowAggregate.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29123" opendate="2022-8-26 00:00:00" fixdate="2022-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dynamic paramters are not pushed to working with kubernetes</summary>
+      <description>It is not possible to push dynamic parameters for the kubernetes deployments</description>
+      <version>1.15.2</version>
+      <fixedVersion>1.16.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.kubeclient.KubernetesTaskManagerTestBase.java</file>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.kubeclient.KubernetesJobManagerTestBase.java</file>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.kubeclient.decorators.CmdTaskManagerDecoratorTest.java</file>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.kubeclient.decorators.CmdJobManagerDecoratorTest.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.kubeclient.parameters.KubernetesTaskManagerParameters.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.kubeclient.parameters.KubernetesJobManagerParameters.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.kubeclient.decorators.CmdTaskManagerDecorator.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.kubeclient.decorators.CmdJobManagerDecorator.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.configuration.KubernetesConfigOptions.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.kubernetes.config.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29207" opendate="2022-9-6 00:00:00" fixdate="2022-9-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pulsar message eventTime may be incorrectly set to a negative number</summary>
+      <description>We'd better judge that the timestamp is greater than 0, we should skip setting eventTime when timestamp less than or equal to 0, otherwise the pulsar client will throw an exception.</description>
+      <version>1.15.2</version>
+      <fixedVersion>1.16.0,1.15.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.main.java.org.apache.flink.connector.pulsar.sink.writer.PulsarWriter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29253" opendate="2022-9-12 00:00:00" fixdate="2022-9-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DefaultJobmanagerRunnerRegistry#localCleanupAsync calls close instead of closeAsync</summary>
+      <description>DefaultJobmanagerRunnerRegistry#localCleanupAsync is meant to be called from the main thread. The current implementation calls close on the JobManagerRunner instead of closeAsync. This results in a blocking call on the Dispatcher's main thread which we want to avoid.Thanks for identifying this issue, chesnay</description>
+      <version>1.16.0,1.17.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.17.0,1.15.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.DefaultJobManagerRunnerRegistryTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.DefaultJobManagerRunnerRegistry.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29349" opendate="2022-9-20 00:00:00" fixdate="2022-9-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use state ttl instead of timer to clean up state in proctime unbounded over aggregate</summary>
+      <description>Currently we rely on the timer based state cleaning in proctime over aggregate, this can be optimized to use state ttl for a more efficienct way</description>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.over.ProcTimeUnboundedPrecedingFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.runtime.harness.OverAggregateHarnessTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecOverAggregate.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29477" opendate="2022-9-30 00:00:00" fixdate="2022-10-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ClassCastException when collect primitive array to Python</summary>
+      <description>How to reproduce this bug:ds = env.from_collection([1, 2], type_info=Types.PRIMITIVE_ARRAY(Types.INT()))ds.execute_and_collect()got:java.lang.ClassCastException: class [I cannot be cast to class [Ljava.lang.Object</description>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.15.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.src.main.java.org.apache.flink.api.common.python.PythonBridgeUtils.java</file>
+      <file type="M">flink-python.pyflink.datastream.tests.test.data.stream.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29478" opendate="2022-9-30 00:00:00" fixdate="2022-10-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Flink sql Connector hive to support 3.1.3</summary>
+      <description>Currently , flink-connector hive support flink-sql-connector-hive-3.1.2 as highest version ! hive 3.1.3 released on 08 April 2022Proposal :- We should think of adding support for 3.1.3. </description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.ci.flink-ci-tools.src.main.resources.modules-defining-excess-dependencies.modulelist</file>
+      <file type="M">flink-table.flink-sql-parser-hive.src.test.java.org.apache.flink.sql.parser.hive.FlinkHiveSqlParserImplTest.java</file>
+      <file type="M">flink-connectors.pom.xml</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.licenses.LICENSE.reflectasm</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.licenses.LICENSE.protobuf</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.licenses.LICENSE.minlog</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.licenses.LICENSE.kryo</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.licenses.LICENSE.jodd</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.licenses.LICENSE.javolution</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.resources.META-INF.licenses.LICENSE.antlr</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.java.org.apache.hadoop.hive.metastore.HiveMetaStoreClient.java</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.src.main.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+      <file type="M">flink-connectors.flink-sql-connector-hive-3.1.2.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.HiveTemporalJoinITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.pom.xml</file>
+      <file type="M">docs.content.docs.dev.table.sql.load.md</file>
+      <file type="M">docs.content.docs.connectors.table.overview.md</file>
+      <file type="M">docs.content.docs.connectors.table.hive.overview.md</file>
+      <file type="M">docs.content.zh.docs.dev.table.sql.load.md</file>
+      <file type="M">docs.content.zh.docs.connectors.table.overview.md</file>
+      <file type="M">docs.content.zh.docs.connectors.table.hive.overview.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29479" opendate="2022-9-30 00:00:00" fixdate="2022-10-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support whether using system PythonPath for PyFlink jobs</summary>
+      <description>It exists PYTHONPATH env in system,like yarn/k8s images, it will cause conflict with users python depdendency sometimes. so i suggest add a config to do whether using system env of PYTHONPATH</description>
+      <version>None</version>
+      <fixedVersion>1.17.0,1.15.3,1.16.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.src.test.java.org.apache.flink.python.PythonOptionsTest.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.operators.python.process.AbstractExternalPythonFunctionOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.operators.python.embedded.AbstractEmbeddedPythonFunctionOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.operators.python.AbstractPythonFunctionOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.python.PythonOptions.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.python.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29483" opendate="2022-9-30 00:00:00" fixdate="2022-10-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>flink python udf arrow in thread model bug</summary>
+      <description></description>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.17.0,1.15.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.common.CommonExecPythonCalc.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29496" opendate="2022-10-3 00:00:00" fixdate="2022-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add Configuration for STS endpoint when using ASSUME_ROLE credential provider</summary>
+      <description>When using Kinesis connector with credentials provider configured as ASSUME_ROLE in the job running in VPC without internet connection, credentials provider logic tries to access global STS endpoint, sts.amazonaws.com. However, only regional endpoints for STS are available in that case.Connector need support for configuring STS endpoint to allow such use-case.</description>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.test.java.org.apache.flink.streaming.connectors.kinesis.util.AWSUtilTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.test.java.org.apache.flink.streaming.connectors.kinesis.testutils.TestUtils.java</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.java.org.apache.flink.streaming.connectors.kinesis.util.AWSUtil.java</file>
+      <file type="M">flink-connectors.flink-connector-aws-base.src.test.java.org.apache.flink.connector.aws.util.AWSGeneralUtilTest.java</file>
+      <file type="M">flink-connectors.flink-connector-aws-base.src.main.java.org.apache.flink.connector.aws.util.AWSGeneralUtil.java</file>
+      <file type="M">flink-connectors.flink-connector-aws-base.src.main.java.org.apache.flink.connector.aws.config.AWSConfigConstants.java</file>
+      <file type="M">docs.content.docs.connectors.table.kinesis.md</file>
+      <file type="M">docs.content.zh.docs.connectors.table.kinesis.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29502" opendate="2022-10-4 00:00:00" fixdate="2022-10-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update the Hadoop implementation for filesystems to 3.3.4</summary>
+      <description>Flink currently uses Hadoop version 3.3.2 for the Flink filesystem implementations. Upgrading this to version 3.3.4 will resolve some CVEs like https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-25168 (which Flink is not affected by)</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-filesystems.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-base.pom.xml</file>
+      <file type="M">flink-filesystems.flink-oss-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-oss-fs-hadoop.pom.xml</file>
+      <file type="M">flink-filesystems.flink-gs-fs-hadoop.pom.xml</file>
+      <file type="M">flink-filesystems.flink-fs-hadoop-shaded.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-fs-hadoop-shaded.pom.xml</file>
+      <file type="M">flink-filesystems.flink-azure-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-azure-fs-hadoop.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29511" opendate="2022-10-5 00:00:00" fixdate="2022-10-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Sort properties/schemas in OpenAPI spec</summary>
+      <description>The properties/schema order is currently based on whatever order they were looked up, which varies as the spec is being extended.Sort them by name to prevent this.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-docs.src.main.java.org.apache.flink.docs.rest.OpenApiSpecGenerator.java</file>
+      <file type="M">docs.static.generated.rest.v1.sql.gateway.yml</file>
+      <file type="M">docs.static.generated.rest.v1.dispatcher.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29580" opendate="2022-10-11 00:00:00" fixdate="2022-10-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>pulsar.consumer.autoUpdatePartitionsIntervalSeconds doesn&amp;#39;t work and should be removed</summary>
+      <description></description>
+      <version>1.17.0,1.15.2,1.16.1</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.main.java.org.apache.flink.connector.pulsar.source.PulsarSourceOptions.java</file>
+      <file type="M">flink-connectors.flink-connector-pulsar.src.main.java.org.apache.flink.connector.pulsar.source.config.PulsarSourceConfigUtils.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.pulsar.consumer.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29628" opendate="2022-10-13 00:00:00" fixdate="2022-11-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bump aws-java-sdk-s3 to 1.12.319</summary>
+      <description>As reported by Dependabot in https://github.com/apache/flink/pull/20285</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn.pom.xml</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-base.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2963" opendate="2015-11-4 00:00:00" fixdate="2015-12-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dependence on SerializationUtils#deserialize() should be avoided</summary>
+      <description>There is a problem with `SerializationUtils` from Apache CommonsLang. Here is an open issue where the class will throw a`ClassNotFoundException` even if the class is in the classpath in amultiple-classloader environment:https://issues.apache.org/jira/browse/LANG-1049 state = (HashMap&lt;String, Serializable&gt;) SerializationUtils.deserialize(bais);./flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/operators/windowing/NonKeyedWindowOperator.java state = (HashMap&lt;String, Serializable&gt;) SerializationUtils.deserialize(bais);./flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/operators/windowing/WindowOperator.java return SerializationUtils.deserialize(message);./flink-streaming-java/src/main/java/org/apache/flink/streaming/util/serialization/JavaDefaultStringSchema.java T copied = SerializationUtils.deserialize(SerializationUtils./flink-streaming-java/src/test/java/org/apache/flink/streaming/util/MockOutput.javaWe should move away from SerializationUtils.deserialize()</description>
+      <version>None</version>
+      <fixedVersion>1.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.maven.checkstyle.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29638" opendate="2022-10-14 00:00:00" fixdate="2022-10-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update jackson bom because of CVE-2022-42003</summary>
+      <description>There is a CVE-2022-42003 fixed in 2.13.4.1 and 2.14.0-rc1https://nvd.nist.gov/vuln/detail/CVE-2022-42003P.S. It seems there will not be 2.14.0 release until end of October according to https://github.com/FasterXML/jackson-databind/issues/3590#issuecomment-1270363915</description>
+      <version>1.16.0,1.17.0,1.15.2</version>
+      <fixedVersion>1.16.0,1.17.0,1.15.3</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-python.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-kubernetes.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-formats.flink-sql-avro.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-formats.flink-sql-avro-confluent-registry.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-presto.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-s3-fs-hadoop.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-filesystems.flink-fs-hadoop-shaded.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.resources.META-INF.NOTICE</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29639" opendate="2022-10-14 00:00:00" fixdate="2022-11-14 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Add ResourceId in TransportException for debugging</summary>
+      <description>When the taskmanager is lost, only the host and port are shown in the exception. It is hard to find the exactly taskmanger by resourceId. Add ResourceId info will help a lot in debugging the job.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0,1.16.1,1.15.4</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.NettyShuffleDescriptorBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.consumer.InputChannelBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.PartitionRequestClientFactoryTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.NettyTestUtil.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.NettyPartitionRequestClientTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.CreditBasedPartitionRequestClientHandlerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.ClientTransportErrorHandlingTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.deployment.ShuffleDescriptorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.deployment.ResultPartitionDeploymentDescriptorTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.shuffle.NettyShuffleDescriptor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.NetworkClientHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.PartitionRequestClientFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.NettyPartitionRequestClient.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.CreditBasedPartitionRequestClientHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.ConnectionID.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29718" opendate="2022-10-21 00:00:00" fixdate="2022-12-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Supports hive sum function by native implementation</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.utils.RelExplainUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.utils.PythonUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.utils.AggregateUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.utils.AggFunctionFactory.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.rules.physical.batch.BatchPhysicalWindowAggregateRule.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.rules.physical.batch.BatchPhysicalAggRuleBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.ExprCodeGenerator.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.agg.DeclarativeAggCodeGen.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.agg.batch.HashAggCodeGenHelper.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.agg.batch.HashAggCodeGenerator.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.agg.batch.AggCodeGenHelper.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.agg.AggsHandlerCodeGenerator.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.SumWithRetractAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.SumAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.Sum0AggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.SizeBasedWindowFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.SingleValueAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.RowNumberAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.RankLikeAggFunctionBase.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.NTILEAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.MinAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.MaxAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.ListAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.LeadLagAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.DeclarativeAggregateFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.CumeDistAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.CountAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.Count1AggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.aggfunctions.AvgAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.expressions.ExpressionBuilder.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.expressions.DeclarativeExpressionResolver.java</file>
+      <file type="M">flink-table.flink-table-common.src.main.java.org.apache.flink.table.types.inference.strategies.SpecificTypeStrategies.java</file>
+      <file type="M">flink-table.flink-table-common.src.main.java.org.apache.flink.table.functions.BuiltInFunctionDefinitions.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.expressions.UnresolvedReferenceExpression.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.HiveDialectQueryITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.module.hive.HiveModule.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29719" opendate="2022-10-21 00:00:00" fixdate="2022-1-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Supports hive count function by native implementation</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.HiveDialectQueryPlanTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.HiveDialectAggITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.module.hive.HiveModule.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="29867" opendate="2022-11-3 00:00:00" fixdate="2022-11-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update maven-enforcer-plugin to 3.1.0</summary>
+      <description>We currently rely on 3.0.0-M1 but will have to skip 3.0.0 (final) due to MENFORCER-394 which hits Flink's current code base as well</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3005" opendate="2015-11-12 00:00:00" fixdate="2015-11-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Commons-collections object deserialization remote command execution vulnerability</summary>
+      <description>http://foxglovesecurity.com/2015/11/06/what-do-weblogic-websphere-jboss-jenkins-opennms-and-your-application-have-in-common-this-vulnerability/TL;DR: If you have commons-collections on your classpath and accept and process Java object serialization data, then you may have an exploitable remote command execution vulnerability.Brief search in code base for ObjectInputStream reveals several places where the vulnerability exists.</description>
+      <version>None</version>
+      <fixedVersion>0.10.1,1.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30165" opendate="2022-11-23 00:00:00" fixdate="2022-12-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[JUnit5 Migration] Migrate unaligned checkpoint related tests under flink-runtime module to junit5</summary>
+      <description>Migrate unaligned checkpoint related tests under flink-runtime module to junit5</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.SequentialChannelStateReaderImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ResultSubpartitionRecoveredStateHandlerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.RecoveredChannelStateHandlerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.RecordingChannelStateWriter.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.InputChannelRecoveredStateHandlerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.CheckpointInProgressRequestTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ChannelStateWriterImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ChannelStateWriteRequestExecutorImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ChannelStateWriteRequestDispatcherTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ChannelStateWriteRequestDispatcherImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ChannelStateSerializerImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ChannelStateChunkReaderTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.ChannelStateCheckpointWriterTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30166" opendate="2022-11-23 00:00:00" fixdate="2022-1-23 01:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>Refactor tests that use the deprecated StreamingFileSink instead of FileSink</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-formats.flink-parquet.src.test.java.org.apache.flink.formats.parquet.protobuf.ParquetProtoFileSinkITCase.java</file>
+      <file type="M">flink-formats.flink-parquet.src.test.java.org.apache.flink.formats.parquet.avro.AvroParquetFileSinkITCase.java</file>
+      <file type="M">flink-formats.flink-compress.src.test.java.org.apache.flink.formats.compress.CompressionFactoryITCase.java</file>
+      <file type="M">flink-formats.flink-compress.pom.xml</file>
+      <file type="M">flink-formats.flink-avro.src.test.java.org.apache.flink.formats.avro.AvroFileSinkITCase.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-sql-test.src.main.java.org.apache.flink.sql.tests.StreamSQLTestProgram.java</file>
+      <file type="M">flink-end-to-end-tests.flink-stream-sql-test.pom.xml</file>
+      <file type="M">flink-end-to-end-tests.flink-file-sink-test.src.main.java.org.apache.flink.connector.file.sink.FileSinkProgram.java</file>
+      <file type="M">flink-formats.flink-parquet.src.test.java.org.apache.flink.formats.parquet.protobuf.ParquetProtoStreamingFileSinkITCase.java</file>
+      <file type="M">flink-formats.flink-parquet.src.test.java.org.apache.flink.formats.parquet.avro.AvroParquetStreamingFileSinkITCase.java</file>
+      <file type="M">flink-formats.flink-avro.src.test.java.org.apache.flink.formats.avro.AvroStreamingFileSinkITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-files.src.test.java.org.apache.flink.connector.file.sink.writer.FileSinkMigrationITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-files.archunit-violations.f5e3e868-8d92-4258-9654-a605dc9c550f</file>
+      <file type="M">flink-formats.flink-orc.src.test.java.org.apache.flink.orc.writer.OrcBulkWriterITCase.java</file>
+      <file type="M">flink-formats.flink-sequence-file.src.test.java.org.apache.flink.formats.sequencefile.SequenceStreamingFileSinkITCase.java</file>
+      <file type="M">flink-formats.flink-sequence-file.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30167" opendate="2022-11-23 00:00:00" fixdate="2022-11-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade japicmp to 1.17.1</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30169" opendate="2022-11-23 00:00:00" fixdate="2022-1-23 01:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>Adds version switcher in PyFlink API doc</summary>
+      <description>Adds version switcher in PyFlink API doc</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30231" opendate="2022-11-28 00:00:00" fixdate="2022-1-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update to Fabric8 Kubernetes Client to a version that has automatic renewal of service account tokens</summary>
+      <description>The Fabric8 Kubernetes Client library was updated to account for Kubernetes configuration changes that result in service account tokens becoming bounded in duration, needing to be renewed after an hour. The AWS managed Kubernetes service (AWS EKS) currently has a configuration change that extends the one hour bounded duration for the account to 90 days but this will eventually be removed by AWS and  produces warnings.It appears that Fabric8 Kubernetes Client library version 5.12.4 is the closest version to 5.12.3 that is currently in use by the Apache Flink project to contain https://github.com/fabric8io/kubernetes-client/issues/2271.</description>
+      <version>1.15.2</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-kubernetes.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-kubernetes.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30251" opendate="2022-11-30 00:00:00" fixdate="2022-2-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move the IO with DFS during abort checkpoint to an asynchronous thread.</summary>
+      <description>Currently when the checkpoint fails, we process the abort message in the Task's mailbox. We will close the output stream and delete the file on DFS.  However, when the checkpoint failure is caused by a DFS system failure (for example, the namenode failure of HDFS), this operation may take a long time or hang, and the task will not be able to process the data at this time. So I think we can put the operation of deleting files in an asynchronous thread just like uploading checkpoint data asynchronously.</description>
+      <version>1.16.0,1.15.2</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.SubtaskCheckpointCoordinatorTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.SubtaskCheckpointCoordinatorImpl.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.StreamTask.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30358" opendate="2022-12-10 00:00:00" fixdate="2022-12-10 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Show the task manager id on the exception history page</summary>
+      <description>At present, the web UI exception history page only displays the TM host and port. However, we generally need to search for problems according to the pod name or container ID.Therefore, it is more convenient to add resource id (pod name on k8s, container id on yarn) to the location column and a link to the task manager id to jump to the task manager page.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.exceptions.job-exceptions.component.ts</file>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.exceptions.job-exceptions.component.html</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfoWithHistoryTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfoWithHistoryNoRootTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.handler.job.JobExceptionsHandlerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfoWithHistory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.JobExceptionsInfo.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.job.JobExceptionsHandler.java</file>
+      <file type="M">flink-runtime-web.src.test.resources.rest.api.v1.snapshot</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30386" opendate="2022-12-12 00:00:00" fixdate="2022-2-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Column constraint lacks primary key not enforced check</summary>
+      <description>Currently, only table constraint performs the enforced check. Not sure if it is by design or a bug.The following case can be reproduced on Flink 1.16.0, 1.15.3, and 1.15.2. I think the earlier version might also reveal it.Flink SQL&gt; create table T (f0 int not null primary key, f1 string) with ('connector' = 'datagen');[INFO] Execute statement succeed.Flink SQL&gt; explain select * from T;== Abstract Syntax Tree ==LogicalProject(f0=[$0], f1=[$1])+- LogicalTableScan(table=[[default_catalog, default_database, T]])== Optimized Physical Plan ==TableSourceScan(table=[[default_catalog, default_database, T]], fields=[f0, f1])== Optimized Execution Plan ==TableSourceScan(table=[[default_catalog, default_database, T]], fields=[f0, f1])Flink SQL&gt; create table S (f0 int not null, f1 string, primary key(f0)) with ('connector' = 'datagen');[ERROR] Could not execute SQL statement. Reason:org.apache.flink.table.api.ValidationException: Flink doesn't support ENFORCED mode for PRIMARY KEY constraint. ENFORCED/NOT ENFORCED controls if the constraint checks are performed on the incoming/outgoing data. Flink does not own the data therefore the only supported mode is the NOT ENFORCED mode</description>
+      <version>1.16.0,1.15.2,1.15.3</version>
+      <fixedVersion>1.17.0,hbase-3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.TableEnvironmentTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.operations.SqlDdlToOperationConverterTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.operations.SqlToOperationConverter.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.operations.SqlCreateTableConverter.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.operations.AlterSchemaConverter.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.test.java.org.apache.flink.sql.parser.FlinkSqlParserImplTest.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.java.org.apache.flink.sql.parser.SqlConstraintValidator.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.table.endpoint.hive.HiveServer2EndpointITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.HBaseConnectorITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.apache.flink.connector.hbase1.HBaseConnectorITCase.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

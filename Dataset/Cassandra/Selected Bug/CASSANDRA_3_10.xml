@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2016-9-9 01:00:00" id="11332" opendate="2016-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodes connect to themselves when NTS is used</summary>
+      <description>I tested this with both the simple snitch and PFS. It's quite easy to repro, setup a cluster, start it. Mine looks like this:tcp 0 0 10.208.8.123:48003 10.208.8.63:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.8.63:40215 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:55559 10.208.35.225:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:33498 10.208.8.63:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.35.225:52530 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.35.225:53674 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:40846 10.208.35.225:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.8.63:48880 ESTABLISHED 26254/javaNo problems so far. Now create a keyspace using NTS with an rf of 3, and perform some writes. Now it looks like this:tcp 0 0 10.208.8.123:48003 10.208.8.63:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.123:35024 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:35024 10.208.8.123:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:47212 10.208.8.123:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.63:40215 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:55559 10.208.35.225:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:33498 10.208.8.63:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.35.225:52530 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.35.225:53674 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.123:47212 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:40846 10.208.35.225:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.63:48880 ESTABLISHED 26254/java I can't think of any reason for a node to connect to itself, and this can cause problems with PFS where you might only define the broadcast addresses, but now you need the internal addresses too because the node will need to look itself up when connecting to itself.</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.PropertyFileSnitch.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-8-18 01:00:00" id="11841" opendate="2016-5-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add keep-alive to stream protocol</summary>
+      <description/>
+      <version>3.10</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.CassandraVersionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.CassandraVersion.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.StreamMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.ConnectionHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IncomingStreamingConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2016-6-22 01:00:00" id="12074" opendate="2016-6-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Faster check for open JMX port on startup</summary>
+      <description>Since CASSANDRA-7254, we check whether the JMX port is available before starting Cassandra in order to provide a better error message when another Cassandra process is already running. The current check starts a Java process to do this, which takes ~3 seconds. Instead, we can use lsof, which is basically instantaneous.By my estimate, this will shave about 40 minutes off our dtest runs.</description>
+      <version>3.10</version>
+      <fixedVersion>Local/StartupandShutdown</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-7-23 01:00:00" id="12076" opendate="2016-6-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add username to AuthenticationException messages</summary>
+      <description>When an AuthenticationException is thrown, there are a few places where the user that initiated the request is not included in the exception message. It can be useful to have this information included for logging purposes.</description>
+      <version>3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.auth.PasswordAuthenticator.java</file>
+      <file type="M">src.java.org.apache.cassandra.auth.CassandraLoginModule.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-8-8 01:00:00" id="12154" opendate="2016-7-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"SELECT * FROM foo LIMIT ;" does not error out</summary>
+      <description>We found out that SELECT * FROM foo LIMIT ; is unanimously accepted and executed but it should not.Have not dug deeper why that is possible (it's not a big issue IMO) but it is strange. Seems it doesn't parse LIMIT as K_LIMIT because otherwise it would require an int argument.</description>
+      <version>3.10</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.antlr.Parser.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-7-12 01:00:00" id="12174" opendate="2016-7-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY FROM should raise error for non-existing input files</summary>
+      <description>Currently the CSV COPY FROM command will not raise any error for non-existing paths. Instead only "0 rows imported" will be shown as result. As the COPY FROM command is often used for tutorials and getting started guides, I'd suggest to give a clear error message in case of a missing input file. Without such error it can be confusing for the user to see the command actually finish, without any clues why no rows have been imported.CREATE KEYSPACE test WITH REPLICATION = { 'class' : 'NetworkTopologyStrategy', 'datacenter1' : 1 };USE test;CREATE TABLE airplanes ( name text PRIMARY KEY, manufacturer ascii, year int, mach float);COPY airplanes (name, manufacturer, year, mach) FROM '/tmp/1234-doesnotexist';Using 3 child processesStarting copy of test.airplanes with columns [name, manufacturer, year, mach].Processed: 0 rows; Rate: 0 rows/s; Avg. rate: 0 rows/s0 rows imported from 0 files in 0.216 seconds (0 skipped).</description>
+      <version>3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-8-14 01:00:00" id="12208" opendate="2016-7-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Estimated droppable tombstones given by sstablemetadata counts tombstones that aren&amp;#39;t actually "droppable"</summary>
+      <description>=&gt; "Estimated droppable tombstones" given by sstablemetadata counts tombstones that aren't actually "droppable"To be clear, the "Estimated droppable tombstones" calculation counts tombstones that have not yet passed gc_grace_seconds as droppable tombstones, which is unexpected, since such tombstones aren't droppable.To observe the problem:Create a table using the default gc_grace_seconds (default gc_grace_seconds is 86400 is 1 day).Populate the table with a couple of records.Do a delete.Do a "nodetool flush" to flush the memtable to disk.Do an "sstablemetadata &lt;sstable&gt;" to get the metadata of the sstable you just created by doing the flush, and observe that the Estimated droppable tombstones is greater than 0.0 (actual value depends on the total number inserts/updates/deletes that you did before triggered the flush)</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableMetadataViewer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-9-19 01:00:00" id="12232" opendate="2016-7-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add +=/-= shortcut syntax</summary>
+      <description>For collections and counters, the current syntax to add/remove elements is:UPDATE foo SET myCollection = myCollection + ...;which is fine, though it's already tad annoying to have to repeat myCollection. But moving forward, with tickets CASSANDRA-7826, we'll start being able to add to nested collections and we'll end up with queries like:UPDATE foo SET myCollection['someElement']['otherElemnt'] = myCollection['someElement']['otherElemnt'] + ...;where the repetition is starting to be really annoying and it makes the query less readable.It's trivial however to add a +=/-= shortcut syntax which would read instead:UPDATE foo SET myCollection['someElement']['otherElemnt'] += ...;As this would just be syntactic sugar, it only requires a few minor addition to the grammar and this would be completely optional: if some users prefer the verbose syntax, that's fine.Also note that while this will be even more useful after things like CASSANDRA-7826, it's already a nice to have today so it's not dependent on that latter ticket in any way.</description>
+      <version>3.10</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CountersTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.antlr.Parser.g</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2016-10-4 01:00:00" id="12384" opendate="2016-8-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include info about sstable on "Compacting large row” message</summary>
+      <description>On a message like this one, it would be helpful to understand which sstable this large row is going inCompacting large row abc/xyz:38956kjhawf (xyz bytes) incrementally</description>
+      <version>3.0.10,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.big.BigTableWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-9-10 01:00:00" id="12423" opendate="2016-8-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cells missing from compact storage table after upgrading from 2.1.9 to 3.7</summary>
+      <description>Schema:create table ks1.test ( id int, c1 text, c2 text, v int, primary key (id, c1, c2)) with compact storage and compression = {'sstable_compression': ''};sstable2json before upgrading:[{"key": "1", "cells": [["","0",1470761440040513], ["a","asd",2470761440040513,"t",1470764842], ["asd:","0",1470761451368658], ["asd:asd","0",1470761449416613]]}]Query result with 2.1.9:cqlsh&gt; select * from ks1.test; id | c1 | c2 | v----+-----+------+--- 1 | | null | 0 1 | asd | | 0 1 | asd | asd | 0(3 rows)Query result with 3.7:cqlsh&gt; select * from ks1.test; id | 6331 | 6332 | v----+------+------+--- 1 | | null | 0(1 rows)</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.CompositeType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.LegacyLayout.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-8-17 01:00:00" id="12476" opendate="2016-8-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SyntaxException when COPY FROM Counter Table with Null value</summary>
+      <description>I have a simple counter table CREATE TABLE test ( a int PRIMARY KEY, b counter, c counter) ;I have updated b column value with UPDATE test SET b = b + 1 WHERE a = 1;Now I have export the data with COPY test TO 'test.csv';And Import it with COPY test FROM 'test.csv';I get this ErrorFailed to import 1 rows: SyntaxException - line 1:34 no viable alternative at input 'WHERE' (...=b+1,c=c+ [WHERE]...) - will retry later, attempt 1 of 5</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-9-17 01:00:00" id="12481" opendate="2016-8-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in cqlshlib.test.test_cqlsh_output.TestCqlshOutput.test_describe_keyspace_output</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-3.0_cqlsh_tests/29/testReport/cqlshlib.test.test_cqlsh_output/TestCqlshOutput/test_describe_keyspace_outputError Messageerrors={'127.0.0.1': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.1http://cassci.datastax.com/job/cassandra-3.0_cqlsh_tests/lastCompletedBuild/cython=no,label=ctool-lab/testReport/cqlshlib.test.test_cqlsh_output/TestCqlshOutput/test_describe_keyspace_output/</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Test/dtest/python</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.cassconnect.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-8-19 01:00:00" id="12508" opendate="2016-8-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool repair returns status code 0 for some errors</summary>
+      <description>For instance, when specifying hosts that don’t exist, an error message is logged, but the return code is zero.</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.RepairRunner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-8-24 01:00:00" id="12528" opendate="2016-8-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix eclipse-warning problems</summary>
+      <description>The ant eclipse-warning target has accumulated some failures again. Locally, I'm seeing 3 errors on 2.2, 5 errors on 3.0, 23 errors on 3.9, and 33 errors on trunk.Depending on the amount of overlap between these errors, it may make sense to split this into sub-issues.</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.security.EncryptionUtils.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessageOut.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.TableMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.DataOutputBuffer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.ChecksummedRebufferer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.ChecksummedRandomAccessReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableTxnWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.plan.QueryController.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.disk.StaticTokenTreeBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.disk.PerSSTableIndexWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.UnfilteredSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegmentReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-11-24 01:00:00" id="12535" opendate="2016-8-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prevent reloading of logback.xml from UDF sandbox</summary>
+      <description>I have defined a UDA to implement standard deviation:cqlsh:mykeyspace&gt; CREATE OR REPLACE FUNCTION sdState ( state tuple&lt;int,double,double&gt;, val double ) CALLED ON NULL INPUT RETURNS tuple&lt;int,double,double&gt; LANGUAGE java AS ... 'int n = state.getInt(0); double mean = state.getDouble(1); double m2 = state.getDouble(2); n++; double delta = val - mean; mean += delta / n; m2 += delta * (val - mean); state.setInt(0, n); state.setDouble(1, mean); state.setDouble(2, m2); return state;'; cqlsh:mykeyspace&gt; CREATE OR REPLACE FUNCTION sdFinal ( state tuple&lt;int,double,double&gt; ) CALLED ON NULL INPUT RETURNS double LANGUAGE java AS ... 'int n = state.getInt(0); double m2 = state.getDouble(2); if (n &lt; 1) { return null; } return Math.sqrt(m2 / (n - 1));';cqlsh:mykeyspace&gt; CREATE AGGREGATE IF NOT EXISTS stdev ( double ) ... SFUNC sdState STYPE tuple&lt;int,double,double&gt; FINALFUNC sdFinal INITCOND (0,0,0);My table:CREATE TABLE readings ( sensor_id int, time timestamp, temperature double, status text, PRIMARY KEY (sensor_id, time)) WITH CLUSTERING ORDER BY (time ASC);I'm inserting a row every 0.1 seconds. The data looks like this:cqlsh:mykeyspace&gt; select * from readings limit 10; sensor_id | time | status | temperature-----------+---------------------------------+--------+------------- 5 | 2016-08-24 19:11:34.896000+0000 | OK | 9.97 5 | 2016-08-24 19:11:43.933000+0000 | OK | 10.28 5 | 2016-08-24 19:11:49.958000+0000 | OK | 7.65 5 | 2016-08-24 19:11:51.968000+0000 | OK | 10.11 5 | 2016-08-24 19:12:58.512000+0000 | Fault | 10.41 5 | 2016-08-24 19:13:04.542000+0000 | OK | 9.66 5 | 2016-08-24 19:13:16.593000+0000 | OK | 10.9 5 | 2016-08-24 19:13:37.692000+0000 | OK | 11.2 5 | 2016-08-24 19:13:46.738000+0000 | OK | 10.34 5 | 2016-08-24 19:13:49.757000+0000 | OK | 10.6I'm running a query every few seconds with my UDA - like this (timestamps are different each time):select avg(temperature), stdev(temperature) from readings where sensor_id = 1 and time &gt; 1472066523193;Most of the time, this works just fine:cqlsh:mykeyspace&gt; select avg(temperature), stdev(temperature) from readings where sensor_id = 1 and time &gt; 1472066523193; system.avg(temperature) | mykeyspace.stdev(temperature)-------------------------+------------------------------- 9.9291 | 0.94179(1 rows)But, occasionally, it fails with one of two exceptions:cqlsh:mykeyspace&gt; select avg(temperature), stdev(temperature) from readings where sensor_id = 1 and time &gt; 1472066523193;Traceback (most recent call last): File "/usr/local/Cellar/cassandra/3.7/libexec/bin/cqlsh.py", line 1277, in perform_simple_statement result = future.result() File "cassandra/cluster.py", line 3629, in cassandra.cluster.ResponseFuture.result (cassandra/cluster.c:69369) raise self._final_exceptionFunctionFailure: Error from server: code=1400 [User Defined Function failure] message="execution of 'mykeyspace.sdstate[frozen&lt;tuple&lt;int, double, double&gt;&gt;, double]' failed: java.security.AccessControlException: access denied ("java.io.FilePermission" "/usr/local/etc/cassandra/logback.xml" "read")"orcqlsh:mykeyspace&gt; select count(*), avg(temperature), stdev(temperature) from readings where sensor_id = 1 and time &gt; '2016-08-24 15:00:00.000+0000';Traceback (most recent call last): File "/usr/local/Cellar/cassandra/3.7/libexec/bin/cqlsh.py", line 1277, in perform_simple_statement result = future.result() File "cassandra/cluster.py", line 3629, in cassandra.cluster.ResponseFuture.result (cassandra/cluster.c:69369) raise self._final_exceptionFunctionFailure: Error from server: code=1400 [User Defined Function failure] message="execution of 'mykeyspace.sdstate[frozen&lt;tuple&lt;int, double, double&gt;&gt;, double]' failed: com.datastax.driver.core.exceptions.CodecNotFoundException"The next query usually works ok.I don't see any clues in /usr/local/var/log/cassandra/system.logIf I can pin it down more, I'll post follow-up comments.</description>
+      <version>3.0.11,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.ThreadAwareSecurityManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-10-2 01:00:00" id="12598" opendate="2016-9-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BailErrorStragery alike for ANTLR grammar parsing</summary>
+      <description>CQL parsing is missing a mechanism similar to http://www.antlr.org/api/Java/org/antlr/v4/runtime/BailErrorStrategy.htmlThis solves: Stopping parsing instead of continuing when we've got already an error which is wasteful. Any skipped java code tied to 'recovered' missing tokens might later cause java exceptions (think non-init variables, non incremented integers (div by zero), etc.) which will bubble up directly and will hide properly formatted error messages to the user with no indication on what went wrong at all. Just a cryptic NPE i.e</description>
+      <version>3.10</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CqlParserTest.java</file>
+      <file type="M">src.antlr.Parser.g</file>
+      <file type="M">src.antlr.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2016-10-26 01:00:00" id="12712" opendate="2016-9-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update Debian Install Doc</summary>
+      <description>CASSANDRA-12239 added a key to the KEYS file, so deb repo install intsructions need to be update in the doc source (wiki page is updated).</description>
+      <version>3.10</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source.getting.started.installing.rst</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-28 01:00:00" id="12719" opendate="2016-9-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>typo in cql examples</summary>
+      <description>Data Definition example use wrong definition</description>
+      <version>None</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source.cql.ddl.rst</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-10-28 01:00:00" id="12720" opendate="2016-9-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Permissions on aggregate functions are not removed on drop</summary>
+      <description>When a user defined aggregate is dropped, either directly or when it's enclosing keyspace is dropped, permissions granted on it are not cleaned up.</description>
+      <version>2.2.9,3.0.10,3.10</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.auth.AuthMigrationListener.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-12-30 01:00:00" id="12739" opendate="2016-9-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool uses cassandra-env.sh MAX_HEAP_SIZE if set</summary>
+      <description>Nodetool and other bash startup scripts load cassandra-env.sh variables including MAX_HEAP_SIZE as part of CASSANDRA-10679. If cassandra-env.sh has MAX_HEAP_SIZE set to any value the default heap size needed for the cassandra tool to run is overridden. This is a problem if the using a large heap in C* i.e. 16-32G due to each instance of nodetool or other tool will allocate large heap regardless of need and could exceed the total RAM available on the system.Patch removes the check for MAX_HEAP_SIZE being set and uses the default heap size needed for each tool.</description>
+      <version>3.0.11,3.10</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.nodetool</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-10-3 01:00:00" id="12740" opendate="2016-10-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh copy tests hang in case of no answer from the server or driver</summary>
+      <description>If we bundle the driver to cqlsh using the 3.6.0 tag or cassandra_test head, some cqlsh copy tests hang, for example test_bulk_round_trip_blogposts. See CASSANDRA-12736 and CASSANDRA-11534 for some sample failures.If the driver fails to invoke a callback (either error or success), or if the server never answers to the driver, then the copy parent process will wait forever to receive an answer from child processes. We should put a cap to this. We should also use a very high timeout rather than None, so that the driver will notify us if there is no answer from the server.</description>
+      <version>3.0.10,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-10-10 01:00:00" id="12765" opendate="2016-10-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSTable ignored incorrectly with partition level tombstone</summary>
+      <description>CREATE TABLE test.payload( bucket_id TEXT, name TEXT, data TEXT, PRIMARY KEY (bucket_id, name));insert into test.payload (bucket_id, name, data) values ('8772618c9009cf8f5a5e0c18', 'test', 'hello');Flush nodes (nodetool flush)insert into test.payload (bucket_id, name, data) values ('8772618c9009cf8f5a5e0c19', 'test2', 'hello');delete from test.payload where bucket_id = '8772618c9009cf8f5a5e0c18';Flush nodes (nodetool flush)select * from test.payload where bucket_id = '8772618c9009cf8f5a5e0c18' and name = 'test';Expected 0 rows but get 1 row back.</description>
+      <version>2.1.17,2.2.9,3.0.10,3.10,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.CollationController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-1-16 01:00:00" id="12794" opendate="2016-10-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY FROM with NULL=&amp;#39;&amp;#39; fails when inserting empty row in primary key</summary>
+      <description>Using this table:CREATE TABLE testtab ( a_id text, b_id text, c_id text, d_id text, order_id uuid, acc_id bigint, bucket bigint, r_id text, ts bigint, PRIMARY KEY ((a_id, b_id, c_id, d_id), order_id));insert one row:INSERT INTO testtab (a_id, b_id , c_id , d_id , order_id, r_id ) VALUES ( '', '', '', 'a1', 645e7d3c-aef7-4e3c-b834-24b792cf2e55, 'r1');Use COPY to dump the row to temp.csv:copy testtab TO 'temp.csv';Which creates this file:$ cat temp.csv ,,,a1,645e7d3c-aef7-4e3c-b834-24b792cf2e55,,,r1,Truncate the testtab table and then use copy from with NULL='' to insert the row:cqlsh:sbkeyspace&gt; COPY testtab FROM 'temp.csv' with NULL='';Using 1 child processesStarting copy of sbkeyspace.testtab with columns ['a_id', 'b_id', 'c_id', 'd_id', 'order_id', 'acc_id', 'bucket', 'r_id', 'ts'].Failed to import 1 rows: ParseError - Cannot insert null value for primary key column 'a_id'. If you want to insert empty strings, consider using the WITH NULL=&lt;marker&gt; option for COPY., given up without retriesFailed to process 1 rows; failed rows written to import_sbkeyspace_testtab.errProcessed: 1 rows; Rate: 2 rows/s; Avg. rate: 3 rows/s1 rows imported from 1 files in 0.398 seconds (0 skipped).It shows 1 rows inserted, but the table is empty:select * from testtab ; a_id | b_id | c_id | d_id | order_id | acc_id | bucket | r_id | ts------+------+------+------+----------+--------+--------+------+----(0 rows)The same error is returned even without the with NULL=''. Is it actually possible for copy from to insert an empty row into the primary key? The insert command shown above inserts the empty row for the primary key without any problems.Is this related to https://issues.apache.org/jira/browse/CASSANDRA-7792?</description>
+      <version>3.0.11,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-10-18 01:00:00" id="12803" opendate="2016-10-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PER PARTITION LIMIT not recognized by cqlsh auto completion</summary>
+      <description>cqlsh's syntax definition does not know about PER PARTITION LIMIT and therefore does not propose it for auto-completion.</description>
+      <version>3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-18 01:00:00" id="12805" opendate="2016-10-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Website documentation for commitlog</summary>
+      <description>Updated Storage Engine page for commitlogsCommit: https://github.com/nothau/cassandra/commit/f90038e9f35281bdd58dabb25f21836a690e56f5</description>
+      <version>None</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source.architecture.storage.engine.rst</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-1-27 01:00:00" id="12850" opendate="2016-10-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add the duration type to the protocol V5</summary>
+      <description>The Duration type need to be added to the protocol specifications.</description>
+      <version>3.10</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.transport.DataTypeTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.OptionCodec.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.DataType.java</file>
+      <file type="M">doc.native.protocol.v5.spec</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-11-31 01:00:00" id="12863" opendate="2016-10-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY FROM cannot parse timestamp in partition key if table contains a counter value</summary>
+      <description>This sample table:CREATE TABLE test (columnname text, day timestamp, israndom boolean, columnvalue text, counter counter, PRIMARY KEY ((columnname, day, israndom), columnvalue));with this sample data:origins|2016-10-01 00:00:00+0000|False|ACTUAL|6origins|2016-10-01 00:00:00+0000|False|ADGMOB|4origins|2016-10-01 00:00:00+0000|False|ANONPM|4origins|2016-10-01 00:00:00+0000|False|CSRT2L|76origins|2016-10-01 00:00:00+0000|False|DIAGOP|18origins|2016-10-01 00:00:00+0000|False|E-SOFT|17origins|2016-10-01 00:00:00+0000|False|E-TASK|10when imported withCOPY ks.test FROM 'test.csv' WITH DELIMITER = '|';will generate a parse error:Failed to import 7 rows: ParseError - can't interpret u"'2016-10-01 00:00:00+0000'" as a date with this format: %Y-%m-%d %H:%M:%S%z, given up without retriesThe problem is that when a counter value is present, we don't use prepared statements and so we typically don't convert values unless they are part of the partition key. We also add quotes for certain types, such as timestamps. The problem is that we do not remove such quotes before parsing the partition key values, therefore ending up with a parse error.</description>
+      <version>2.2.9,3.0.10,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-12-14 01:00:00" id="12909" opendate="2016-11-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh copy cannot parse strings when counters are present</summary>
+      <description>We get parse error Failed to import 1 rows: ParseError - argument for 's' must be a string when using the following table and data:CREATE TABLE ks.test ( object_id ascii, user_id timeuuid, counter_id ascii, count counter, PRIMARY KEY ((object_id, user_id), counter_id))EVT:be3bd2d0-a68d-11e6-90d4-1b2a65b8a28a,f7ce3ac0-a66e-11e6-b58e-4e29450fd577,SA,2The problem is this line here, strings are serialized as unicode rather than ordinary strings but only for non-prepared statements (unsure why).</description>
+      <version>2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-11-22 01:00:00" id="12945" opendate="2016-11-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Resolve unit testing without JCE security libraries installed</summary>
+      <description>Running unit tests can fail on encryption-related tests if you don't have something like the Oracle JCE libraries installed in your jdk. We can't redistribute the Oracle JCE due to export laws, then we'd need to somehow get it into the &lt;jdk&gt;/jre/lib/security.One possibility is to ignore encryption-related tests if there is no encryption lib available. Another is to ship something like bouncycastle.jar in the test directory.</description>
+      <version>3.10,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.data.legacy-commitlog.3.4-encrypted.hash.txt</file>
+      <file type="M">test.data.legacy-commitlog.3.4-encrypted.CommitLog-6-1452918948163.log</file>
+      <file type="M">test.conf.cassandra.keystore</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-12-27 01:00:00" id="12959" opendate="2016-11-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>copy from csv import wrong values with udt having set when fields are not specified in correct order in csv</summary>
+      <description>create KEYSPACE test WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1};CREATE TYPE test.my_udt ( first_field text, second_field frozen&lt;set&lt;text&gt;&gt;);CREATE TABLE test.test ( key text, value my_udt, PRIMARY KEY (key));The following works as expected : INSERT INTO test.test (key , value ) VALUES ( 'key1', {second_field: {'test1', 'test2'}, first_field: 'first_field'}); key | value-----+--------------------------------------------------------------- key1 | {first_field: 'first_field', second_field: {'test1', 'test2'}}but when inserted using a .csv the result is wrong:"key1","{second_field: {'test1', 'test2'}, first_field: 'first_field'}"COPY test.test FROM '~/test.csv'; key | value-----+--------------------------------------------------------------------- key1 | {first_field: '{''test1'', ''test2''}', second_field: {'irst_fiel'}}it works as expected if the keys are in order: "key1","{first_field: 'first_field', second_field: {'test1', 'test2'}}")</description>
+      <version>2.1.17,2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-12-3 01:00:00" id="12989" opendate="2016-12-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Correct function doc to clear up statement isolation</summary>
+      <description>Documentation arguably implies that 'now()' returns 'a unique' result 'per statement'. This is not true it returns a unique result per call.</description>
+      <version>3.10</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source.cql.functions.rst</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+</bugrepository>

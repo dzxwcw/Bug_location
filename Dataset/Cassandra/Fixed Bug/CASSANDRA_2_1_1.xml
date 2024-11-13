@@ -1,0 +1,1454 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="3569" opendate="2011-12-4 00:00:00" fixdate="2011-6-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Failure detector downs should not break streams</summary>
+      <description>CASSANDRA-2433 introduced this behavior just to get repairs to don't sit there waiting forever. In my opinion the correct fix to that problem is to use TCP keep alive. Unfortunately the TCP keep alive period is insanely high by default on a modern Linux, so just doing that is not entirely good either.But using the failure detector seems non-sensicle to me. We have a communication method which is the TCP transport, that we know is used for long-running processes that you don't want to incorrectly be killed for no good reason, and we are using a failure detector tuned to detecting when not to send real-time sensitive request to nodes in order to actively kill a working connection.So, rather than add complexity with protocol based ping/pongs and such, I propose that we simply just use TCP keep alive for streaming connections and instruct operators of production clusters to tweak net.ipv4.tcp_keepalive_{probes,intvl} as appropriate (or whatever equivalent on their OS).I can submit the patch. Awaiting opinions.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.DefaultConnectionFactory.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamTransferTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.ConnectionHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairJob.java</file>
+      <file type="M">debian.cassandra-sysctl.conf</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5263" opendate="2013-2-15 00:00:00" fixdate="2013-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Increase merkle tree depth as needed</summary>
+      <description>Currently, the maximum depth allowed for Merkle trees is hardcoded as 15. This value should be configurable, just like phi_convict_treshold and other properties.Given a cluster with nodes responsible for a large number of row keys, Merkle tree comparisons can result in a large amount of unnecessary row keys being streamed.Empirical testing indicates that reasonable changes to this depth (18, 20, etc) don't affect the Merkle tree generation and differencing timings all that much, and they can significantly reduce the amount of data being streamed during repair.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.SerializationsTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.repair.ValidatorTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.Validator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5433" opendate="2013-4-6 00:00:00" fixdate="2013-9-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool - Human Readable</summary>
+      <description>Would be great to have a human readable option in nodetool to easily look stats without having to convert bytes to MB/GB etc in your head We have several internal scripts we use to parse the output to a more readable output, and would be useful for it to be part of nodetool itself.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6075" opendate="2013-9-21 00:00:00" fixdate="2013-9-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The token function should allow column identifiers in the correct order only</summary>
+      <description>Given the following table:CREATE TABLE t1 (a int, b text, PRIMARY KEY ((a, b)));The following request returns an error in cqlsh as literal arguments order is incorrect:SELECT * FROM t1 WHERE token(a, b) &gt; token('s', 1);Bad Request: Type error: 's' cannot be passed as argument 0 of function token of type intBut surprisingly if we provide the column identifier arguments in the wrong order no error is returned:SELECT * FROM t1 WHERE token(a, b) &gt; token(1, 'a'); // correct order is validSELECT * FROM t1 WHERE token(b, a) &gt; token(1, 'a'); // incorrect order is valid as well</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.SelectWithTokenFunctionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6125" opendate="2013-10-1 00:00:00" fixdate="2013-9-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Race condition in Gossip propagation</summary>
+      <description>Gossip propagation has a race when concurrent VersionedValues are created and submitted/propagated, causing some updates to be lost, even if happening on different ApplicationStatuses.That's what happens basically:1) A new VersionedValue V1 is created with version X.2) A new VersionedValue V2 is created with version Y = X + 1.3) V2 is added to the endpoint state map and propagated.4) Nodes register Y as max version seen.5) At this point, V1 is added to the endpoint state map and propagated too.6) V1 version is X &lt; Y, so nodes do not ask for his value after digests.A possible solution would be to propagate/track per-ApplicationStatus versions, possibly encoding them to avoid network overhead.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6430" opendate="2013-12-2 00:00:00" fixdate="2013-10-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DELETE with IF &lt;field&gt;=&lt;value&gt; clause doesn&amp;#39;t work properly if more then one row are going to be deleted</summary>
+      <description>CREATE TABLE test(key int, sub_key int, value text, PRIMARY KEY(key, sub_key) );INSERT INTO test(key, sub_key, value) VALUES(1,1, '1.1');INSERT INTO test(key, sub_key, value) VALUES(1,2, '1.2');INSERT INTO test(key, sub_key, value) VALUES(1,3, '1.3');SELECT * from test; key | sub_key | value----------------- 1 | 1 | 1.1 1 | 2 | 1.2 1 | 3 | 1.3DELETE FROM test WHERE key=1 IF value='1.2'; &amp;#91;applied&amp;#93;----------- False &lt;=============== I guess second row should be removedSELECT * from test; key | sub_key | value----------------- 1 | 1 | 1.1 1 | 2 | 1.2 1 | 3 | 1.3(3 rows) DELETE FROM test WHERE key=1;SELECT * from test;(0 rows) &lt;=========== all rows were removed: OK</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DeleteStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6599" opendate="2014-1-16 00:00:00" fixdate="2014-8-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL updates should support "column = column - { key1, key2, ... }" syntax for removing map elements</summary>
+      <description>A variable number number of elements can be removed from lists and sets using an update statement of the form "update .... set column=column - {....} where ...". This syntax should also be supported for map columns. This would be especially useful for prepared statements (I know that you can use "set column&amp;#91;...&amp;#93; = null" to remove items in an update statement, but that only works for one element at a time).</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.UserTypesTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.TupleTypeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Operation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6602" opendate="2014-1-17 00:00:00" fixdate="2014-10-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compaction improvements to optimize time series data</summary>
+      <description>There are some unique characteristics of many/most time series use cases that both provide challenges, as well as provide unique opportunities for optimizations.One of the major challenges is in compaction. The existing compaction strategies will tend to re-compact data on disk at least a few times over the lifespan of each data point, greatly increasing the cpu and IO costs of that write.Compaction exists to1) ensure that there aren't too many files on disk2) ensure that data that should be contiguous (part of the same partition) is laid out contiguously3) deleting data due to ttls or tombstonesThe special characteristics of time series data allow us to optimize away all three.Time series data1) tends to be delivered in time order, with relatively constrained exceptions2) often has a pre-determined and fixed expiration date3) Never gets deleted prior to TTL4) Has relatively predictable ingestion ratesNote that I filed CASSANDRA-5561 and this ticket potentially replaces or lowers the need for it. In that ticket, jbellis reasonably asks, how that compaction strategy is better than disabling compaction.Taking that to heart, here is a compaction-strategy-less approach that could be extremely efficient for time-series use cases that follow the above pattern.(For context, I'm thinking of an example use case involving lots of streams of time-series data with a 5GB per day ingestion rate, and a 1000 day retention with TTL, resulting in an eventual steady state of 5TB per node)1) You have an extremely large memtable (preferably off heap, if/when doable) for the table, and that memtable is sized to be able to hold a lengthy window of time. A typical period might be one day. At the end of that period, you flush the contents of the memtable to an sstable and move to the next one. This is basically identical to current behaviour, but with thresholds adjusted so that you can ensure flushing at predictable intervals. (Open question is whether predictable intervals is actually necessary, or whether just waiting until the huge memtable is nearly full is sufficient)2) Combine the behaviour with CASSANDRA-5228 so that sstables will be efficiently dropped once all of the columns have. (Another side note, it might be valuable to have a modified version of CASSANDRA-3974 that doesn't bother storing per-column TTL since it is required that all columns have the same TTL)3) Be able to mark column families as read/write only (no explicit deletes), so no tombstones.4) Optionally add back an additional type of delete that would delete all data earlier than a particular timestamp, resulting in immediate dropping of obsoleted sstables.The result is that for in-order delivered data, Every cell will be laid out optimally on disk on the first pass, and over the course of 1000 days and 5TB of data, there will "only" be 1000 5GB sstables, so the number of filehandles will be reasonable.For exceptions (out-of-order delivery), most cases will be caught by the extended (24 hour+) memtable flush times and merged correctly automatically. For those that were slightly askew at flush time, or were delivered so far out of order that they go in the wrong sstable, there is relatively low overhead to reading from two sstables for a time slice, instead of one, and that overhead would be incurred relatively rarely unless out-of-order delivery was the common case, in which case, this strategy should not be used.Another possible optimization to address out-of-order would be to maintain more than one time-centric memtables in memory at a time (e.g. two 12 hour ones), and then you always insert into whichever one of the two "owns" the appropriate range of time. By delaying flushing the ahead one until we are ready to roll writes over to a third one, we are able to avoid any fragmentation as long as all deliveries come in no more than 12 hours late (in this example, presumably tunable).Anything that triggers compactions will have to be looked at, since there won't be any. The one concern I have is the ramificaiton of repair. Initially, at least, I think it would be acceptable to just write one sstable per repair and not bother trying to merge it with other sstables.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6755" opendate="2014-2-22 00:00:00" fixdate="2014-6-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Optimise CellName/Composite comparisons for NativeCell</summary>
+      <description>As discussed in CASSANDRA-6694, to reduce temporary garbage generation we should minimise the incidence of CellName component extraction. The biggest win will be to perform comparisons on Cell where possible, instead of CellName, so that Native*Cell can use its extra information to avoid creating any ByteBuffer objects</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.NativeCellTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.filter.ColumnSliceTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.composites.CTypeTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.MurmurHash.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.memory.MemoryUtil.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.FastByteOperations.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.ByteBufferUtil.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.btree.NodeBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.Memory.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexHelper.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.NativeDecoratedKey.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.NamesQueryFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ColumnSlice.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DecoratedKey.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ConsistencyLevel.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.SimpleCType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.CType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.CompoundSparseCellNameType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.Composites.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.CellNameType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.AbstractSimpleCellNameType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.AbstractCType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.AbstractCompoundCellNameType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.AbstractCellNameType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CollationController.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BufferDecoratedKey.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AtomicBTreeColumns.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ArrayBackedSortedColumns.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AbstractNativeCell.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">conf.cassandra-env.sh</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6839" opendate="2014-3-12 00:00:00" fixdate="2014-8-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support non equal conditions (for LWT)</summary>
+      <description>We currently only support equal conditions in conditional updates, but it would be relatively trivial to support non-equal ones as well. At the very least we should support '&gt;', '&gt;=', '&lt;' and '&lt;=', though it would probably also make sense to add a non-equal relation too ('!=').</description>
+      <version>2.1.1</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.ListSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CQL3CasRequest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Relation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ColumnCondition.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.AbstractMarker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7069" opendate="2014-4-22 00:00:00" fixdate="2014-9-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prevent operator mistakes due to simultaneous bootstrap</summary>
+      <description>Cassandra has always had the '2 minute rule' between beginning topology changes to ensure the range announcement is known to all nodes before the next one begins. Trying to bootstrap a bunch of nodes simultaneously is a common mistake and seems to be on the rise as of late.We can prevent users from shooting themselves in the foot this way by looking for other joining nodes in the shadow round, then comparing their generation against our own and if there isn't a large enough difference, bail out or sleep until it is large enough.</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7111" opendate="2014-4-29 00:00:00" fixdate="2014-7-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include snippet of CQL query near error in SyntaxError messages</summary>
+      <description>When a SyntaxError is returned, including a snippet of the query close to the error would make a lot of error messages easier to understand. For example, if you did this with the python driver:session.execute(SELECT * FROM users WHERE username='%s', ['Joe Smith'])you would wind up with an extra set of single quotes (the driver automatically escapes and quotes input). If a snippet like ...WHERE username=''Joe Smith'' were included in the error message, this would be pretty easy to spot.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ErrorCollectorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CqlParserTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ErrorCollector.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7131" opendate="2014-5-1 00:00:00" fixdate="2014-9-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add command line option for cqlshrc file path</summary>
+      <description>It would be nice if you could specify the cqlshrc file location on the command line, so you don't have to jump through hoops when running it from a service user or something.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7173" opendate="2014-5-6 00:00:00" fixdate="2014-9-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make "nodetool [ring|status] system" return a message that ownership is nonsense</summary>
+      <description>The ownership column for the output for nodetool &amp;#91;ring|status&amp;#93; really doesn't make sense for the system keyspace since it's a special case and uses the LocalStrategy. We should return a message, perhaps like we do when not specifying a keyspace, that the ownership in the case of system is nonsense.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7229" opendate="2014-5-14 00:00:00" fixdate="2014-8-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hadoop2 jobs throw java.lang.IncompatibleClassChangeError</summary>
+      <description>Hadoop2 jobs throw java.lang.IncompatibleClassChangeError when cassandra is build against hadoop2 libraries. Attached patch fixes this issue for me.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlInputFormat.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7239" opendate="2014-5-14 00:00:00" fixdate="2014-10-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool Status Reports Negative Load With VNodes Disabled</summary>
+      <description>When I run stress on a large cluster without vnodes (num_token =1 initial token set) The loads reported by nodetool status are negative, or become negative after stress is run.UN 10.97.155.31 -447426217 bytes 1 0.2% 8d40568c-044c-4753-be26-4ab62710beba rack1 UN 10.9.132.53 -447342449 bytes 1 0.2% 58e7f255-803d-493b-a19e-58137466fb78 rack1 UN 10.37.151.202 -447298672 bytes 1 0.2% ba29b1f1-186f-45d0-9e59-6a528db8df5d rack1</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Observability,Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7263" opendate="2014-5-19 00:00:00" fixdate="2014-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve the layout of the output of compactionstats</summary>
+      <description>If the name of the column family or the keyspace is too long, the layout of the output is messed up. Hence the suggested patch which computes the size the columns so they can be printed properly.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7316" opendate="2014-5-28 00:00:00" fixdate="2014-10-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Windows: address potential JVM swapping</summary>
+      <description>Similar to mlockall() in CLibrary.java for linux, it would be nice to lock the virtual address space on Windows to prevent page faults.One option: Reference API: http://msdn.microsoft.com/en-us/library/windows/desktop/aa366895(v=vs.85).aspx</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>Local/StartupandShutdown</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7341" opendate="2014-6-2 00:00:00" fixdate="2014-10-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Emit metrics related to CAS/Paxos</summary>
+      <description>We can emit metrics based on Paxos. One of them is when there is contention. I will add more metric in this JIRA if it is helpful.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.paxos.PaxosState.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.KeyspaceMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.ColumnFamilyMetrics.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7375" opendate="2014-6-10 00:00:00" fixdate="2014-10-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool units wrong for streamthroughput</summary>
+      <description>Stream throughput is measured in megabits (Mbps) in cassandray.yaml:# When unset, the default is 200 Mbps or 25 MB/s.# stream_throughput_outbound_megabits_per_sec: 200However, the nodetool command uses the unit "MB/s" which implies megabytes/sec: getstreamthroughput - Print the MB/s throughput cap for streaming in the system setstreamthroughput &lt;value_in_mb&gt; - Set the MB/s throughput cap for streaming in the system, or 0 to disable throttling.$ nodetool getstreamthroughputCurrent stream throughput: 200 MB/sFix references in nodetool to use Mbps</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7398" opendate="2014-6-13 00:00:00" fixdate="2014-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Missing flexibility to have file://&lt;server&gt;/&lt;etc&gt; vs. file:/// when loading config file cassandra.yaml</summary>
+      <description>The parameter in the VM options -Dcassandra.config= needs file:///Allow the user to have optional "file:///" when loading the config file from the filesystem</description>
+      <version>2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.YamlConfigurationLoader.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7405" opendate="2014-6-17 00:00:00" fixdate="2014-8-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Optimize cqlsh COPY TO and COPY FROM</summary>
+      <description>Now that we are using native proto via python-driver, we can, and should, at the very least:1. Use proto paging in COPY TO2. Use async writes in COPY FROM</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7432" opendate="2014-6-21 00:00:00" fixdate="2014-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add new CMS GC flags to cassandra_env.sh for JVM later than 1.7.0_60</summary>
+      <description>The new flags in question are as follows:-XX:+CMSParallelInitialMarkEnabled-XX:+CMSEdenChunksRecordAlwaysGiven we already haveJVM_OPTS="$JVM_OPTS -XX:+UseParNewGC" JVM_OPTS="$JVM_OPTS -XX:+UseConcMarkSweepGC" JVM_OPTS="$JVM_OPTS -XX:+CMSParallelRemarkEnabled" JVM_OPTS="$JVM_OPTS -XX:+UseTLAB"if [ "$JVM_ARCH" = "64-Bit" ] ; then JVM_OPTS="$JVM_OPTS -XX:+UseCondCardMark"fiThe assumption would be that people are at least running on large number CPU cores/threadsI would therefore recommend defaulting these flags if available - the only two possible downsides for +CMSEdenChunksRecordAlways:1) There is a new very short (probably un-contended) lock in the "slow" (non TLAB) eden allocation path with +CMSEdenChunksRecordAlways. I haven't detected this timing wise - this is the "slow" path after all2) If you are running with -XX:-UseCMSCompactAtFullCollection (not the default) and you call System.gc() then +CMSEdenChunksRecordAlways will expose you to a possible seg fault: (seehttp://bugs.java.com/bugdatabase/view_bug.do?bug_id=8021809)</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7435" opendate="2014-6-23 00:00:00" fixdate="2014-7-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add -D command-line parsing to Windows powershell launch scripts</summary>
+      <description>Looks like there was an undocumented ability to pass in -D params to the JVM in the linux environment I missed while porting the logic over to Windows.-D-D) properties="$properties -D$2" shift 2;;</description>
+      <version>2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cassandra.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7444" opendate="2014-6-24 00:00:00" fixdate="2014-6-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Performance drops when creating large amount of tables</summary>
+      <description>We are creating 4000 tables from a script and using cqlsh to create the tables. As the tables are being created, the time taken grows exponentially and it becomes very slow and takes a lot of time.We read a file get the keyspace append a random number and then create keyspace with this new name example Airplane_12345678, Airplane_123575849... then fed into cqlsh via scriptSimilarly each table is created via script use Airplane_12345678; create table1...table25 , then use Airplane_123575849; create table1...create table25It is all done in singleton fashion, doing one after the other in a loop.We tested using the following bash script#!/bin/bashSEED=0ITERATIONS=20while [ ${SEED} -lt ${ITERATIONS} ]; do COUNT=0 KEYSPACE=t10789_${SEED} echo "CREATE KEYSPACE ${KEYSPACE} WITH replication = { 'class': 'NetworkTopologyStrategy', 'Cassandra': '1' };" &gt; ${KEYSPACE}.ddl echo "USE ${KEYSPACE};" &gt;&gt; ${KEYSPACE}.ddl while [ ${COUNT} -lt 25 ]; do echo "CREATE TABLE user_colors${COUNT} (user_id int PRIMARY KEY, colors list&lt;ascii&gt; );" &gt;&gt; ${KEYSPACE}.ddl ((COUNT++)) done ((SEED++)) time cat ${KEYSPACE}.ddl | cqlsh if [ "$?" -gt 0 ]; then echo "[ERROR] Failure at ${KEYSPACE}" exit 1 else echo "[OK] Created ${KEYSPACE}" fi echo "===============================" sleep 3done#EOFThe timing we got on an otherwise idle system were inconsistentreal 0m42.649suser 0m0.332ssys 0m0.092s[OK] Created t10789_0===============================real 1m22.211suser 0m0.332ssys 0m0.096s[OK] Created t10789_1===============================real 2m45.907suser 0m0.304ssys 0m0.124s[OK] Created t10789_2===============================real 3m24.098suser 0m0.340ssys 0m0.108s[OK] Created t10789_3===============================real 2m38.930suser 0m0.324ssys 0m0.116s[OK] Created t10789_4===============================real 3m4.186suser 0m0.336ssys 0m0.104s[OK] Created t10789_5===============================real 2m55.391suser 0m0.344ssys 0m0.092s[OK] Created t10789_6===============================real 2m14.290suser 0m0.328ssys 0m0.108s[OK] Created t10789_7===============================real 2m44.880suser 0m0.344ssys 0m0.092s[OK] Created t10789_8===============================real 1m52.785suser 0m0.336ssys 0m0.128s[OK] Created t10789_9===============================real 1m18.404suser 0m0.344ssys 0m0.108s[OK] Created t10789_10===============================real 2m20.681suser 0m0.348ssys 0m0.104s[OK] Created t10789_11===============================real 1m11.860suser 0m0.332ssys 0m0.096s[OK] Created t10789_12===============================real 1m37.887suser 0m0.324ssys 0m0.100s[OK] Created t10789_13===============================real 1m31.616suser 0m0.316ssys 0m0.132s[OK] Created t10789_14===============================real 1m12.103suser 0m0.360ssys 0m0.088s[OK] Created t10789_15===============================real 0m36.378suser 0m0.340ssys 0m0.092s[OK] Created t10789_16===============================real 0m40.883suser 0m0.352ssys 0m0.096s[OK] Created t10789_17===============================real 0m40.661suser 0m0.332ssys 0m0.096s[OK] Created t10789_18===============================real 0m44.943suser 0m0.324ssys 0m0.104s[OK] Created t10789_19===============================</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DefsTables.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7446" opendate="2014-6-24 00:00:00" fixdate="2014-10-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog should be streamed to a different node on decom</summary>
+      <description>Just like we stream hints on decom, we should also stream the contents of the batchlog - even though we do replicate the batch to at least two nodes.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.BatchlogManagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7450" opendate="2014-6-26 00:00:00" fixdate="2014-9-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make repair -pr work within a datacenter</summary>
+      <description>As was noticed in CASSANDRA-7317, using '-pr' alongside '-local' for repair doesn't really work properly, and disabling the combination was definitively the right short time fix. However, the main goal of '-pr' is to make it easy to repair a full cluster without doing any duplication of work. Doing the same only within a data-center is obviously desirable.I think a reasonably simple solution would be modify the behavior of '-pr' when it's limited to only one DC. If applied to nodeX in dcY, instead of repairing only the "primary" range of nodeX for the whole ring, we'll repair that range but also all ranges that are "primary" for a node not in dcY and for which nodeX is the first node of dcY found in ring order. Basically we'll ensure that running 'repair -local -pr' on every nodes of a given DC will repair all ranges for the nodes of that DC without repairing the same range twice.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.repair.messages.RepairOptionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.messages.RepairOption.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.unit.org.apache.cassandra.service.StorageServiceServerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7468" opendate="2014-6-29 00:00:00" fixdate="2014-9-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add time-based execution to cassandra-stress</summary>
+      <description></description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressMetrics.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressAction.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandUser.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandPreDefinedMixed.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandPreDefined.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7499" opendate="2014-7-6 00:00:00" fixdate="2014-8-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to update list element by index using CAS condition</summary>
+      <description>While running IT tests for Achilles, I ran into a strange bug:With CQLSHcqlsh:test&gt; CREATE TABLE cas_update(id int PRIMARY KEY,name text,friends list&lt;text&gt;);cqlsh:test&gt; INSERT INTO cas_update (id, name , friends ) VALUES ( 10,'John',['Paul','George']);cqlsh:test&gt; SELECT * FROM cas_update WHERE id=10; id | friends | name----+--------------------+------ 10 | ['Paul', 'George'] | Johncqlsh:test&gt; UPDATE cas_update SET friends[0]='Helen' WHERE id=10 IF name='John';Bad Request: List index 0 out of bound, list has size 0cqlsh:test&gt; UPDATE cas_update SET friends[0]='Helen' WHERE id=10;cqlsh:test&gt; SELECT * FROM cas_update WHERE id=10; id | friends | name----+---------------------+------ 10 | ['Helen', 'George'] | JohnIt seems that we cannot update list element by index with a CAS condition.With Java driver 2.0.2 or 2.0.3 ACHILLES_DML_STATEMENT@:writeDMLStatementLog Prepared statement : [INSERT INTO CompleteBean(id,followers,friends,name,preferences) VALUES (:id,:followers,:friends,:name,:preferences) USING TTL :ttl;] with CONSISTENCY LEVEL [ONE] ACHILLES_DML_STATEMENT@:writeDMLStatementLog bound values : [621309709026375591, [], [Paul, Andrew], John, {}, 0] ACHILLES_DML_STATEMENT@:writeDMLStartBatch ACHILLES_DML_STATEMENT@:writeDMLStartBatch ACHILLES_DML_STATEMENT@:writeDMLStartBatch ****** BATCH UNLOGGED START ****** ACHILLES_DML_STATEMENT@:writeDMLStartBatch ACHILLES_DML_STATEMENT@:writeDMLStatementLog Parameterized statement : [UPDATE CompleteBean USING TTL 100 SET friends[0]=? WHERE id=621309709026375591 IF name=?;] with CONSISTENCY LEVEL [ONE] ACHILLES_DML_STATEMENT@:writeDMLStatementLog bound values : [100, 0, Helen, 621309709026375591, John] ACHILLES_DML_STATEMENT@:writeDMLStatementLog Parameterized statement : [UPDATE CompleteBean USING TTL 100 SET friends[1]=null WHERE id=621309709026375591 IF name=?;] with CONSISTENCY LEVEL [ONE] ACHILLES_DML_STATEMENT@:writeDMLStatementLog bound values : [100, 1, null, 621309709026375591, John] ACHILLES_DML_STATEMENT@:writeDMLEndBatch ACHILLES_DML_STATEMENT@:writeDMLEndBatch ****** BATCH UNLOGGED END with CONSISTENCY LEVEL [DEFAULT] ****** ACHILLES_DML_STATEMENT@:writeDMLEndBatch ACHILLES_DML_STATEMENT@:writeDMLEndBatch ACHILLES_DML_STATEMENT@:truncateTable Simple query : [TRUNCATE entity_with_enum] with CONSISTENCY LEVEL [ALL] ACHILLES_DML_STATEMENT@:truncateTable Simple query : [TRUNCATE CompleteBean] with CONSISTENCY LEVEL [ALL] com.datastax.driver.core.exceptions.InvalidQueryException: List index 0 out of bound, list has size 0 at com.datastax.driver.core.exceptions.InvalidQueryException.copy(InvalidQueryException.java:35) at com.datastax.driver.core.DefaultResultSetFuture.extractCauseFromExecutionException(DefaultResultSetFuture.java:256) at com.datastax.driver.core.DefaultResultSetFuture.getUninterruptibly(DefaultResultSetFuture.java:172) at com.datastax.driver.core.AbstractSession.execute(AbstractSession.java:52)With Cassandra 2.0.8 and Java Driver 2.0.2 or 2.0.3, the test passed so it seems that there is a regression somewhere in the CAS update code</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Feature/LightweightTransactions,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CASConditions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CQL3CasConditions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7506" opendate="2014-7-7 00:00:00" fixdate="2014-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>querying secondary index using complete collection should warn/error</summary>
+      <description>Cassandra does not seem to support querying a set literal like so:select * from testtable where pkey='foo' and mycollection = {'one', 'two'};We currently don't let the user know this query is problematic, rather we just return no rows.To reproduce:create keyspace test with replication = {'class': 'SimpleStrategy', 'replication_factor':1} ;use test ;create table testtable (pkey text PRIMARY KEY, mycollection set&lt;text&gt;);create index on testtable (mycollection);insert into testtable (pkey, mycollection) VALUES ( 'foo', {'one','two'};cqlsh:test&gt; select * from testtable where pkey='foo' and mycollection = {'one', 'two'};(0 rows)</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7514" opendate="2014-7-8 00:00:00" fixdate="2014-9-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support paging in cqlsh</summary>
+      <description>Once we've switch cqlsh to use the python driver 2.x (CASSANDRA-7506), we should also make it use paging. Currently cqlsh adds an implicit limit which is kind of ugly. Instead we should use some reasonably small page size (100 is probably fine) and display one page at a time, adding some "NEXT" command to query/display following pages.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.test.cqlsh.completion.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7516" opendate="2014-7-8 00:00:00" fixdate="2014-7-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Configurable client timeout for cqlsh</summary>
+      <description>Here's a patch for cqlsh to set the default client timeout.10s is usually a good default, but this is useful for testing specific timeout related bugs, especially where you've intentionally set the C* timeouts higher.Configurable in ~/.cassandra/cqlshrc:[connection]client_timeout = 20# Can also be set to None to disable:# client_timeout = None</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7519" opendate="2014-7-8 00:00:00" fixdate="2014-9-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Further stress improvements to generate more realistic workloads</summary>
+      <description>We generally believe that the most common workload is for reads to exponentially prefer most recently written data. However as stress currently behaves we have two id generation modes: sequential and random (although random can be distributed). I propose introducing a new mode which is somewhat like sequential, except we essentially 'look back' from the current id by some amount defined by a distribution. I may possibly make the position only increment as it's first written to also, so that this mode can be run from a clean slate with a mixed workload. This should allow is to generate workloads that are more representative.At the same time, I will introduce a timestamp value generator for primary key columns that is strictly ascending, i.e. has some random component but is based off of the actual system time (or some shared monotonically increasing state) so that we can again generate a more realistic workload. This may be challenging to tie in with the new procedurally generated partitions, but I'm sure it can be done without too much difficulty.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.Timer.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.TimingInterval.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.Timing.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">tools.cqlstress-counter-example.yaml</file>
+      <file type="M">tools.cqlstress-example.yaml</file>
+      <file type="M">tools.cqlstress-insanity-example.yaml</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.DistributionInverted.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.Partition.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.PartitionGenerator.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.RatioDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.SeedGenerator.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.SeedRandomGenerator.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.SeedSeriesGenerator.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Booleans.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Bytes.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Dates.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Doubles.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Floats.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Generator.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.HexBytes.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.HexStrings.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Inets.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Integers.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Lists.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Longs.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Sets.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.Strings.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.TimeUUIDs.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.generate.values.UUIDs.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.Operation.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.predefined.CqlCounterAdder.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.predefined.CqlInserter.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.predefined.PredefinedOperation.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.predefined.ThriftCounterAdder.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.predefined.ThriftInserter.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.userdefined.SchemaInsert.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.userdefined.SchemaQuery.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.userdefined.SchemaStatement.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.CliOption.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionRatioDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommand.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandPreDefined.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandPreDefinedMixed.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandUser.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsKey.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsSchema.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.StressSettings.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressAction.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressMetrics.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressProfile.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressYaml.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7546" opendate="2014-7-15 00:00:00" fixdate="2014-10-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AtomicSortedColumns.addAllWithSizeDelta has a spin loop that allocates memory</summary>
+      <description>In order to preserve atomicity, this code attempts to read, clone/update, then CAS the state of the partition.Under heavy contention for updating a single partition this can cause some fairly staggering memory growth (the more cores on your machine the worst it gets).Whilst many usage patterns don't do highly concurrent updates to the same partition, hinting today, does, and in this case wild (order(s) of magnitude more than expected) memory allocation rates can be seen (especially when the updates being hinted are small updates to different partitions which can happen very fast on their own) - see CASSANDRA-7545It would be best to eliminate/reduce/limit the spinning memory allocation whilst not slowing down the very common un-contended case.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AtomicBTreeColumns.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7566" opendate="2014-7-17 00:00:00" fixdate="2014-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DROP TABLE should also drop prepared statements associated to</summary>
+      <description>An integration test suite that drops and creates the same column family 3 times causes the following error in the server log:INFO 15:40:34 Initializing gocql_test.wiki_pageERROR 15:40:34 Attempted to write commit log entry for unrecognized column family: b0e167e0-0dc8-11e4-9cbb-29a4872887f2ERROR 15:40:34 Attempting to mutate non-existant column family b0e167e0-0dc8-11e4-9cbb-29a4872887f2ERROR 15:40:34 Attempted to write commit log entry for unrecognized column family: b0e167e0-0dc8-11e4-9cbb-29a4872887f2ERROR 15:40:34 Attempting to mutate non-existant column family b0e167e0-0dc8-11e4-9cbb-29a4872887f2The test that reproduces this issue is here:https://github.com/gocql/gocql/blob/master/wiki_test.goInterestingly this issue only occurs after the common table is dropped/created for the 3rd time. If only one of the tests is run on its own, this issue does not arise.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7577" opendate="2014-7-19 00:00:00" fixdate="2014-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: CTRL-R history search not working on OSX</summary>
+      <description>recursive-history-search via ctrl-R does not work in cqlsh. The history itself works via cursor up/down.It works on Linux (and I guess on Windows with cygwin) but not on my Mac.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7585" opendate="2014-7-22 00:00:00" fixdate="2014-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra sstableloader connection refused with inter_node_encryption</summary>
+      <description>cassandra sstableloader connection refused with inter_node_encryptionWhen using sstableloader to import tables (cassandra 2.0.5) with inter-node encryption and client encryption enabled, I get a connection refused errorI am usingsstableloader -d $myhost -p 9160 -u cassandra -pw cassandra -ciphers TLS_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA -st JKS -tf org.apache.cassandra.thrift.SSLTransportFactory -ts /path/to/truststore -tspw &lt;passwd&gt; $fullpath/$tableErrors out withStreaming session ID: 1bc395c0-fbb2-11e3-9812-73da15121373 WARN 17:13:34,147 Failed attempt 1 to connect toSimilar problem reported in cassandra 2.0.8 by another userhttp://stackoverflow.com/questions/24390604/cassandra-sstableloader-connection-refused-with-inter-node-encryption==================Relevant cassandra.yaml snippet (with obfuscation)server_encryption_options: internode_encryption: all keystore:/path/to/keystore keystore_password: &lt;passwd&gt; truststore:/path/to/truststore truststore_password:&lt;passwd&gt; More advanced defaults below: protocol: TLS algorithm: SunX509 store_type: JKS cipher_suites: &amp;#91;TLS_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA&amp;#93; require_client_auth: true enable or disable client/server encryption.client_encryption_options: enabled: true keystore: /path/to/keystore keystore_password: &lt;truststorepasswd&gt; #require_client_auth: true Set trustore and truststore_password if require_client_auth is true truststore:/path/to/truststore truststore_password: &lt;truststorepasswd&gt; More advanced defaults below: protocol: TLS algorithm: SunX509 store_type: JKS cipher_suites: &amp;#91;TLS_RSA_WITH_AES_128_CBC_SHA,TLS_DHE_RSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA&amp;#93; ======================Note that by setting inter-node encryption to "none" sstableloader works.. but setting it to "all" fails... It seems like sstableloader uses 7000 is my guess instead of using the ssl port 7001 for streaming/gossip.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.streaming.StreamTransferTaskTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamResultFuture.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamPlan.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.ConnectionHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.YamlConfigurationLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7588" opendate="2014-7-22 00:00:00" fixdate="2014-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh error for query against collection index - list index out of range</summary>
+      <description>This worked in 2.1 RC1Connected to Test Cluster at 127.0.0.1:9042.[cqlsh 5.0.1 | Cassandra 2.1.0-rc1-SNAPSHOT | CQL spec 3.1.7 | Native protocol v3]Use HELP for help.cqlsh&gt; use k1;cqlsh:k1&gt; SELECT id, description FROM products WHERE categories CONTAINS 'hdtv'; id | description-------+----------------------------- 29412 | 32-inch LED HDTV (black) 34134 | 120-inch 1080p 3D plasma TV(2 rows)But fails on 2.1:Connected to Test Cluster at 127.0.0.1:9042.[cqlsh 5.0.1 | Cassandra 2.1.0-rc4-SNAPSHOT | CQL spec 3.2.0 | Native protocol v3]Use HELP for help.cqlsh&gt; use k1;cqlsh:k1&gt; SELECT id, description FROM products WHERE categories CONTAINS 'hdtv';list index out of rangecqlsh:k1&gt;This is using the example from the blog post http://www.datastax.com/dev/blog/cql-in-2-1A more complete repro:cqlsh:k1&gt;cqlsh:k1&gt; CREATE KEYSPACE cat_index_test ... WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};cqlsh:k1&gt; USE cat_index_test;cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; CREATE TABLE IF NOT EXISTS products ( ... id int PRIMARY KEY, ... description text, ... price int, ... categories set&lt;text&gt;, ... features map&lt;text, text&gt; ... );cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; CREATE INDEX IF NOT EXISTS cat_index ON products(categories);cqlsh:cat_index_test&gt; CREATE INDEX IF NOT EXISTS feat_index ON products(features);cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; INSERT INTO products(id, description, price, categories, features) ... VALUES (34134, ... '120-inch 1080p 3D plasma TV', ... 9999, ... {'tv', '3D', 'hdtv'}, ... {'screen' : '120-inch', 'refresh-rate' : '400hz', 'techno' : 'plasma'});cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; INSERT INTO products(id, description, price, categories, features) ... VALUES (29412, ... '32-inch LED HDTV (black)', ... 929, ... {'tv', 'hdtv'}, ... {'screen' : '32-inch', 'techno' : 'LED'});cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; INSERT INTO products(id, description, price, categories, features) ... VALUES (38471, ... '32-inch LCD TV', ... 110, ... {'tv', 'used'}, ... {'screen' : '32-inch', 'techno' : 'LCD'});cqlsh:cat_index_test&gt; SELECT id, description FROM products WHERE categories CONTAINS 'hdtv';list index out of rangecqlsh:cat_index_test&gt; SELECT id, description FROM products WHERE features CONTAINS '32-inch';list index out of rangecqlsh:cat_index_test&gt; DROP INDEX feat_index;cqlsh:cat_index_test&gt; CREATE INDEX feat_key_index ON products(KEYS(features));cqlsh:cat_index_test&gt;cqlsh:cat_index_test&gt; SELECT id, description ... FROM products ... WHERE features CONTAINS KEY 'refresh-rate';list index out of rangeThis appears to be a cqlsh issue, since these queries still work when executed using DevCenter.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7600" opendate="2014-7-23 00:00:00" fixdate="2014-8-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Schema change notifications sent for no-op DDL statements</summary>
+      <description>When schema changes are made with IF [NOT] EXISTS conditions, we return schema change messages (and push out schema change notifications) even if the IF [NOT] EXISTS condition makes it a no-op.This results in extra work for native protocol drivers, which typically wait for schema agreement and refresh their schema metadata when schema changes occur.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SchemaAlteringStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropTriggerStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropKeyspaceStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropIndexStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTriggerStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateKeyspaceStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterKeyspaceStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7606" opendate="2014-7-24 00:00:00" fixdate="2014-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add IF [NOT] EXISTS to CREATE/DROP trigger</summary>
+      <description>All CREATE/DROP statements support IF &amp;#91;NOT&amp;#93; EXISTS - except CREATE/DROP trigger.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.triggers.TriggerExecutorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropTriggerStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTriggerStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7611" opendate="2014-7-24 00:00:00" fixdate="2014-7-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>incomplete CREATE/DROP USER help and tab completion</summary>
+      <description>IF NOT EXISTS/IF EXISTS doesn't appear in the online help and tab completion.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7613" opendate="2014-7-24 00:00:00" fixdate="2014-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Error when tracing query with 2.1 cqlsh</summary>
+      <description>cqlsh isn't working for me in 2.1 when executing a query with TRACING ON; I get the following errormyformat_colname() takes exactly 3 arguments (2 given)</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7616" opendate="2014-7-24 00:00:00" fixdate="2014-10-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablesplit creates new sstable when size is less than split size</summary>
+      <description>If you run sstablesplit on an sstable that is smaller than the split size, it still creates a new (duplicate) sstable. It should just leave the existing sstable in place and do nothing.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneSplitter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7641" opendate="2014-7-29 00:00:00" fixdate="2014-8-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh should automatically disable tracing when selecting from system_traces</summary>
+      <description>Nobody needs to trace their traces while they're tracing.</description>
+      <version>2.0.10,2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7658" opendate="2014-7-31 00:00:00" fixdate="2014-12-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>stress connects to all nodes when it shouldn&amp;#39;t</summary>
+      <description>If you tell stress -node 1,2 in cluster with more nodes, stress appears to do ring discovery and connect to them all anyway (checked via netstat.) This led to the confusion on CASSANDRA-7567</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.SmartThriftClient.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.JavaDriverClient.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.StressSettings.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsNode.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7659" opendate="2014-7-31 00:00:00" fixdate="2014-8-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: DESCRIBE KEYSPACE should order types according to cross-type dependencies</summary>
+      <description>Since UDTs may use other UDTs for fields, DESCRIBE KEYSPACE should list types in an order that handles the dependencies. This was recently done in the python driver here: https://github.com/datastax/python-driver/pull/165. We can either update to the latest python driver, or copy that code for cqlsh.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7671" opendate="2014-8-1 00:00:00" fixdate="2014-8-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: Error when printing results of conditional updates</summary>
+      <description>cqlsh&gt; INSERT INTO demo.kv (key, value) VALUES (1, 1) IF NOT EXISTS;print_static_result() takes exactly 3 arguments (2 given)</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.pylexotron.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7689" opendate="2014-8-4 00:00:00" fixdate="2014-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>addSerializedKeyspace/UDT (prevent CASSANDRA-5631 for UDTs)</summary>
+      <description>Just add addSerializedKeyspace to UDT statement code for mutations to prevent something similar like CASSANDRA-5631.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7711" opendate="2014-8-7 00:00:00" fixdate="2014-9-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>composite column not sliced when using IN clause on (other) composite columns</summary>
+      <description>Hi,I'm storing data points in cassandra keyed by a number of values and a timestamp. I'd want to use IN clauses to select points and sliced by time. The in clauses work, but I can't get it to work in combination with the slicing: all values are returned / the range in the where clause seems to be ignored.A dumbed down abstract version of my layout and some sample data:create table tbl ( a text, b text, c int, d int, primary key ((a), b, c));insert into tbl (a,b,c,d) values ('a1', 'b1', 1, 1);insert into tbl (a,b,c,d) values ('a1', 'b1', 2, 2);insert into tbl (a,b,c,d) values ('a1', 'b2', 1, 1);insert into tbl (a,b,c,d) values ('a1', 'b2', 2, 2);insert into tbl (a,b,c,d) values ('a2', 'b1', 1, 1);insert into tbl (a,b,c,d) values ('a2', 'b1', 2, 2);insert into tbl (a,b,c,d) values ('a3', 'b2', 1, 1);insert into tbl (a,b,c,d) values ('a3', 'b2', 2, 2);So the table contains: a | b | c | d----+----+---+--- a1 | b1 | 1 | 1 a1 | b1 | 2 | 2 a1 | b2 | 1 | 1 a1 | b2 | 2 | 2 a2 | b1 | 1 | 1 a2 | b1 | 2 | 2 a3 | b2 | 1 | 1 a3 | b2 | 2 | 2When performing select * from tbl where a in ('a1', 'a2') and (b) in (('b1'), ('b2')) and c &gt; 1; I get: a | b | c | d----+----+---+--- a1 | b1 | 1 | 1 a1 | b1 | 2 | 2 a1 | b2 | 1 | 1 a1 | b2 | 2 | 2 a2 | b1 | 1 | 1 a2 | b1 | 2 | 2But I expected: a | b | c | d----+----+---+--- a1 | b1 | 2 | 2 a1 | b2 | 2 | 2 a2 | b1 | 2 | 2Am I doing something wrong? Or is c &gt; 1 incorrectly ignored?select * from tbl where a in ('a1', 'a2') and b='b1' and c &gt; 1; does correctly produce:a | b | c | d----+----+---+--- a1 | b1 | 2 | 2 a2 | b1 | 2 | 2So I expect this behaviour to relate to the interworking of the IN clause on the clustering column b and the &gt; predicate on column c.Cheers,Frens Jan</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7714" opendate="2014-8-7 00:00:00" fixdate="2014-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add new CMS GC flags to Windows startup scripts for JVM later than 1.7.0_60</summary>
+      <description>Replicate changes from CASSANDRA-7432.Relevant patch contents: # note: bash evals '1.7.x' as &gt; '1.7' so this is really a &gt;= 1.7 jvm check+if { [ "$JVM_VERSION" \&gt; "1.7" ] &amp;&amp; [ "$JVM_VERSION" \&lt; "1.8.0" ] &amp;&amp; [ "$JVM_PATCH_VERSION" -ge "60" ]; } || [ "$JVM_VERSION" \&gt; "1.8" ] ; then+ JVM_OPTS="$JVM_OPTS -XX:+CMSParallelInitialMarkEnabled -XX:+CMSEdenChunksRecordAlways"+fi</description>
+      <version>2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7719" opendate="2014-8-7 00:00:00" fixdate="2014-9-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add PreparedStatements related metrics</summary>
+      <description>Cassandra newcomers often don't understand that they're expected to use PreparedStatements for almost all of their repetitive queries executed in production.It doesn't look like Cassandra currently expose any PreparedStatements related metrics.It would be interesting, and I believe fairly simple, to add several of them to make it possible, in development / management / monitoring tools, to show warnings or alerts related to this bad practice.Thus I would suggest to add the following metrics: Executed prepared statements count Executed unprepared statements count Amount of PreparedStatements that have been registered on the node</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CqlMetricsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.CqlStatementMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7736" opendate="2014-8-10 00:00:00" fixdate="2014-9-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clean-up, justify (and reduce) each use of @Inline</summary>
+      <description>@Inline is a delicate tool, and should in all cases we've used it (and use it in future) be accompanied by a comment justifying its use in the given context both theoretically and, preferably, with some brief description of/link to steps taken to demonstrate its benefit. We should aim to not use it unless we are very confident we can do better than the normal behaviour, as poor use can result in a polluted instruction cache, which can yield better results in tight benchmarks, but worse results in general use.It looks to me that we have too many uses already. I'll look over each one as well, and we can compare notes. If there's disagreement on any use, we can discuss, and if still there is any dissent should always err in favour of not using @Inline.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.MurmurHash.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.FastByteOperations.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ConsistencyLevel.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CollationController.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ArrayBackedSortedColumns.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AbstractNativeCell.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7748" opendate="2014-8-11 00:00:00" fixdate="2014-9-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Get Windows command-line flags in-line with linux</summary>
+      <description>linux was here first. In the PowerShell launch scripts, -v is verbose right now as I missed that it's used for 'version' on linux. Add version print functionality to Windows launch using -v and find another sane flag to use for verbose env output printing.</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cassandra.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7749" opendate="2014-8-11 00:00:00" fixdate="2014-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Windows cqlsh: prompt for install of pyreadline if missing during cqlsh init</summary>
+      <description>Windows python doesn't come with readline functionality by default and tab completion in cqlsh is silently unavailable due to this. Installing pyreadline is an easy fix - it would be nice to prompt users to install this dependency if it's not available on Windows.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7761" opendate="2014-8-13 00:00:00" fixdate="2014-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade netty and enable epoll event loop</summary>
+      <description>Latest netty contains the proper fix for CASSANDRA-7695 plus some of the performance patches benedict contributed. We should upgrade to this following extensive burn in testing.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">lib.netty-all-4.0.20.Final.jar</file>
+      <file type="M">lib.licenses.netty-all-4.0.20.Final.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7776" opendate="2014-8-15 00:00:00" fixdate="2014-10-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow multiple MR jobs to concurrently write to the same column family from the same node using CqlBulkOutputFormat</summary>
+      <description>After sstable files are written, all files in the specified output directory are loaded (transferred) to the remote cassandra cluster. If multiple writes occur on a node to the same table (i.e. directory), then the multiple load processes end up transferring the same sstable files multiple times. Furthermore, if directory cleanup of successful outputs is set to occur (CASSANDRA-7777), then there could be errors caused by write/load contention.This can be simply remedied by using unique output directories for each MR job.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlBulkRecordWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7785" opendate="2014-8-16 00:00:00" fixdate="2014-8-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh - display the current logged-in user.</summary>
+      <description>Currently, a user in cqlsh cannot see which user they are logged-in as. When you have a cqlsh that has been open for a few hours, sometimes it is helpful to be able to type a quick command and see your current user.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7789" opendate="2014-8-18 00:00:00" fixdate="2014-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY Command should display progress</summary>
+      <description>While CASSANDRA-7405 is on its way to make the COPY command much faster, it's still likely to hang for many minutes when transferring a large amount of data. This gives the feeling to the newcomers that something went wrong. Even if the user expect cqlsh to hang for a long moment, it's not very convenient as you have no idea of when the copy will be complete.I believe it would be very pleasant if the COPY command could display an in-place progress output while it's executed with probably: Rows copied avg Rows/s CSV File R/W MB avg CSV File R/W MB/s</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.async.insert.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7804" opendate="2014-8-20 00:00:00" fixdate="2014-8-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Confusing error message when condition is set on primary key column</summary>
+      <description>If you set a CAS condition on a primary key column, you'll get an error that's somewhat confusing:cqlsh:ks1&gt; CREATE TABLE mytable (a int PRIMARY KEY, b int);cqlsh:ks1&gt; UPDATE mytable SET b = 0 WHERE a = 0 IF a = 0;code=2200 [Invalid query] message="PRIMARY KEY part a found in SET part"</description>
+      <version>2.1.1</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7815" opendate="2014-8-21 00:00:00" fixdate="2014-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM cannot be interrupted with ctrl-c</summary>
+      <description>The changes in CASSANDRA-7405 caused the import process to not be interruptable with ctrl-c.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.async.insert.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7819" opendate="2014-8-22 00:00:00" fixdate="2014-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>In progress compactions should not prevent deletion of stale sstables</summary>
+      <description>Compactions retain references to potentially many sstables that existed when they were started but that are now obsolete; many concurrent compactions can compound this dramatically, and with very large files in size tiered compaction it is possible to inflate disk utilisation dramatically beyond what is necessary.I propose, during compaction, periodically checking which sstables are obsolete and simply replacing them with the sstable that replaced it. These sstables are by definition only used for lookup, since we are in the process of obsoleting the sstables we're compacting, they're only used to reference overlapping ranges which may be covered by tombstones.A simplest solution might even be to simply detect obsoletion and recalculate our overlapping tree afresh. This is a pretty quick operation in the grand scheme of things, certainly wrt compaction, so nothing lost to do this at the rate we obsolete sstables.See CASSANDRA-7139 for original discussion of the problem.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7824" opendate="2014-8-25 00:00:00" fixdate="2014-9-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh completion for triggers</summary>
+      <description>It appears cqlsh doesn't have completion for the trigger related statements and we should probably add it.Triggers are also not documented by the cql.textile file. I could swear we already had a ticket for fixing the doc, but can't find it right now, so unless someone remembers which ticket that is, let's maybe handle this here too.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7847" opendate="2014-8-29 00:00:00" fixdate="2014-9-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow quoted identifiers for triggers&amp;#39; names</summary>
+      <description>Current implementation doesn't allow quoted/case sensitive identifiers for triggers' names, and doesn't handle those names in case-insensitive manner either.mstepura-mac:cassandra mikhail$ bin/cqlshConnected to Test Cluster at 127.0.0.1:9042.[cqlsh 5.0.1 | Cassandra 2.1.1-SNAPSHOT | CQL spec 3.2.0 | Native protocol v3]Use HELP for help.cqlsh&gt; use stress;cqlsh:stress&gt; create TRIGGER "ZooZoo" ON t1 USING 'org.apache.cassandra.triggers.InvertedIndex';&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:15 mismatched input 'ZooZoo' expecting IDENT (create TRIGGER ["ZooZo]o" ON...)"&gt;cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; create TRIGGER ZooZoo ON t1 USING 'org.apache.cassandra.triggers.InvertedIndex';cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; drop TRIGGER zoozoo ON stress.t1 ;code=2200 [Invalid query] message="Trigger zoozoo was not found"cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; drop TRIGGER "ZooZoo" ON stress.t1 ;&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:13 mismatched input 'ZooZoo' expecting IDENT (drop TRIGGER ["ZooZo]o" ON...)"&gt;cqlsh:stress&gt;cqlsh:stress&gt;cqlsh:stress&gt; drop TRIGGER ZooZoo ON stress.t1 ;</description>
+      <version>2.1.0,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CreateTriggerStatementTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">NEWS.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7851" opendate="2014-8-30 00:00:00" fixdate="2014-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* PID file should be readable by mere users</summary>
+      <description>automaton@i-175d594e9:~$ service cassandra status * Cassandra is not runningautomaton@i-175d594e9:~$ sudo service cassandra status * Cassandra is runningautomaton@i-175d594e9:~$ ls -la /var/run/cassandra/ls: cannot open directory /var/run/cassandra/: Permission deniedautomaton@i-175d594e9:~$ sudo ls -la /var/run/cassandra/total 4drwxr-x--- 2 cassandra cassandra 60 Aug 30 01:21 .drwxr-xr-x 15 root root 700 Aug 30 01:21 ..-rw-r--r-- 1 cassandra cassandra 4 Aug 30 01:21 cassandra.pid</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7864" opendate="2014-9-2 00:00:00" fixdate="2014-9-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair should do less work when RF=1</summary>
+      <description>When the total RF for a keyspace is &lt;= 1, repair still calculates neighbors for each range and does some unneccessary work. We could short-circuit this earlier.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7878" opendate="2014-9-4 00:00:00" fixdate="2014-9-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix wrong progress reporting when streaming uncompressed SSTable w/ CRC check</summary>
+      <description>Streaming uncompressed SSTable w/ CRC validation calculates progress wrong. It shows transfer bytes as the sum of all read bytes for CRC validation. So netstats shows progress way over 100%.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7891" opendate="2014-9-5 00:00:00" fixdate="2014-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Select an element inside a UDT throws an index error</summary>
+      <description>Create the following data model:CREATE TYPE address (street text,city text,zip_code int,phones set&lt;text&gt; ); CREATE TYPE fullname (firstname text,lastname text);CREATE TABLE users (id uuid PRIMARY KEY,name FROZEN &lt;fullname&gt;,addresses map&lt;text, FROZEN &lt;address&gt;&gt;);INSERT INTO users (id, name) VALUES (62c36092-82a1-3a00-93d1-46196ee77204, {firstname: 'Marie-Claude', lastname: 'Josset'});When trying to select a sub-field in the name type:SELECT name.lastname FROM users WHERE id=62c36092-82a1-3a00-93d1-46196ee77204;You get the following error:list index out of range</description>
+      <version>2.1.1,2.2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7895" opendate="2014-9-5 00:00:00" fixdate="2014-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ALTER TYPE &lt;name&gt; RENAME TO &lt;name&gt; no longer parses as valid cql</summary>
+      <description>Type renaming seems to be broken. The error looks like perhaps the syntax has changed or there's a problem parsing the cql.cqlsh:test&gt; create type foo (somefield int);cqlsh:test&gt; alter type foo rename to bar;&lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:22 no viable alternative at input 'to' (alter type foo rename [to] bar...)"&gt;</description>
+      <version>2.1.0,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7909" opendate="2014-9-10 00:00:00" fixdate="2014-10-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Do not exit nodetool repair when receiving JMX NOTIF_LOST</summary>
+      <description>nodetool repair prints out 'Lost notification...' and exits when JMX NOTIF_LOST message is received. But we should not exit right away since that message just indicates some messages are lost because "they arrive so fast that they cannot be delivered to the remote client quickly enough" according to https://weblogs.java.net/blog/emcmanus/archive/2007/08/when_can_jmx_no.html. So we should just continue to listen to events until repair finishes or connection is really closed.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7913" opendate="2014-9-12 00:00:00" fixdate="2014-9-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t try to set repairedAt on old sstables</summary>
+      <description>When using the tool sstablerepairedset we don't care if the sstable actually supports having the repairedAt set</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableRepairedAtSetter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7921" opendate="2014-9-13 00:00:00" fixdate="2014-9-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Provide visibility into prepared statement churn</summary>
+      <description>Some JDBC drivers provide visibility into the preparedstatement cache in such a way as to track churn. It would be nice to have this added to CqlStatementMetrics</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.metrics.CQLMetricsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.CQLMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7923" opendate="2014-9-13 00:00:00" fixdate="2014-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When preparing a statement, do not parse the provided string if we already have the parsed statement cached</summary>
+      <description>If there are many clients preparing the same statement (or the same client preparing it multiple times), there's no point parsing the statement each times. We already have it prepared, we should ship back the prior result.I would like us separately to consider introducing some checks to ensure that we never have a hash collision (and error if we do, asking the user to salt their query string), but this change in no way increases the risk profile here, since all we did was overwrite the prior statement with the new one. This change means that clients referencing the old statement continue to function and the client registering the colliding statement will not execute the correct statement, but this is in no way worse than the reverse situation.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7930" opendate="2014-9-13 00:00:00" fixdate="2014-9-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Warn when evicting prepared statements from cache</summary>
+      <description>The prepared statement cache is an LRU, with a max size of maxMemory / 256. There is currently no warning when statements are evicted, which could be problematic if the user is unaware that this is happening.At the very least, we should provide a JMX metric and possibly a log message indicating this is happening. At some point it may also be worthwhile to make this tunable for users with large numbers of statements.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7941" opendate="2014-9-16 00:00:00" fixdate="2014-9-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix bin/cassandra cassandra.logdir option in debian package</summary>
+      <description>Cassandra writes logs to $CASSANDRA_HOME/logs by default, and the debian package needs to write to /var/log/cassandra.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.patches.00list</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7945" opendate="2014-9-16 00:00:00" fixdate="2014-9-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>new cassanrda-stress does not work with NetworkTopologyStrategy</summary>
+      <description>$ cassandra-stress write -schema 'replication(strategy=NetworkTopologyStrategy,DC1=2,DC2=1)'prints error:Unable to create stress keyspace: Error constructing replication strategy classLooks like it is caused by passing 'replication_factor' to NTS, which is illegal option for NTS.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionReplication.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7956" opendate="2014-9-17 00:00:00" fixdate="2014-10-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"nodetool compactionhistory" crashes because of low heap size (GC overhead limit exceeded)</summary>
+      <description>]# nodetool compactionhistoryCompaction History:Exception in thread "main" java.lang.OutOfMemoryError: GC overhead limit exceeded at java.io.ObjectStreamClass.newInstance(ObjectStreamClass.java:967) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1782) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.readObject(ObjectInputStream.java:370) at java.util.HashMap.readObject(HashMap.java:1180) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1017) at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:1893) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1798) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:1990) at java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:500) at javax.management.openmbean.TabularDataSupport.readObject(TabularDataSupport.java:912) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1017) at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:1893) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1798) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.readObject(ObjectInputStream.java:370) at sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:325) at sun.rmi.server.UnicastRef.invoke(UnicastRef.java:174) at com.sun.jmx.remote.internal.PRef.invoke(Unknown Source) at javax.management.remote.rmi.RMIConnectionImpl_Stub.getAttribute(Unknown Source) at javax.management.remote.rmi.RMIConnector$RemoteMBeanServerConnection.getAttribute(RMIConnector.java:906) at javax.management.MBeanServerInvocationHandler.invoke(MBeanServerInvocationHandler.java:267) at com.sun.proxy.$Proxy3.getCompactionHistory(Unknown Source)nodetool starts with -Xmx32m. This seems to be not enough at least in my case to show the history. I am not sure what would the appropriate amount be but increasing it to 128m definitely solves the problem. Output from modified nodetool attached.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.nodetool</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7967" opendate="2014-9-17 00:00:00" fixdate="2014-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include schema_triggers CF in readable system resources</summary>
+      <description>SCHEMA_TRIGGERS_CF is missing from readable system resources.This makes tools, which attempt to read schema information, fail when authorization is enabled.Patch attached.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7968" opendate="2014-9-17 00:00:00" fixdate="2014-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>permissions_validity_in_ms should be settable via JMX</summary>
+      <description>Oftentimes people don't think about auth problems and just run with the default of RF=2 and 2000ms until it's too late, and at that point doing a rolling restart to change the permissions cache can be a bit painful vs setting it via JMX everywhere and then updating the yaml for future restarts.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.auth.Auth.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7972" opendate="2014-9-18 00:00:00" fixdate="2014-9-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add "CREATE INDEX ... ON ..(KEYS())" syntax to cqlsh and CQL.textile</summary>
+      <description>http://www.datastax.com/documentation/cql/3.1/cql/cql_reference/create_index_r.html?scroll=reference_ds_eqm_nmd_xj__CreatIdxCollKey</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7977" opendate="2014-9-19 00:00:00" fixdate="2014-9-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow invalidating permissions cache</summary>
+      <description>After CASSANDRA-7968 we should also allow invalidating the cache.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.auth.AuthMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.auth.Auth.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7988" opendate="2014-9-22 00:00:00" fixdate="2014-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>2.1 broke cqlsh for IPv6</summary>
+      <description>cqlsh in 2.1 switched to the cassandra-driver Python library, which only recently added IPv6 support. The version bundled with 2.1.0 does not include a sufficiently recent version, so cqlsh is unusable for those of us running IPv6 (us? me...?)The fix is to simply upgrade the bundled version of the Python cassandra-driver to at least version 2.1.1</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.1.0.post.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7993" opendate="2014-9-23 00:00:00" fixdate="2014-10-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fat client nodes dont schedule schema pull on connect</summary>
+      <description>So they cannot connect for a long time</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7995" opendate="2014-9-23 00:00:00" fixdate="2014-9-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablerepairedset should take more that one sstable as an argument</summary>
+      <description>Given that a c* node can have a number of sstables in the 10s (100s?) of thousands of sstables on it, sstablerepairedset should be taking a list of sstables to mark as repaired rather than a single sstable.Running any command 10s of thousands of times isn't really good let alone one that spins up a jvm.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableRepairedAtSetter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8007" opendate="2014-9-26 00:00:00" fixdate="2014-9-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader throws exceptions when used with &amp;#39;-cph&amp;#39;</summary>
+      <description>When I use sstableloader with -cph(connections per host) option greater than 1, I get the following exceptions.java.lang.NullPointerException: null at org.apache.cassandra.io.sstable.SSTableReader$6.run(SSTableReader.java:637) ~[main/:na] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) ~[na:1.7.0_51] at java.util.concurrent.FutureTask.run(FutureTask.java:262) ~[na:1.7.0_51] at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$201(ScheduledThreadPoolExecutor.java:178) ~[na:1.7.0_51] at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:292) ~[na:1.7.0_51] at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) ~[na:1.7.0_51] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) [na:1.7.0_51] at java.lang.Thread.run(Thread.java:744) [na:1.7.0_51]also,ERROR 14:33:52 [Stream #218f2470-458a-11e4-a929-cb31cb113424] Streaming error occurredjava.lang.AssertionError: Reference counter -1 for /home/yuki/Keyspace1/Standard1-cb5e6f30458811e49349511b628b066f/Keyspace1-Standard1-ka-6-Data.db at org.apache.cassandra.io.sstable.SSTableReader.releaseReference(SSTableReader.java:1597) ~[main/:na] at org.apache.cassandra.streaming.StreamTransferTask.complete(StreamTransferTask.java:68) ~[main/:na] at org.apache.cassandra.streaming.StreamSession.received(StreamSession.java:522) ~[main/:na] at org.apache.cassandra.streaming.StreamSession.messageReceived(StreamSession.java:404) ~[main/:na] at org.apache.cassandra.streaming.ConnectionHandler$IncomingMessageHandler.run(ConnectionHandler.java:295) ~[main/:na] at java.lang.Thread.run(Thread.java:744) [na:1.7.0_51]Looks like there are conflict in grabbing SSTables to stream.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamCoordinator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8020" opendate="2014-9-29 00:00:00" fixdate="2014-10-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool repair on Cassandra 2.1.0 indexed tables returns java exception about creating snapshots</summary>
+      <description>Running a nodetool repair on Cassandra 2.1.0 indexed tables returns java exception about creating snapshots:Command line:[2014-09-29 11:25:24,945] Repair session 73c0d390-47e4-11e4-ba0f-c7788dc924ec for range (-7298689860784559350,-7297558156602685286] failed with error java.io.IOException: Failed during snapshot creation.[2014-09-29 11:25:24,945] Repair command #5 finishedCassandra log:ERROR [Thread-49681] 2014-09-29 11:25:24,945 StorageService.java:2689 - Repair session 73c0d390-47e4-11e4-ba0f-c7788dc924ec for range (-7298689860784559350,-7297558156602685286] failed with error java.io.IOException: Failed during snapshot creation.java.util.concurrent.ExecutionException: java.lang.RuntimeException: java.io.IOException: Failed during snapshot creation. at java.util.concurrent.FutureTask.report(FutureTask.java:122) [na:1.7.0_67] at java.util.concurrent.FutureTask.get(FutureTask.java:188) [na:1.7.0_67] at org.apache.cassandra.service.StorageService$4.runMayThrow(StorageService.java:2680) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) [apache-cassandra-2.1.0.jar:2.1.0] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) [na:1.7.0_67] at java.util.concurrent.FutureTask.run(FutureTask.java:262) [na:1.7.0_67] at java.lang.Thread.run(Thread.java:745) [na:1.7.0_67]Caused by: java.lang.RuntimeException: java.io.IOException: Failed during snapshot creation. at com.google.common.base.Throwables.propagate(Throwables.java:160) ~[guava-16.0.jar:na] at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:32) [apache-cassandra-2.1.0.jar:2.1.0] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) [na:1.7.0_67] at java.util.concurrent.FutureTask.run(FutureTask.java:262) [na:1.7.0_67] at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) ~[na:1.7.0_67] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) ~[na:1.7.0_67] ... 1 common frames omittedCaused by: java.io.IOException: Failed during snapshot creation. at org.apache.cassandra.repair.RepairSession.failedSnapshot(RepairSession.java:344) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.repair.RepairJob$2.onFailure(RepairJob.java:128) ~[apache-cassandra-2.1.0.jar:2.1.0] at com.google.common.util.concurrent.Futures$4.run(Futures.java:1172) ~[guava-16.0.jar:na] ... 3 common frames omittedIf the index is dropped, the repair returns no error:cqlsh:test&gt; drop INDEX user_pass_idx ;root@test:~# nodetool repair test user[2014-09-29 11:27:29,668] Starting repair command #6, repairing 743 ranges for keyspace test (seq=true, full=true)..[2014-09-29 11:28:38,030] Repair session e6d40e10-47e4-11e4-ba0f-c7788dc924ec for range (-7298689860784559350,-7297558156602685286] finished[2014-09-29 11:28:38,030] Repair command #6 finishedThe test table:CREATE TABLE test.user ( login text PRIMARY KEY, password text)create INDEX user_pass_idx on test.user (password) ;</description>
+      <version>2.1.1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairMessageVerbHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8021" opendate="2014-9-29 00:00:00" fixdate="2014-10-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve cqlsh autocomplete for alter keyspace</summary>
+      <description>Cqlsh autocomplete stops giving suggestions for the statementALTER KEYSPACE k WITH REPLICATION { 'class' : 'SimpleStrategy', 'replication_factor' : 1'}; after the word "WITH".</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8033" opendate="2014-10-1 00:00:00" fixdate="2014-10-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Filtering for CONTAINS on sets is broken</summary>
+      <description>With compound partition key, when you add index for one part and query by that AND with CONTAINS, the CONTAINS clause does nothing.Steps to reproduce:-- drop existing dataDROP TABLE IF EXISTS test;-- create dataCREATE TABLE test (id1 int, id2 int, tag text, items set&lt;text&gt;, PRIMARY KEY ((id1, id2), tag));INSERT INTO test (id1, id2, tag, items) VALUES (1, 1, 'cars', {'ford', 'toyota'});INSERT INTO test (id1, id2, tag, items) VALUES (1, 2, 'planes', {'airbus', 'boeing'});INSERT INTO test (id1, id2, tag, items) VALUES (2, 1, 'cars', {'bmw', 'ford'});-- if we create INDEX for items, query works okCREATE INDEX test_items ON test(items);SELECT * FROM test WHERE items CONTAINS 'ford'; -- returns 2 rows-- even this works now (but won't work later)SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'ford' ALLOW FILTERING; -- returns 1 row-- let's create the index on id1 insteadDROP INDEX test_items;CREATE INDEX test_id1s ON test(id1);-- these return all rows of id1 = 1 now, CONTAINS clause does nothingSELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'ford' ALLOW FILTERING; -- should return 1 row but returns 2SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'doesnotexist' ALLOW FILTERING; -- should return 0 rows but returns 2-- add index backCREATE INDEX test_items ON test(items);-- no effect, same as beforeSELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'ford' ALLOW FILTERING; -- should return 1 row but returns 2SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'doesnotexist' ALLOW FILTERING; -- should return 0 rows but returns 2Sample output:cqlsh:stable&gt; -- drop existing datacqlsh:stable&gt; DROP TABLE IF EXISTS test;cqlsh:stable&gt; cqlsh:stable&gt; -- create datacqlsh:stable&gt; CREATE TABLE test (id1 int, id2 int, tag text, items set&lt;text&gt;, PRIMARY KEY ((id1, id2), tag));cqlsh:stable&gt; INSERT INTO test (id1, id2, tag, items) VALUES (1, 1, 'cars', {'ford', 'toyota'});cqlsh:stable&gt; INSERT INTO test (id1, id2, tag, items) VALUES (1, 2, 'planes', {'airbus', 'boeing'});cqlsh:stable&gt; INSERT INTO test (id1, id2, tag, items) VALUES (2, 1, 'cars', {'bmw', 'ford'});cqlsh:stable&gt; cqlsh:stable&gt; -- if we create INDEX for items, query works okcqlsh:stable&gt; CREATE INDEX test_items ON test(items);cqlsh:stable&gt; SELECT * FROM test WHERE items CONTAINS 'ford'; -- returns 2 rows id1 | id2 | tag | items-----+-----+------+-------------------- 2 | 1 | cars | {'bmw', 'ford'} 1 | 1 | cars | {'ford', 'toyota'}(2 rows)cqlsh:stable&gt; cqlsh:stable&gt; -- even this works now (but won't work later)cqlsh:stable&gt; SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'ford' ALLOW FILTERING; -- returns 1 row id1 | id2 | tag | items-----+-----+------+-------------------- 1 | 1 | cars | {'ford', 'toyota'}(1 rows)cqlsh:stable&gt; cqlsh:stable&gt; -- let's create the index on id1 insteadcqlsh:stable&gt; DROP INDEX test_items;cqlsh:stable&gt; CREATE INDEX test_id1s ON test(id1);cqlsh:stable&gt; cqlsh:stable&gt; -- these return all rows of id1 = 1 now, CONTAINS clause does nothingcqlsh:stable&gt; SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'ford' ALLOW FILTERING; -- should return 1 row but returns 2 id1 | id2 | tag | items-----+-----+--------+---------------------- 1 | 2 | planes | {'airbus', 'boeing'} 1 | 1 | cars | {'ford', 'toyota'}(2 rows)cqlsh:stable&gt; SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'doesnotexist' ALLOW FILTERING; -- should return 0 rows but returns 2 id1 | id2 | tag | items-----+-----+--------+---------------------- 1 | 2 | planes | {'airbus', 'boeing'} 1 | 1 | cars | {'ford', 'toyota'}(2 rows)cqlsh:stable&gt; cqlsh:stable&gt; -- add index backcqlsh:stable&gt; CREATE INDEX test_items ON test(items);cqlsh:stable&gt; cqlsh:stable&gt; -- no effect, same as beforecqlsh:stable&gt; SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'ford' ALLOW FILTERING; -- should return 1 row but returns 2 id1 | id2 | tag | items-----+-----+--------+---------------------- 1 | 2 | planes | {'airbus', 'boeing'} 1 | 1 | cars | {'ford', 'toyota'}(2 rows)cqlsh:stable&gt; SELECT * FROM test WHERE id1 = 1 AND items CONTAINS 'doesnotexist' ALLOW FILTERING; -- should return 0 rows but returns 2 id1 | id2 | tag | items-----+-----+--------+---------------------- 1 | 2 | planes | {'airbus', 'boeing'} 1 | 1 | cars | {'ford', 'toyota'}(2 rows)</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ContainsRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ExtendedFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8054" opendate="2014-10-3 00:00:00" fixdate="2014-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>EXECUTE request with skipMetadata=false gets no metadata in response</summary>
+      <description>This has been reported independently with the Java and C++ drivers.This happens under heavy load, where multiple client threads prepare and execute statements in parallel. One of them sends an EXECUTE request with skipMetadata=false, but the returned ROWS response has no metadata in it.A patch of Message.Dispatcher.channelRead0 confirmed that the flag was incorrectly set on the response: logger.debug("Received: {}, v={}", request, connection.getVersion()); boolean skipMetadataOnRequest = false; if (request instanceof ExecuteMessage) { ExecuteMessage execute = (ExecuteMessage)request; skipMetadataOnRequest = execute.options.skipMetadata(); } response = request.execute(qstate); if (request instanceof ExecuteMessage) { Rows rows = (Rows)response; boolean skipMetadataOnResponse = rows.result.metadata.flags.contains(Flag.NO_METADATA); if (skipMetadataOnResponse != skipMetadataOnRequest) { logger.warn("Inconsistent skipMetadata on streamId {}, was {} in request but {} in response", request.getStreamId(), skipMetadataOnRequest, skipMetadataOnResponse); } }We observed the warning with (false, true) during our tests.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.messages.ResultMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.Selection.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ResultSet.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8073" opendate="2014-10-7 00:00:00" fixdate="2014-10-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Exception filtering data in a collection and compound primary key</summary>
+      <description>I'm trying to query using compound primary key and then collection. Is possible to use partition key in the query, but as soon as you include the clustering column will receive a timeout.SELECT * FROM playlists WHERE user_id = 91d8eb60-4db1-11e4-b217-f96a8b2e7d2e AND tags CONTAINS 'blues'; user_id | id | song_order | album | artist | song_id | tags | title--------------------------------------+--------------------------------------+------------+--------------+--------+--------------------------------------+------------------------------------------------+----------- 91d8eb60-4db1-11e4-b217-f96a8b2e7d2e | 62c36092-82a1-3a00-93d1-46196ee77204 | 1 | Tres Hombres | ZZ Top | a3e64f8f-bd44-4f28-b8d9-6938726e34d4 | {'blues', 'boogie rock', 'rock', 'rock blues'} | La Grange(1 rows)SELECT * FROM playlists WHERE user_id = 91d8eb60-4db1-11e4-b217-f96a8b2e7d2e AND id = 62c36092-82a1-3a00-93d1-46196ee77204 AND tags CONTAINS 'blues';errors={}, last_host=127.0.0.1See below the log:WARN [SharedPool-Worker-2] 2014-10-07 10:23:56,437 AbstractTracingAwareExecutorService.java:167 - Uncaught exception on thread Thread[SharedPool-Worker-2,5,main]: {}java.lang.RuntimeException: java.lang.NullPointerException at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:2047) ~[apache-cassandra-2.1.0.jar:2.1.0] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) ~[na:1.7.0_67] at org.apache.cassandra.concurrent.AbstractTracingAwareExecutorService$FutureTask.run(AbstractTracingAwareExecutorService.java:163) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.concurrent.SEPWorker.run(SEPWorker.java:103) [apache-cassandra-2.1.0.jar:2.1.0] at java.lang.Thread.run(Thread.java:745) [na:1.7.0_67]Caused by: java.lang.NullPointerException: null at org.apache.cassandra.db.marshal.Int32Type.compare(Int32Type.java:38) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.marshal.Int32Type.compare(Int32Type.java:28) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.composites.AbstractCType.compare(AbstractCType.java:136) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.composites.AbstractCType.compare(AbstractCType.java:40) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.AtomicBTreeColumns$3.compare(AtomicBTreeColumns.java:234) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.utils.btree.BTree.find(BTree.java:277) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.utils.btree.Path.find(Path.java:122) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.utils.btree.Cursor._reset(Cursor.java:107) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.utils.btree.Cursor.reset(Cursor.java:91) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.utils.btree.BTree.slice(BTree.java:238) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.AtomicBTreeColumns.slice(AtomicBTreeColumns.java:453) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.AtomicBTreeColumns.iterator(AtomicBTreeColumns.java:283) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.filter.SliceQueryFilter.getColumnIterator(SliceQueryFilter.java:138) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.filter.QueryFilter.getIterator(QueryFilter.java:57) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.CollationController.collectAllData(CollationController.java:206) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.CollationController.getTopLevelColumns(CollationController.java:59) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.ColumnFamilyStore.getTopLevelColumns(ColumnFamilyStore.java:1872) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.ColumnFamilyStore.getColumnFamily(ColumnFamilyStore.java:1680) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.index.composites.CompositesSearcher$1.computeNext(CompositesSearcher.java:183) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.index.composites.CompositesSearcher$1.computeNext(CompositesSearcher.java:121) ~[apache-cassandra-2.1.0.jar:2.1.0] at com.google.common.collect.AbstractIterator.tryToComputeNext(AbstractIterator.java:143) ~[guava-16.0.jar:na] at com.google.common.collect.AbstractIterator.hasNext(AbstractIterator.java:138) ~[guava-16.0.jar:na] at org.apache.cassandra.db.ColumnFamilyStore.filter(ColumnFamilyStore.java:2076) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.index.composites.CompositesSearcher.search(CompositesSearcher.java:68) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.index.SecondaryIndexManager.search(SecondaryIndexManager.java:579) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.ColumnFamilyStore.search(ColumnFamilyStore.java:2064) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.db.PagedRangeCommand.executeLocally(PagedRangeCommand.java:114) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.service.StorageProxy$LocalRangeSliceRunnable.runMayThrow(StorageProxy.java:1382) ~[apache-cassandra-2.1.0.jar:2.1.0] at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:2044) ~[apache-cassandra-2.1.0.jar:2.1.0] ... 4 common frames omitted</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ContainsRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.composites.CompositesIndexOnCollectionKey.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ExtendedFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8088" opendate="2014-10-9 00:00:00" fixdate="2014-10-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Notify subscribers when a column family is truncated</summary>
+      <description>Similarly to notifications regarding new or changed SSTable lists and memtable renewals, it can also be useful for interested classes to receive notifications when a truncate happens, or is about to happen.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8101" opendate="2014-10-10 00:00:00" fixdate="2014-10-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Invalid ASCII and UTF-8 chars not rejected in CQL string literals</summary>
+      <description>When processing CQL string literals, we ultimately use String.getBytes(Charset), which has the following note:This method always replaces malformed-input and unmappable-character sequences with this charset's default replacement byte array. The CharsetEncoder class should be used when more control over the encoding process is required.So, if we insert a non-ASCII character into an ascii string literal, it will be replaced with a ? char. Something similar happens for UTF-8.For example:cqlsh:ks1&gt; create table badstrings (a int primary key, b ascii);cqlsh:ks1&gt; insert into badstrings (a, b) VALUES ( 0, 'ΎΔδϠ');cqlsh:ks1&gt; select * from badstrings; a | b---+------ 0 | ????</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.CBUtil.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AsciiType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8105" opendate="2014-10-12 00:00:00" fixdate="2014-10-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NPE for null embedded UDT inside set</summary>
+      <description>An NPE is thrown parsing an INSERT statement when a embedded UDT inside another UDT is set to null inside a set.This sounds very convoluted, but the examples below will hopefully make it clear...With the following definitions:CREATE TYPE ut1 (a int, b int);CREATE TYPE ut2 (j frozen&lt;ut1&gt;, k int);CREATE TYPE ut3 (i int, j frozen&lt;ut1&gt;);CREATE TABLE tab1 (x int PRIMARY KEY, y set&lt;frozen&lt;ut2&gt;&gt;);CREATE TABLE tab2 (x int PRIMARY KEY, y list&lt;frozen&lt;ut2&gt;&gt;);CREATE TABLE tab3 (x int PRIMARY KEY, y set&lt;frozen&lt;ut3&gt;&gt;);This query throws a NullPointerException:INSERT INTO tab1 (x, y) VALUES (1, { { k: 1 } });These however doesn't:INSERT INTO tab2 (x, y) VALUES (1, [ { k: 1 } ]);INSERT INTO tab3 (x, y) VALUES (1, { { i: 1 } });So, the bug seems to be triggered only when the UDT is in a set, lists are fine. If the embedded UDT is after the value specified in the query, the bug doesn't seem to trigger.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.UserTypesTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.TupleType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8111" opendate="2014-10-13 00:00:00" fixdate="2014-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Create backup directories for commitlog archiving during startup</summary>
+      <description>Cassandra currently crashes if the recovery directory in commitlog_archiving does not exist (or cannot be listed). I would like to propose that Cassandra creates this directory if it does not exist. This will mimic the behavior of creating data, commitlog .. etc. directories during startup.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogArchiver.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8113" opendate="2014-10-13 00:00:00" fixdate="2014-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Gossip should ignore generation numbers too far in the future</summary>
+      <description>If a node sends corrupted gossip, it could set the generation numbers for other nodes to arbitrarily large values. This is dangerous since one bad node (e.g. with bad memory) could in theory bring down the cluster. Nodes should refuse to accept generation numbers that are too far in the future.</description>
+      <version>2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8131" opendate="2014-10-16 00:00:00" fixdate="2014-10-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Short-circuited query results from collection index query</summary>
+      <description>After watching Jonathan's 2014 summit video, I wanted to give collection indexes a try as they seem to be a fit for a "search by key/values" usage pattern we have in our setup. Doing some test queries that I expect users would do against the table, a short-circuit behavior came up:Here's the whole transcript:CREATE TABLE by_sets (id int PRIMARY KEY, datakeys set&lt;text&gt;, datavars set&lt;text&gt;);CREATE INDEX by_sets_datakeys ON by_sets (datakeys);CREATE INDEX by_sets_datavars ON by_sets (datavars);INSERT INTO by_sets (id, datakeys, datavars) VALUES (1, {'a'}, {'b'});INSERT INTO by_sets (id, datakeys, datavars) VALUES (2, {'c'}, {'d'});INSERT INTO by_sets (id, datakeys, datavars) VALUES (3, {'e'}, {'f'});INSERT INTO by_sets (id, datakeys, datavars) VALUES (4, {'a'}, {'z'});SELECT * FROM by_sets; id | datakeys | datavars----+----------+---------- 1 | {'a'} | {'b'} 2 | {'c'} | {'d'} 4 | {'a'} | {'z'} 3 | {'e'} | {'f'}We then tried this query which short-circuited:SELECT * FROM by_sets WHERE datakeys CONTAINS 'a' AND datakeys CONTAINS 'c'; id | datakeys | datavars----+----------+---------- 1 | {'a'} | {'b'} 4 | {'a'} | {'z'}(2 rows)Instead of receveing 3 rows, which match the datakeys CONTAINS 'a' AND datakeys CONTAINS 'c' we only got the first.Doing the same, but with CONTAINS 'c' first, ignores the second AND.SELECT * FROM by_sets WHERE datakeys CONTAINS 'c' AND datakeys CONTAINS 'a' ; id | datakeys | datavars----+----------+---------- 2 | {'c'} | {'d'}(1 rows)Also, on a side-note, I have two indexes on both datakeys and datavars. But when trying to run a query such as:select * from by_sets WHERE datakeys CONTAINS 'a' AND datavars CONTAINS 'z';code=2200 [Invalid query] message="Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERING"The second column, after AND (even if I inverse the order) requires an "allow filtering" clause yet the column is indexed an an in-memory "join" of the primary keys of these sets on the coordinator could build up the result.Could anyone explain the short-circuit behavior?And the requirement for "allow-filtering" on a secondly indexed column?If they're not bugs but intended they should be documented better, at least their limitations.</description>
+      <version>2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ContainsRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SingleColumnRestriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8157" opendate="2014-10-21 00:00:00" fixdate="2014-10-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Opening results early with leveled compactions broken</summary>
+      <description>CASSANDRA-8034 notifies the listeners whenever we replace an sstable to make sure we have track the right instance.Problem is though that when we open early and finish a compaction, we try to re-add the same sstable to the manifest which drops it to level 0 since it overlaps with the one that is already there</description>
+      <version>2.1.1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableReaderTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.IndexSummaryManagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableRewriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

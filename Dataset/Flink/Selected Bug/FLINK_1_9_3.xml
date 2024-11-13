@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="FLINK">
+  <bug fixdate="2020-2-20 01:00:00" id="16183" opendate="2020-2-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make identifier parsing in Table API more lenient</summary>
+      <description>I suggest to make the parsing logic for identifiers in Table API more lenient. We should not require users to escape any sql identifiers. It will make the identifiers not cross compatible between Table API and SQL, but it will improve user's experience and also will let us support parsing identifiers coming from Java's ExpressionParser (e.g. for a string array(..) it produces a lookup call with an "array" identifier which should be parsed)I suggest doing it by extending the FlinkSqlParserImpl with a new logic for TableApiSqlIdentifier which would be very similar to CompoundIdentifier with slightly adjusted logic which would not discard reserved keywords.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.calcite.CalciteParser.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.java.org.apache.flink.table.planner.calcite.CalciteParser.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.codegen.includes.parserImpls.ftl</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.api.TableEnvironment.java</file>
+      <file type="M">docs.dev.table.common.md</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-4-30 01:00:00" id="17471" opendate="2020-4-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move LICENSE and NOTICE files to root directory of python distribution</summary>
+      <description>This is observed and proposed by Robert during 1.10.1 RC1 check:Another question that I had while checking the release was the"apache-flink-1.10.1.tar.gz" binary, which I suppose is the pythondistribution.It does not contain a LICENSE and NOTICE file at the root level (which isokay [1] for binary releases), but in the "pyflink/" directory. There isalso a "deps/" directory, which contains a full distribution of Flink,without any license files.I believe it would be a little bit nicer to have the LICENSE and NOTICEfile in the root directory (if the python wheels format permits) to makesure it is obvious that all binary release contents are covered by thesefiles.http://apache-flink-mailing-list-archive.1008284.n3.nabble.com/VOTE-Release-1-10-1-release-candidate-1-tp40724p40910.html</description>
+      <version>1.9.3,1.10.0,1.11.0</version>
+      <fixedVersion>1.9.4,1.10.1,1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.setup.py</file>
+      <file type="M">flink-python.MANIFEST.in</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2020-6-17 01:00:00" id="17776" opendate="2020-5-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add documentation for DDL&amp;DML in hive dialect</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.hive.index.md</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-4-30 01:00:00" id="1799" opendate="2015-3-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Scala API does not support generic arrays</summary>
+      <description>The Scala API does not support generic arrays at the moment. It throws a rather unhelpful error message ```InvalidTypesException: The given type is not a valid object array```.Code to reproduce the problem is given below:def main(args: Array[String]) { foobar[Double]}def foobar[T: ClassTag: TypeInformation]: DataSet[Block[T]] = { val tpe = createTypeInformation[Array[T]] null}</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.types.TypeInformationGenTest.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.codegen.TypeInformationGen.scala</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.ObjectArrayTypeInfo.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-1-10 01:00:00" id="18229" opendate="2020-6-10 00:00:00" resolution="Done">
+    <buginformation>
+      <summary>Pending worker requests should be properly cleared</summary>
+      <description>Currently, if Kubernetes/Yarn does not have enough resources to fulfill Flink's resource requirement, there will be pending pod/container requests on Kubernetes/Yarn. These pending resource requirements are never cleared until either fulfilled or the Flink cluster is shutdown.However, sometimes Flink no longer needs the pending resources. E.g., the slot request is then fulfilled by another slots that become available, or the job failed due to slot request timeout (in a session cluster). In such cases, Flink does not remove the resource request until the resource is allocated, then it discovers that it no longer needs the allocated resource and release them. This would affect the underlying Kubernetes/Yarn cluster, especially when the cluster is under heavy workload.It would be good for Flink to cancel pod/container requests as earlier as possible if it can discover that some of the pending workers are no longer needed.There are several approaches potentially achieve this. We can always check whether there's a pending worker that can be canceled when a PendingTaskManagerSlot is unassigned. We can have a separate timeout for requesting new worker. If the resource cannot be allocated within the given time since requested, we should cancel that resource request and claim a resource allocation failure. We can share the same timeout for starting new worker (proposed in FLINK-13554). This is similar to 2), but it requires the worker to be registered, rather than allocated, before timeout.</description>
+      <version>1.9.3,1.10.1,1.11.0</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn.src.test.java.org.apache.flink.yarn.YarnResourceManagerDriverTest.java</file>
+      <file type="M">flink-yarn.src.main.java.org.apache.flink.yarn.YarnResourceManagerDriver.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.FineGrainedSlotManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.DeclarativeSlotManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.active.ActiveResourceManagerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.TaskExecutorManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.FineGrainedTaskManagerTracker.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.FineGrainedSlotManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.DeclarativeSlotManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.active.ResourceManagerDriver.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.active.ActiveResourceManager.java</file>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.KubernetesResourceManagerDriverTest.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.KubernetesResourceManagerDriver.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-11-12 01:00:00" id="18279" opendate="2020-6-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Simplify table overview page</summary>
+      <description>The table overview page contains an overwhelming amount of information. We should simplify the page so users quickly know: What dependencies they need to add in their user code Which planner to use</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.index.md</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2021-1-15 01:00:00" id="21790" opendate="2021-3-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Shuffle data directories to make directory selection of different TaskManagers fairer</summary>
+      <description>Currently, different TaskManagers select data directory in the same order and if there are multiple disk, some disks may stores more data than others which is bad for performance. A simple improvement is that each TaskManager shuffles the given data directories randomly and select the data directory in different order.</description>
+      <version>None</version>
+      <fixedVersion>1.15.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.NettyShuffleEnvironmentConfiguration.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2021-4-27 01:00:00" id="22489" opendate="2021-4-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>subtask backpressure indicator shows value for entire job</summary>
+      <description>In the backpressure tab of the web UI, the OK/LOW/HIGH indication is displaying the job-level backpressure for every subtask, rather than the individual subtask values (effectively showing max back pressure from all of the subtasks of the given task for every subtask, instead of the individual values).</description>
+      <version>1.9.3,1.10.3,1.11.3,1.12.2,1.13.0</version>
+      <fixedVersion>1.11.4,1.14.0,1.13.1,1.12.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.overview.backpressure.job-overview-drawer-backpressure.component.html</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

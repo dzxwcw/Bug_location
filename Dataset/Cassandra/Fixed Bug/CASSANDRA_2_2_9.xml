@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="11117" opendate="2016-2-3 00:00:00" fixdate="2016-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ColUpdateTimeDeltaHistogram histogram overflow</summary>
+      <description>getting attribute Mean of org.apache.cassandra.metrics:type=ColumnFamily,name=ColUpdateTimeDeltaHistogram threw an exceptionjavax.management.RuntimeMBeanException: java.lang.IllegalStateException: Unable to compute ceiling for max when histogram overflowedAlthough the fact that this histogram has 164 buckets already, I wonder if there is something weird with the computation thats causing this to be so large? It appears to be coming from updates to system.localorg.apache.cassandra.metrics:type=Table,keyspace=system,scope=local,name=ColUpdateTimeDeltaHistogram</description>
+      <version>2.2.9,3.0.10,3.10,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyMetricTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12539" opendate="2016-8-25 00:00:00" fixdate="2016-2-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Empty CommitLog prevents restart</summary>
+      <description>A node just crashed (known cause: CASSANDRA-11594) but to my surprise (unlike other time) restarting simply fails.Checking the logs showed:ERROR [main] 2016-08-25 17:05:22,611 JVMStabilityInspector.java:82 - Exiting due to error while processing commit log during initialization.org.apache.cassandra.db.commitlog.CommitLogReplayer$CommitLogReplayException: Could not read commit log descriptor in file /data/cassandra/commitlog/CommitLog-6-1468235564433.log at org.apache.cassandra.db.commitlog.CommitLogReplayer.handleReplayError(CommitLogReplayer.java:650) [apache-cassandra-3.0.8.jar:3.0.8] at org.apache.cassandra.db.commitlog.CommitLogReplayer.recover(CommitLogReplayer.java:327) [apache-cassandra-3.0.8.jar:3.0.8] at org.apache.cassandra.db.commitlog.CommitLogReplayer.recover(CommitLogReplayer.java:148) [apache-cassandra-3.0.8.jar:3.0.8] at org.apache.cassandra.db.commitlog.CommitLog.recover(CommitLog.java:181) [apache-cassandra-3.0.8.jar:3.0.8] at org.apache.cassandra.db.commitlog.CommitLog.recover(CommitLog.java:161) [apache-cassandra-3.0.8.jar:3.0.8] at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:289) [apache-cassandra-3.0.8.jar:3.0.8] at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:557) [apache-cassandra-3.0.8.jar:3.0.8] at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:685) [apache-cassandra-3.0.8.jar:3.0.8]INFO [main] 2016-08-25 17:08:56,944 YamlConfigurationLoader.java:85 - Configuration location: file:/etc/cassandra/cassandra.yamlDeleting the empty file fixes the problem.</description>
+      <version>2.2.9,3.0.11,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.MemoryMappedSegment.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12720" opendate="2016-9-28 00:00:00" fixdate="2016-10-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Permissions on aggregate functions are not removed on drop</summary>
+      <description>When a user defined aggregate is dropped, either directly or when it's enclosing keyspace is dropped, permissions granted on it are not cleaned up.</description>
+      <version>2.2.9,3.0.10,3.10</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.auth.AuthMigrationListener.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12754" opendate="2016-10-6 00:00:00" fixdate="2016-10-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change cassandra.wait_for_tracing_events_timeout_secs default to -1 so C* doesn&amp;#39;t wait on trace events to be written before responding to request by default</summary>
+      <description>CASSANDRA-11465 introduces a new system property cassandra.wait_for_tracing_events_timeout_secs that controls whether or not C* waits for events to be written before responding to client. The current default behavior is to wait up to 1 second and then respond and timeout. If using probabilistic tracing this can cause queries to be randomly delayed up to 1 second.Changing the default to -1 (disabled and enabling it explicitly in cql_tracing_test.TestCqlTracing.tracing_unknown_impl_test.Ideally it would be nice to be able to control this behavior on a per request basis (which would require native protocol changes).</description>
+      <version>2.2.9,3.0.10,3.10</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tracing.TraceState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12765" opendate="2016-10-10 00:00:00" fixdate="2016-10-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSTable ignored incorrectly with partition level tombstone</summary>
+      <description>CREATE TABLE test.payload( bucket_id TEXT, name TEXT, data TEXT, PRIMARY KEY (bucket_id, name));insert into test.payload (bucket_id, name, data) values ('8772618c9009cf8f5a5e0c18', 'test', 'hello');Flush nodes (nodetool flush)insert into test.payload (bucket_id, name, data) values ('8772618c9009cf8f5a5e0c19', 'test2', 'hello');delete from test.payload where bucket_id = '8772618c9009cf8f5a5e0c18';Flush nodes (nodetool flush)select * from test.payload where bucket_id = '8772618c9009cf8f5a5e0c18' and name = 'test';Expected 0 rows but get 1 row back.</description>
+      <version>2.1.17,2.2.9,3.0.10,3.10,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.CollationController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12786" opendate="2016-10-13 00:00:00" fixdate="2016-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix a bug in CASSANDRA-11005(Split consisten range movement flag)</summary>
+      <description>I missed a place in the code where we need to split this flag for bootstrap</description>
+      <version>2.2.9,3.0.10,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12856" opendate="2016-10-28 00:00:00" fixdate="2016-1-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in replication_test.SnitchConfigurationUpdateTest.test_cannot_restart_with_different_rack</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-2.1_novnode_dtest/280/testReport/replication_test/SnitchConfigurationUpdateTest/test_cannot_restart_with_different_rackError MessageProblem stopping node node1Stacktrace File "/usr/lib/python2.7/unittest/case.py", line 329, in run testMethod() File "/home/automaton/cassandra-dtest/replication_test.py", line 630, in test_cannot_restart_with_different_rack node1.stop(wait_other_notice=True) File "/usr/local/lib/python2.7/dist-packages/ccmlib/node.py", line 727, in stop raise NodeError("Problem stopping node %s" % self.name)</description>
+      <version>2.1.17,2.2.9,3.0.11,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CustomTThreadPoolServer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12863" opendate="2016-10-31 00:00:00" fixdate="2016-11-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY FROM cannot parse timestamp in partition key if table contains a counter value</summary>
+      <description>This sample table:CREATE TABLE test (columnname text, day timestamp, israndom boolean, columnvalue text, counter counter, PRIMARY KEY ((columnname, day, israndom), columnvalue));with this sample data:origins|2016-10-01 00:00:00+0000|False|ACTUAL|6origins|2016-10-01 00:00:00+0000|False|ADGMOB|4origins|2016-10-01 00:00:00+0000|False|ANONPM|4origins|2016-10-01 00:00:00+0000|False|CSRT2L|76origins|2016-10-01 00:00:00+0000|False|DIAGOP|18origins|2016-10-01 00:00:00+0000|False|E-SOFT|17origins|2016-10-01 00:00:00+0000|False|E-TASK|10when imported withCOPY ks.test FROM 'test.csv' WITH DELIMITER = '|';will generate a parse error:Failed to import 7 rows: ParseError - can't interpret u"'2016-10-01 00:00:00+0000'" as a date with this format: %Y-%m-%d %H:%M:%S%z, given up without retriesThe problem is that when a counter value is present, we don't use prepared statements and so we typically don't convert values unless they are part of the partition key. We also add quotes for certain types, such as timestamps. The problem is that we do not remove such quotes before parsing the partition key values, therefore ending up with a parse error.</description>
+      <version>2.2.9,3.0.10,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12876" opendate="2016-11-3 00:00:00" fixdate="2016-2-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Negative mean write latency</summary>
+      <description>The mean write latency returned by JMX turns negative every 30 minutes. As the attached screenshots show, the value turns negative every 30 minutes after the startup of the node.We did not experience this behavior in 2.1.16.</description>
+      <version>2.2.9,3.0.11,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.metrics.DecayingEstimatedHistogramReservoirTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.DecayingEstimatedHistogramReservoir.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12883" opendate="2016-11-5 00:00:00" fixdate="2016-1-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove support for non-JavaScript UDFs</summary>
+      <description>As recently reported in the user mailing list, JSR-223 languages other than JavaScript no longer work since version 3.0.The reason is that the sandbox implemented in CASSANDRA-9402 restricts the use of "evil" packages, classes and functions. Unfortunately, even "non-evil" packages from JSR-223 providers are blocked.In order to get a JSR-223 provider working fine, we need to allow JSR-223 provider specific packages and also allow specific runtime permissions.The fact that "arbitrary" JSR-223 providers no longer work since 3.0 has just been reported recently, means that this functionality (i.e. non-JavaSCript JSR-223 UDFs) is obviously not used.Therefore I propose to remove support for UDFs that do not use Java or JavaScript in 4.0. This will also allow to specialize scripted UDFs on Nashorn and allow to use its security features, although these are limited, more extensively. (Clarification: this ticket is just about to remove that support)Also want to point out that we never "officially" supported UDFs that are not Java or JavaScript.Sample error message:Traceback (most recent call last): File "/usr/bin/cqlsh.py", line 1264, in perform_simple_statement result = future.result() File "/usr/share/cassandra/lib/cassandra-driver-internal-only-3.5.0.post0-d8d0456.zip/cassandra-driver-3.5.0.post0-d8d0456/cassandra/cluster.py", line 3650, in result raise self._final_exceptionFunctionFailure: Error from server: code=1400 [User Defined Function failure] message="execution of 'e.test123[bigint]' failed: java.security.AccessControlException: access denied: ("java.lang.RuntimePermission" "accessClassInPackage.org.python.jline.console")</description>
+      <version>2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.ScriptBasedUDF.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12901" opendate="2016-11-10 00:00:00" fixdate="2016-11-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair can hang if node dies during sync or anticompaction</summary>
+      <description>Since the repair coordinator unregisters from the FD after validation (CASSANDRA-3569), if the initiator of a RemoteSyncTask fails, the coordinator will never know the sync task failed and hang.</description>
+      <version>2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.AnticompactionTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12909" opendate="2016-11-14 00:00:00" fixdate="2016-12-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh copy cannot parse strings when counters are present</summary>
+      <description>We get parse error Failed to import 1 rows: ParseError - argument for 's' must be a string when using the following table and data:CREATE TABLE ks.test ( object_id ascii, user_id timeuuid, counter_id ascii, count counter, PRIMARY KEY ((object_id, user_id), counter_id))EVT:be3bd2d0-a68d-11e6-90d4-1b2a65b8a28a,f7ce3ac0-a66e-11e6-b58e-4e29450fd577,SA,2The problem is this line here, strings are serialized as unicode rather than ordinary strings but only for non-prepared statements (unsure why).</description>
+      <version>2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12959" opendate="2016-11-27 00:00:00" fixdate="2016-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>copy from csv import wrong values with udt having set when fields are not specified in correct order in csv</summary>
+      <description>create KEYSPACE test WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1};CREATE TYPE test.my_udt ( first_field text, second_field frozen&lt;set&lt;text&gt;&gt;);CREATE TABLE test.test ( key text, value my_udt, PRIMARY KEY (key));The following works as expected : INSERT INTO test.test (key , value ) VALUES ( 'key1', {second_field: {'test1', 'test2'}, first_field: 'first_field'}); key | value-----+--------------------------------------------------------------- key1 | {first_field: 'first_field', second_field: {'test1', 'test2'}}but when inserted using a .csv the result is wrong:"key1","{second_field: {'test1', 'test2'}, first_field: 'first_field'}"COPY test.test FROM '~/test.csv'; key | value-----+--------------------------------------------------------------------- key1 | {first_field: '{''test1'', ''test2''}', second_field: {'irst_fiel'}}it works as expected if the keys are in order: "key1","{first_field: 'first_field', second_field: {'test1', 'test2'}}")</description>
+      <version>2.1.17,2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12979" opendate="2016-11-30 00:00:00" fixdate="2016-1-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>checkAvailableDiskSpace doesn&amp;#39;t update expectedWriteSize when reducing thread scope</summary>
+      <description>If a compaction occurs that looks like it'll take up more space than remaining disk available, the compaction manager attempts to reduce the scope of the compaction by calling reduceScopeForLimitedSpace() repeatedly. Unfortunately, the while loop passes the estimatedWriteSize calculated from the original call to hasAvailableDiskSpace, so the comparisons that are done will always be against the size of the original compaction, rather than the reduced scope one.Full method below: protected void checkAvailableDiskSpace(long estimatedSSTables, long expectedWriteSize) { if(!cfs.isCompactionDiskSpaceCheckEnabled() &amp;&amp; compactionType == OperationType.COMPACTION) { logger.info("Compaction space check is disabled"); return; } while (!getDirectories().hasAvailableDiskSpace(estimatedSSTables, expectedWriteSize)) { if (!reduceScopeForLimitedSpace()) throw new RuntimeException(String.format("Not enough space for compaction, estimated sstables = %d, expected write size = %d", estimatedSSTables, expectedWriteSize)); } }I'm proposing to recalculate the estimatedSSTables and expectedWriteSize after each iteration of reduceScopeForLimitedSpace.</description>
+      <version>2.2.9,3.0.11,3.10,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1301" opendate="2010-7-19 00:00:00" fixdate="2010-7-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Table needs to be aware of indexed column CFSes so they can be flushed correctly</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.IFlushable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BinaryMemtable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13017" opendate="2016-12-7 00:00:00" fixdate="2016-1-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DISTINCT queries on partition keys and static column might not return all the results</summary>
+      <description>In 2.1 and 2.2, a DISTINCT query on partition keys and static columns might not return all the data if some rows have no data and the static columns have also no values.The problem can be reproduced using the Java driver with the following code: session = cluster.connect(); session.execute("CREATE KEYSPACE IF NOT EXISTS test WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : '1'}"); session.execute("USE test"); session.execute("DROP TABLE IF EXISTS test"); session.execute("CREATE TABLE test (pk int, c int, v int, s int static, primary key(pk, c))"); PreparedStatement prepare = session.prepare("INSERT INTO test (pk, c, v, s) VALUES (?, ?, ?, ?)"); for (int i = 0; i &lt; 10; i++) for (int j = 0; j &lt; 1; j++) session.execute(prepare.bind(i, j, null, null)); for (Row row : session.execute(new SimpleStatement("SELECT DISTINCT token(pk), pk, s FROM test").setFetchSize(2))) { System.out.println(row); }</description>
+      <version>2.1.17,2.2.9</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.QueryPagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeSliceQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13114" opendate="2017-1-9 00:00:00" fixdate="2017-2-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade netty to 4.0.44 to fix memory leak with client encryption</summary>
+      <description>https://issues.apache.org/jira/browse/CASSANDRA-12032 updated netty for Cassandra 3.8, but this wasn't backported. Netty 4.0.23, which ships with Cassandra 3.0.x, has some serious bugs around memory handling for SSL connections.It would be nice if both were updated to 4.0.42, a version released this year.4.0.23 makes it impossible for me to run SSL, because nodes run out of memory every ~30 minutes. This was fixed in 4.0.27.</description>
+      <version>2.1.17,2.2.9,3.0.11,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Message.java</file>
+      <file type="M">lib.netty-all-4.0.23.Final.jar</file>
+      <file type="M">lib.licenses.netty-all-4.0.23.Final.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8616" opendate="2015-1-13 00:00:00" fixdate="2015-12-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstable tools may result in commit log segments be written</summary>
+      <description>There was a report of sstable2json causing commitlog segments to be written out when run. I haven't attempted to reproduce this yet, so that's all I know for now. Since sstable2json loads the conf and schema, I'm thinking that it may inadvertently be triggering the commitlog code.sstablescrub, sstableverify, and other sstable tools have the same issue.</description>
+      <version>2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.StorageServiceServerTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">test.unit.org.apache.cassandra.locator.GoogleCloudSnitchTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.locator.EC2SnitchTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.locator.CloudstackSnitchTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.CQLSSTableWriterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.gms.GossiperTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.gms.FailureDetectorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.dht.StreamStateStoreTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.SystemKeyspaceTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.NativeCellTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.lifecycle.TrackerTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.lifecycle.LifecycleTransactionTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.CounterCellTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.context.CounterContextTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.config.DatabaseDescriptorTest.java</file>
+      <file type="M">test.long.org.apache.cassandra.io.sstable.CQLSSTableWriterLongTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.EmbeddedCassandraService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.Tracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneUpgrader.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneSplitter.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneScrubber.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableImport.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

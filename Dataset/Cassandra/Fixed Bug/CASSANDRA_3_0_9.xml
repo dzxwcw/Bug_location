@@ -1,0 +1,769 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10992" opendate="2016-1-9 00:00:00" fixdate="2016-8-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hanging streaming sessions</summary>
+      <description>I've started recently running repair using Cassandra Reaper (built-in nodetool repair doesn't work for me - CASSANDRA-9935). It behaves fine but I've noticed hanging streaming sessions:root@db1:~# dateSat Jan 9 16:43:00 UTC 2016root@db1:~# nt netstats -H | grep total Receiving 5 files, 46.59 MB total. Already received 1 files, 11.32 MB total Sending 7 files, 46.28 MB total. Already sent 7 files, 46.28 MB total Receiving 6 files, 64.15 MB total. Already received 1 files, 12.14 MB total Sending 5 files, 61.15 MB total. Already sent 5 files, 61.15 MB total Receiving 4 files, 7.75 MB total. Already received 3 files, 7.58 MB total Sending 4 files, 4.29 MB total. Already sent 4 files, 4.29 MB total Receiving 12 files, 13.79 MB total. Already received 11 files, 7.66 MB total Sending 5 files, 15.32 MB total. Already sent 5 files, 15.32 MB total Receiving 8 files, 20.35 MB total. Already received 1 files, 13.63 MB total Sending 38 files, 125.34 MB total. Already sent 38 files, 125.34 MB totalroot@db1:~# dateSat Jan 9 17:45:42 UTC 2016root@db1:~# nt netstats -H | grep total Receiving 5 files, 46.59 MB total. Already received 1 files, 11.32 MB total Sending 7 files, 46.28 MB total. Already sent 7 files, 46.28 MB total Receiving 6 files, 64.15 MB total. Already received 1 files, 12.14 MB total Sending 5 files, 61.15 MB total. Already sent 5 files, 61.15 MB total Receiving 4 files, 7.75 MB total. Already received 3 files, 7.58 MB total Sending 4 files, 4.29 MB total. Already sent 4 files, 4.29 MB total Receiving 12 files, 13.79 MB total. Already received 11 files, 7.66 MB total Sending 5 files, 15.32 MB total. Already sent 5 files, 15.32 MB total Receiving 8 files, 20.35 MB total. Already received 1 files, 13.63 MB total Sending 38 files, 125.34 MB total. Already sent 38 files, 125.34 MB totalSuch sessions are left even when repair job is long time done (confirmed by checking Reaper's and Cassandra's logs). streaming_socket_timeout_in_ms in cassandra.yaml is set to default value (3600000).</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.streaming.compress.CompressedInputStreamTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.Throwables.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.RetryMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.IncomingFileMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.compress.CompressedStreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.compress.CompressedInputStream.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11126" opendate="2016-2-5 00:00:00" fixdate="2016-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>select_distinct_with_deletions_test failing on non-vnode environments</summary>
+      <description>Looks like this was fixed in CASSANDRA-10762, but not for non-vnode environments:$ DISABLE_VNODES=yes KEEP_TEST_DIR=yes CASSANDRA_VERSION=git:cassandra-3.0 PRINT_DEBUG=true nosetests -s -v upgrade_tests/cql_tests.py:TestCQLNodes2RF1.select_distinct_with_deletions_testselect_distinct_with_deletions_test (upgrade_tests.cql_tests.TestCQLNodes2RF1) ... cluster ccm directory: /tmp/dtest-UXb0unhttp://git-wip-us.apache.org/repos/asf/cassandra.git git:cassandra-3.0Custom init_config not found. Setting defaults.Done setting configuration options:{ 'num_tokens': None, 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}getting default job version for 3.0.3UpgradePath(starting_version='binary:2.2.3', upgrade_version=None)starting from 2.2.3upgrading to {'install_dir': '/home/ryan/.ccm/repository/gitCOLONcassandra-3.0'}Querying upgraded nodeFAIL======================================================================FAIL: select_distinct_with_deletions_test (upgrade_tests.cql_tests.TestCQLNodes2RF1)----------------------------------------------------------------------Traceback (most recent call last): File "/home/ryan/git/datastax/cassandra-dtest/upgrade_tests/cql_tests.py", line 3360, in select_distinct_with_deletions_test self.assertEqual(9, len(rows))AssertionError: 9 != 8-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------dtest: DEBUG: cluster ccm directory: /tmp/dtest-UXb0undtest: DEBUG: Custom init_config not found. Setting defaults.dtest: DEBUG: Done setting configuration options:{ 'num_tokens': None, 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}dtest: DEBUG: getting default job version for 3.0.3dtest: DEBUG: UpgradePath(starting_version='binary:2.2.3', upgrade_version=None)dtest: DEBUG: starting from 2.2.3dtest: DEBUG: upgrading to {'install_dir': '/home/ryan/.ccm/repository/gitCOLONcassandra-3.0'}dtest: DEBUG: Querying upgraded node--------------------- &gt;&gt; end captured logging &lt;&lt; -------------------------------------------------------------------------------------------Ran 1 test in 56.022sFAILED (failures=1)</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.PagingState.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ReadCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11195" opendate="2016-2-19 00:00:00" fixdate="2016-9-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>paging may returns incomplete results on small page size</summary>
+      <description>This was found through a flapping test, and running that test is still the easiest way to repro the issue. On CI we're seeing a 40-50% failure rate, but locally this test fails much less frequently.If I attach a python debugger and re-query the "bad" query, it continues to return incomplete data indefinitely. If I go directly to cqlsh I can see all rows just fine.</description>
+      <version>3.0.9,3.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ReadResponse.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ReadCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11332" opendate="2016-3-9 00:00:00" fixdate="2016-9-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodes connect to themselves when NTS is used</summary>
+      <description>I tested this with both the simple snitch and PFS. It's quite easy to repro, setup a cluster, start it. Mine looks like this:tcp 0 0 10.208.8.123:48003 10.208.8.63:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.8.63:40215 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:55559 10.208.35.225:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:33498 10.208.8.63:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.35.225:52530 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.35.225:53674 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:40846 10.208.35.225:7000 ESTABLISHED 26254/javatcp 0 0 10.208.8.123:7000 10.208.8.63:48880 ESTABLISHED 26254/javaNo problems so far. Now create a keyspace using NTS with an rf of 3, and perform some writes. Now it looks like this:tcp 0 0 10.208.8.123:48003 10.208.8.63:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.123:35024 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:35024 10.208.8.123:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:47212 10.208.8.123:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.63:40215 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:55559 10.208.35.225:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:33498 10.208.8.63:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.35.225:52530 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.35.225:53674 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.123:47212 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:40846 10.208.35.225:7000 ESTABLISHED 26254/java tcp 0 0 10.208.8.123:7000 10.208.8.63:48880 ESTABLISHED 26254/java I can't think of any reason for a node to connect to itself, and this can cause problems with PFS where you might only define the broadcast addresses, but now you need the internal addresses too because the node will need to look itself up when connecting to itself.</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.PropertyFileSnitch.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11356" opendate="2016-3-15 00:00:00" fixdate="2016-8-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>EC2MRS ignores broadcast_rpc_address setting in cassandra.yaml</summary>
+      <description>EC2MRS ignores broadcast_rpc_address setting in cassandra.yaml. This is problematic for those users who were using EC2MRS with an internal rpc_address before the change introduced in CASSANDRA-5899, because the change results in EC2MRS always using the public ip regardless of what the user has set for broadcast_rpc_address.</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.FBUtilitiesTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.FBUtilities.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.Ec2MultiRegionSnitch.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11414" opendate="2016-3-23 00:00:00" fixdate="2016-7-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in bootstrap_test.TestBootstrap.resumable_bootstrap_test</summary>
+      <description>Stress is failing to read back all data. We can see this output from the stress readjava.io.IOException: Operation x0 on key(s) [314c384f304f4c325030]: Data returned was not validated at org.apache.cassandra.stress.Operation.error(Operation.java:138) at org.apache.cassandra.stress.Operation.timeWithRetry(Operation.java:116) at org.apache.cassandra.stress.operations.predefined.CqlOperation.run(CqlOperation.java:101) at org.apache.cassandra.stress.operations.predefined.CqlOperation.run(CqlOperation.java:109) at org.apache.cassandra.stress.operations.predefined.CqlOperation.run(CqlOperation.java:261) at org.apache.cassandra.stress.StressAction$Consumer.run(StressAction.java:327)java.io.IOException: Operation x0 on key(s) [33383438363931353131]: Data returned was not validated at org.apache.cassandra.stress.Operation.error(Operation.java:138) at org.apache.cassandra.stress.Operation.timeWithRetry(Operation.java:116) at org.apache.cassandra.stress.operations.predefined.CqlOperation.run(CqlOperation.java:101) at org.apache.cassandra.stress.operations.predefined.CqlOperation.run(CqlOperation.java:109) at org.apache.cassandra.stress.operations.predefined.CqlOperation.run(CqlOperation.java:261) at org.apache.cassandra.stress.StressAction$Consumer.run(StressAction.java:327)FAILUREStarted happening with build 1075. Does not appear flaky on CI.example failure:http://cassci.datastax.com/job/trunk_dtest/1076/testReport/bootstrap_test/TestBootstrap/resumable_bootstrap_testFailed on CassCI build trunk_dtest #1076</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Test/dtest/python</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamReceiveTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.ConnectionHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11464" opendate="2016-3-30 00:00:00" fixdate="2016-7-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* doesn&amp;#39;t respond to OPTIONS request containing low protocol number</summary>
+      <description>Observed in Ruby and Python drivers: if you send an OPTIONS message to C* 3.4 (though I believe this goes back to 3.0) with a protocol version of 1, C* doesn't send a response to the client. If you specify a high protocol version (e.g. 5), C* does correctly respond with a protocol error.</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.ProtocolException.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.messages.ErrorMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Message.java</file>
+      <file type="M">test.unit.org.apache.cassandra.transport.ProtocolErrorTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Frame.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11465" opendate="2016-3-30 00:00:00" fixdate="2016-7-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in cql_tracing_test.TestCqlTracing.tracing_unknown_impl_test</summary>
+      <description>Failing on the following assert, on trunk only: self.assertEqual(len(errs&amp;#91;0&amp;#93;), 1)Is not failing consistently.example failure:http://cassci.datastax.com/job/trunk_dtest/1087/testReport/cql_tracing_test/TestCqlTracing/tracing_unknown_impl_testFailed on CassCI build trunk_dtest #1087</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tracing.TraceState.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.StageManager.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11594" opendate="2016-4-18 00:00:00" fixdate="2016-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Too many open files on directories</summary>
+      <description>I have a 6 nodes cluster in prod in 3 racks.each node : 4Gb commitlogs on 343 files 275Gb data on 504 filesOn saturday, 1 node in each rack crash with with too many open files (seems to be the similar node in each rack).lsof -n -p $PID give me 66899 out of 65826 maxit contains 64527 open directories (2371 uniq)a part of the list :java 19076 root 2140r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2141r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2142r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2143r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2144r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2145r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2146r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2147r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2148r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2149r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2150r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2151r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2152r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2153r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2154r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95java 19076 root 2155r DIR 8,17 143360 4386718705 /opt/stage2/pod-cassandra-aci-cassandra/rootfs/data/keyspaces/email_logs_query/emails-2d4abd00e9ea11e591199d740e07bd95The 3 others nodes crashes 4 hours later</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LogTransaction.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LogReplicaSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LogReplica.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LogFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LogAwareFileLister.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11701" opendate="2016-5-2 00:00:00" fixdate="2016-8-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[windows] dtest failure in cqlsh_tests.cqlsh_copy_tests.CqlshCopyTest.test_reading_with_skip_and_max_rows</summary>
+      <description>looks to be an assertion problem, so could be test or cassandra related:e.g.:10000 != 331http://cassci.datastax.com/job/trunk_dtest_win32/404/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_reading_with_skip_and_max_rowsFailed on CassCI build trunk_dtest_win32 #404</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11752" opendate="2016-5-11 00:00:00" fixdate="2016-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>histograms/metrics in 2.2 do not appear recency biased</summary>
+      <description>In addition to upgrading to metrics3, CASSANDRA-5657 switched to using a custom histogram implementation. After upgrading to Cassandra 2.2 histograms/timer metrics are not suspiciously flat. To be useful for graphing and alerting metrics need to be biased towards recent events.I have attached images that I think illustrate this. The first two are a comparison between latency observed by a C* 2.2 (us) cluster shoring very flat lines and a client (using metrics 2.2.0, ms) showing server performance problems. We can't rule out with total certainty that something else isn't the cause (that's why we measure from both the client &amp; server) but they very rarely disagree. The 3rd image compares jconsole viewing of metrics on a 2.2 and 2.1 cluster over several minutes. Not a single digit changed on the 2.2 cluster.</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.metrics.DecayingEstimatedHistogramReservoir.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.EstimatedHistogram.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.EstimatedHistogramReservoir.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.ClearableHistogram.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.CassandraMetricsRegistry.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11820" opendate="2016-5-17 00:00:00" fixdate="2016-6-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Altering a column&amp;#39;s type causes EOF</summary>
+      <description>While working on CASSANDRA-10309, I was testing altering columns' types. This series of operations fails:CREATE TABLE test (a int PRIMARY KEY, b int)INSERT INTO test (a, b) VALUES (1, 1)ALTER TABLE test ALTER b TYPE BLOBSELECT * FROM test WHERE a = 1Tried this on 3.0 and trunk, both fail.</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.UnfilteredSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.Cell.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.BufferCell.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11828" opendate="2016-5-18 00:00:00" fixdate="2016-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Commit log needs to track unflushed intervals rather than positions</summary>
+      <description>In CASSANDRA-11448 in an effort to give a more thorough handling of flush errors I have introduced a possible correctness bug with disk failure policy ignore if a flush fails with an error: we report the error but continue we correctly do not update the commit log with the flush position but we allow the post-flush executor to resume a successful later flush can thus move the log's clear position beyond the data from the failed flush the log will then delete segment(s) that contain unflushed data.After CASSANDRA-9669 it is relatively easy to fix this problem by making the commit log track sets of intervals of unflushed data (as described in CASSANDRA-8496).</description>
+      <version>2.1.16,2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.Util.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableRewriterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.metadata.MetadataSerializerTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.lifecycle.ViewTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.lifecycle.TrackerTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.NeverPurgeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.commitlog.CommitLogTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.OutOfSpaceTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">test.long.org.apache.cassandra.db.commitlog.CommitLogStressTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableMetadataViewer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.metadata.StatsMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.metadata.MetadataCollector.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.metadata.LegacyMetadataSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.Version.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.big.BigFormat.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.View.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.Tracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionStrategyManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.AbstractCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.ReplayPosition.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegmentManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegment.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogReplayer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BlacklistedDirectories.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11850" opendate="2016-5-20 00:00:00" fixdate="2016-7-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cannot use cql since upgrading python to 2.7.11+</summary>
+      <description>OS: Debian GNU/Linux stretch/sid Kernel: 4.5.0-2-amd64 #1 SMP Debian 4.5.4-1 (2016-05-16) x86_64 GNU/LinuxPython version: 2.7.11+ (default, May 9 2016, 15:54:33)&amp;#91;GCC 5.3.1 20160429&amp;#93;cqlsh --version: cqlsh 5.0.1cassandra -v: 3.5 (also occurs with 3.0.6)Issue:when running cqlsh, it returns the following error:cqlsh -u dbarpt_usr01Password: *****Connection error: ('Unable to connect to any servers', {'odbasandbox1': TypeError('ref() does not take keyword arguments',)})I cleared PYTHONPATH:python -c "import json; print dir(json); print json._version_"&amp;#91;&amp;#39;JSONDecoder&amp;#39;, &amp;#39;JSONEncoder&amp;#39;, &amp;#39;__all__&amp;#39;, &amp;#39;__author__&amp;#39;, &amp;#39;__builtins__&amp;#39;, &amp;#39;__doc__&amp;#39;, &amp;#39;__file__&amp;#39;, &amp;#39;__name__&amp;#39;, &amp;#39;__package__&amp;#39;, &amp;#39;__path__&amp;#39;, &amp;#39;__version__&amp;#39;, &amp;#39;_default_decoder&amp;#39;, &amp;#39;_default_encoder&amp;#39;, &amp;#39;decoder&amp;#39;, &amp;#39;dump&amp;#39;, &amp;#39;dumps&amp;#39;, &amp;#39;encoder&amp;#39;, &amp;#39;load&amp;#39;, &amp;#39;loads&amp;#39;, &amp;#39;scanner&amp;#39;&amp;#93;2.0.9Java based clients can connect to Cassandra with no issue. Just CQLSH and Python clients cannot.nodetool status also works.Thank you for your help.</description>
+      <version>2.1.16,2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.7.2-5d33cb4.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11907" opendate="2016-5-27 00:00:00" fixdate="2016-7-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>2i behaviour is different in different versions</summary>
+      <description>I think I have found more cases where 2i behave different in different Cassandra versions, CASSANDRA-11510 solved one such case but I think there are a few more.I get one behaviour with 2.1.14 and Trunk and I think this is the correct one. With 2.2.7 and 3.0.6 the behaviour is different.To test this I used ccm to setup one node clusters with the different versions, I prepared each cluster with these commands:CREATE KEYSPACE test WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': '1' };CREATE TABLE test.table1 (name text,class int,inter text,foo text,power int,PRIMARY KEY (name, class, inter, foo)) WITH CLUSTERING ORDER BY (class DESC, inter ASC);CREATE INDEX table1_power ON test.table1 (power) ;CREATE TABLE test.table2 (name text,class int,inter text,foo text,power int,PRIMARY KEY (name, class, inter, foo)) WITH CLUSTERING ORDER BY (class DESC, inter ASC);CREATE INDEX table2_inter ON test.table2 (inter) ;I executed two select quieries on each cluster:SELECT * FROM test.table1 where name='R1' AND class&gt;0 AND class&lt;4 AND inter='int1' AND power=18 ALLOW FILTERING;SELECT * FROM test.table2 where name='R1' AND class&gt;0 AND class&lt;4 AND inter='int1' AND foo='aa' ALLOW FILTERING;On 2.1.14 and Trunk they where successful. But on 2.2.7 and 3.0.6 they failed, the first one with InvalidRequest: code=2200 &amp;#91;Invalid query&amp;#93; message="Clustering column "inter" cannot be restricted (preceding column "class" is restricted by a non-EQ relation)" and the second one with InvalidRequest: code=2200 &amp;#91;Invalid query&amp;#93; message="Clustering column "foo" cannot be restricted (preceding column "inter" is restricted by a non-EQ relation)".I could get the queries to execute successfully on 2.2.7 and 3.0.6 by creating two more 2i:CREATE INDEX table1_inter ON test.table1 (inter) ;CREATE INDEX table2_foo ON test.table2 (foo) ;</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11944" opendate="2016-6-2 00:00:00" fixdate="2016-7-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablesInBounds might not actually give all sstables within the bounds due to having start positions moved in sstables</summary>
+      <description>Same problem as with CASSANDRA-11886 - if we try to fetch sstablesInBounds for CANONICAL_SSTABLES, we can miss some actually overlapping sstables. In 3.0+ we state which SSTableSet we want when calling the method.Looks like the only issue this could cause is that we include a few too many sstables in compactions that we think contain only droppable tombstones</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.lifecycle.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SizeEstimatesRecorder.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.PartitionRangeReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.View.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.AbstractCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11980" opendate="2016-6-8 00:00:00" fixdate="2016-7-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reads at EACH_QUORUM not respecting the level with read repair or speculative retry active</summary>
+      <description>ReadCallback::waitingFor() is not sophisticated enough to correctly count replies from replicas towards blockFor, and can return to the client before getting an actual quorum in each of the DCs.Assume DC1: n1, n2, n3; DC2: n4, n5, n6; blockFor in this case would be 4. ReadCallback does not count replies from different DCs separately, however, so if the replies return in order of n1, n2, n3, n4, the request will still succeed, having achieved 4, despite not getting a quorum from DC2.The bug potentially manifests itself if RR.GLOBAL, RR.LOCAL, or any speculative retry triggers.The easiest fix would be to temporarily disable RR and speculative retry on each quorum reads.</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractReadExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11996" opendate="2016-6-13 00:00:00" fixdate="2016-7-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSTableSet.CANONICAL can miss sstables</summary>
+      <description>There is a race where we might miss sstables in SSTableSet.CANONICAL when we finish up a compaction.Reproducing unit test pushed here</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableRewriterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.index.internal.CustomCassandraIndex.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.lifecycle.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.SecondaryIndexManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.internal.CassandraIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.view.ViewBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SizeEstimatesRecorder.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.View.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.Tracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12040" opendate="2016-6-20 00:00:00" fixdate="2016-8-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>If a level compaction fails due to no space it should schedule the next one</summary>
+      <description>If a level compaction fails the space check, it aborts but next time the compactions are scheduled it will attempt the same one. It should skip it and go to the next so it can find smaller compactions to do.</description>
+      <version>2.1.16,2.2.8,3.0.9,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12044" opendate="2016-6-21 00:00:00" fixdate="2016-7-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Materialized view definition regression in clustering key</summary>
+      <description>This bug was reported on the users mailing list. The following definitions work in 3.0.3 but fail in 3.0.7.CREATE TABLE ks.pa ( id bigint, sub_id text, name text, class text, r_id bigint, k_id bigint, created timestamp, priority int, updated timestamp, value text, PRIMARY KEY (id, sub_id, name));CREATE ks.mv_pa AS SELECT k_id, name, value, sub_id, id, class, r_id FROM ks.pa WHERE k_id IS NOT NULL AND name IS NOT NULL AND value IS NOT NULL AND sub_id IS NOT NULL AND id IS NOT NULL PRIMARY KEY ((k_id, name), value, sub_id, id);After running bisect, I've narrowed it down to commit 86ba227 from CASSANDRA-11475.</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Feature/MaterializedViews,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateViewStatement.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12098" opendate="2016-6-27 00:00:00" fixdate="2016-7-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in secondary_indexes_test.TestSecondaryIndexes.test_only_coordinator_chooses_index_for_query</summary>
+      <description>example failure:http://cassci.datastax.com/job/trunk_offheap_dtest/273/testReport/secondary_indexes_test/TestSecondaryIndexes/test_only_coordinator_chooses_index_for_queryFailed on CassCI build trunk_offheap_dtest #273Standard OutputUnexpected error in node1 log, error: ERROR [MessagingService-Incoming-/127.0.0.3] 2016-06-26 08:11:32,185 CassandraDaemon.java:219 - Exception in thread Thread[MessagingService-Incoming-/127.0.0.3,5,main]java.lang.RuntimeException: Unknown column b during deserialization at org.apache.cassandra.db.Columns$Serializer.deserialize(Columns.java:433) ~[main/:na] at org.apache.cassandra.db.SerializationHeader$Serializer.deserializeForMessaging(SerializationHeader.java:407) ~[main/:na] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer.deserializeHeader(UnfilteredRowIteratorSerializer.java:192) ~[main/:na] at org.apache.cassandra.db.partitions.PartitionUpdate$PartitionUpdateSerializer.deserialize30(PartitionUpdate.java:668) ~[main/:na] at org.apache.cassandra.db.partitions.PartitionUpdate$PartitionUpdateSerializer.deserialize(PartitionUpdate.java:642) ~[main/:na] at org.apache.cassandra.db.Mutation$MutationSerializer.deserialize(Mutation.java:349) ~[main/:na] at org.apache.cassandra.db.Mutation$MutationSerializer.deserialize(Mutation.java:368) ~[main/:na] at org.apache.cassandra.db.Mutation$MutationSerializer.deserialize(Mutation.java:305) ~[main/:na] at org.apache.cassandra.net.MessageIn.read(MessageIn.java:114) ~[main/:na] at org.apache.cassandra.net.IncomingTcpConnection.receiveMessage(IncomingTcpConnection.java:190) ~[main/:na] at org.apache.cassandra.net.IncomingTcpConnection.receiveMessages(IncomingTcpConnection.java:178) ~[main/:na] at org.apache.cassandra.net.IncomingTcpConnection.run(IncomingTcpConnection.java:92) ~[main/:na]</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12100" opendate="2016-6-28 00:00:00" fixdate="2016-8-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compactions are stuck after TRUNCATE</summary>
+      <description>Hi,since the upgrade to C* 3.0.7 I see compaction tasks getting stuck when truncating the column family. I verified this on all nodes of the cluster.Pending compactions seem to disappear after restarting the node.root@node10:~# nodetool -h localhost compactionstatspending tasks: 6 id compaction type keyspace table completed total unit progress 24e1ad30-3cac-11e6-870d-5de740693258 Compaction schema table_1 0 57558382 bytes 0.00% 2be2e3b0-3cac-11e6-870d-5de740693258 Compaction schema table_2 0 65063705 bytes 0.00% 54de38f0-3cac-11e6-870d-5de740693258 Compaction schema table_3 0 187031 bytes 0.00% 31926ce0-3cac-11e6-870d-5de740693258 Compaction schema table_4 0 42951119 bytes 0.00% 3911ad00-3cac-11e6-870d-5de740693258 Compaction schema table_5 0 25918949 bytes 0.00% 3e6a8ab0-3cac-11e6-870d-5de740693258 Compaction schema table_6 0 65466210 bytes 0.00%Active compaction remaining time : 0h00m15s</description>
+      <version>2.2.10,3.0.9,3.8</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12123" opendate="2016-6-30 00:00:00" fixdate="2016-7-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in upgrade_tests.cql_tests.TestCQLNodes3RF3_Upgrade_next_2_1_x_To_current_3_x.cql3_non_compound_range_tombstones_test</summary>
+      <description>example failure:http://cassci.datastax.com/job/upgrade_tests-all-custom_branch_runs/37/testReport/upgrade_tests.cql_tests/TestCQLNodes3RF3_Upgrade_next_2_1_x_To_current_3_x/cql3_non_compound_range_tombstones_testFailed on CassCI build upgrade_tests-all-custom_branch_runs #37Failing here: File "/home/automaton/cassandra-dtest/upgrade_tests/cql_tests.py", line 1667, in cql3_non_compound_range_tombstones_test self.assertEqual(6, len(row), row)As we see, the row has more data returned. This implies that data isn't properly being shadowed by the tombstone. As such, I'm filing this directly as a bug.</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ReadResponse.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12144" opendate="2016-7-6 00:00:00" fixdate="2016-7-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Undeletable / duplicate rows after upgrading from 2.2.4 to 3.0.7</summary>
+      <description>We upgraded our cluster today and now have a some rows that refuse to delete.Here are some example traces.https://gist.github.com/vishnevskiy/36aa18c468344ea22d14f9fb9b99171dEven weirder.Updating the row and querying it back results in 2 rows even though the id is the clustering key.user_id | id | since | type-------------------+--------------------+--------------------------+------116138050710536192 | 153047019424972800 | null | 0116138050710536192 | 153047019424972800 | 2016-05-30 14:53:08+0000 | 2And then deleting it again only removes the new one.cqlsh:discord_relationships&gt; DELETE FROM relationships WHERE user_id = 116138050710536192 AND id = 153047019424972800;cqlsh:discord_relationships&gt; SELECT * FROM relationships WHERE user_id = 116138050710536192 AND id = 153047019424972800; user_id | id | since | type--------------------+--------------------+--------------------------+------ 116138050710536192 | 153047019424972800 | 2016-05-30 14:53:08+0000 | 2We tried repairing, compacting, scrubbing. No Luck.Not sure what to do. Is anyone aware of this?</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ScrubTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableIdentityIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.LegacyLayout.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.Scrubber.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12181" opendate="2016-7-12 00:00:00" fixdate="2016-7-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include table name in "Cannot get comparator" exception</summary>
+      <description>Having table name will help in debugging the following exception. ERROR &amp;#91;MutationStage:xx&amp;#93; CassandraDaemon.java (line 199) Exception in thread Thread&amp;#91;MutationStage:3788,5,main&amp;#93;clusterName=itms8shared20java.lang.RuntimeException: Cannot get comparator 2 in org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.UTF8Type). This might be due to a mismatch between the schema and the data read</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12193" opendate="2016-7-13 00:00:00" fixdate="2016-7-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in upgrade_tests.cql_tests.TestCQLNodes3RF3_Upgrade_current_2_1_x_To_indev_3_0_x.noncomposite_static_cf_test</summary>
+      <description>example failure:http://cassci.datastax.com/job/upgrade_tests-all/59/testReport/upgrade_tests.cql_tests/TestCQLNodes3RF3_Upgrade_current_2_1_x_To_indev_3_0_x/noncomposite_static_cf_testFailed on CassCI build upgrade_tests-all #59Stacktrace File "/usr/lib/python2.7/unittest/case.py", line 329, in run testMethod() File "/home/automaton/cassandra-dtest/upgrade_tests/cql_tests.py", line 146, in noncomposite_static_cf_test [UUID('550e8400-e29b-41d4-a716-446655440000'), 32, 'Frodo', 'Baggins']]) File "/home/automaton/cassandra-dtest/assertions.py", line 162, in assert_all assert list_res == expected, "Expected {} from {}, but got {}".format(expected, query, list_res)"Expected [[UUID('f47ac10b-58cc-4372-a567-0e02b2c3d479'), 33, 'Samwise', 'Gamgee'], [UUID('550e8400-e29b-41d4-a716-446655440000'), 32, 'Frodo', 'Baggins']] from SELECT * FROM users, but got [[UUID('f47ac10b-58cc-4372-a567-0e02b2c3d479'), 33, 'Samwise', 'Gamgee'], [UUID('f47ac10b-58cc-4372-a567-0e02b2c3d479'), 33, 'Samwise', 'Gamgee'], [UUID('f47ac10b-58cc-4372-a567-0e02b2c3d479'), 33, 'Samwise', 'Gamgee'], [UUID('550e8400-e29b-41d4-a716-446655440000'), 32, 'Frodo', 'Baggins'], [UUID('550e8400-e29b-41d4-a716-446655440000'), 32, 'Frodo', 'Baggins'], [UUID('550e8400-e29b-41d4-a716-446655440000'), 32, 'Frodo', 'Baggins']]Related failure:http://cassci.datastax.com/job/upgrade_tests-all/59/testReport/upgrade_tests.cql_tests/TestCQLNodes3RF3_Upgrade_current_2_2_x_To_head_trunk/noncomposite_static_cf_test/http://cassci.datastax.com/job/upgrade_tests-all/59/testReport/upgrade_tests.cql_tests/TestCQLNodes2RF1_Upgrade_current_2_2_x_To_indev_3_0_x/noncomposite_static_cf_test/http://cassci.datastax.com/job/upgrade_tests-all/59/testReport/upgrade_tests.cql_tests/TestCQLNodes3RF3_Upgrade_current_2_2_x_To_indev_3_0_x/noncomposite_static_cf_test/http://cassci.datastax.com/job/upgrade_tests-all/59/testReport/upgrade_tests.cql_tests/TestCQLNodes3RF3_Upgrade_current_2_1_x_To_head_trunk/noncomposite_static_cf_test/</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ReadResponse.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12208" opendate="2016-7-14 00:00:00" fixdate="2016-8-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Estimated droppable tombstones given by sstablemetadata counts tombstones that aren&amp;#39;t actually "droppable"</summary>
+      <description>=&gt; "Estimated droppable tombstones" given by sstablemetadata counts tombstones that aren't actually "droppable"To be clear, the "Estimated droppable tombstones" calculation counts tombstones that have not yet passed gc_grace_seconds as droppable tombstones, which is unexpected, since such tombstones aren't droppable.To observe the problem:Create a table using the default gc_grace_seconds (default gc_grace_seconds is 86400 is 1 day).Populate the table with a couple of records.Do a delete.Do a "nodetool flush" to flush the memtable to disk.Do an "sstablemetadata &lt;sstable&gt;" to get the metadata of the sstable you just created by doing the flush, and observe that the Estimated droppable tombstones is greater than 0.0 (actual value depends on the total number inserts/updates/deletes that you did before triggered the flush)</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableMetadataViewer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12219" opendate="2016-7-16 00:00:00" fixdate="2016-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Lost counter writes in compact table and static columns</summary>
+      <description>When we have both multiple nodes, a counter column, and compact storage - some writes are lost.Example given in dtest below.In Cassandra 3.0 does not work. Before 3.0 they seem to have.</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.partitions.PartitionUpdate.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CounterMutation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12220" opendate="2016-7-18 00:00:00" fixdate="2016-7-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>utest RowIndexEntryTest.testC11206AgainstPreviousArray/Shallow failure</summary>
+      <description>The unit tests RowIndexEntryTest.testC11206AgainstPreviousArray and RowIndexEntryTest.testC11206AgainstPreviousShallow fail after this single line change as shown in this build.Reverting that line to new HashMap&lt;&gt;() fixes the unit test issues - but does not explain why it fails, since initializing a collection with the expected size should not change the overall behaviour. There seems to be something else being wrong./cc dbrosius</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateViewStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12247" opendate="2016-7-20 00:00:00" fixdate="2016-7-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AssertionError with MVs on updating a row that isn&amp;#39;t indexed due to a null value</summary>
+      <description>Complete steps to reproduce:https://gist.github.com/brstgt/4c3269eaec50a7d4abac5690157b238c</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.view.ViewUpdateGenerator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12251" opendate="2016-7-20 00:00:00" fixdate="2016-8-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move migration tasks to non-periodic queue, assure flush executor shutdown after non-periodic executor</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-3.8_dtest_upgrade/1/testReport/upgrade_tests.cql_tests/TestCQLNodes3RF3_Upgrade_current_3_x_To_indev_3_x/whole_list_conditional_testFailed on CassCI build cassandra-3.8_dtest_upgrade #1Relevant error in logs isUnexpected error in node1 log, error: ERROR [InternalResponseStage:2] 2016-07-20 04:58:45,876 CassandraDaemon.java:217 - Exception in thread Thread[InternalResponseStage:2,5,main]java.util.concurrent.RejectedExecutionException: ThreadPoolExecutor has shut down at org.apache.cassandra.concurrent.DebuggableThreadPoolExecutor$1.rejectedExecution(DebuggableThreadPoolExecutor.java:61) ~[apache-cassandra-3.7.jar:3.7] at java.util.concurrent.ThreadPoolExecutor.reject(ThreadPoolExecutor.java:823) ~[na:1.8.0_51] at java.util.concurrent.ThreadPoolExecutor.execute(ThreadPoolExecutor.java:1369) ~[na:1.8.0_51] at org.apache.cassandra.concurrent.DebuggableThreadPoolExecutor.execute(DebuggableThreadPoolExecutor.java:165) ~[apache-cassandra-3.7.jar:3.7] at java.util.concurrent.AbstractExecutorService.submit(AbstractExecutorService.java:112) ~[na:1.8.0_51] at org.apache.cassandra.db.ColumnFamilyStore.switchMemtable(ColumnFamilyStore.java:842) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.db.ColumnFamilyStore.switchMemtableIfCurrent(ColumnFamilyStore.java:822) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.db.ColumnFamilyStore.forceFlush(ColumnFamilyStore.java:891) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.schema.SchemaKeyspace.lambda$flush$1(SchemaKeyspace.java:279) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.schema.SchemaKeyspace$$Lambda$200/1129213153.accept(Unknown Source) ~[na:na] at java.lang.Iterable.forEach(Iterable.java:75) ~[na:1.8.0_51] at org.apache.cassandra.schema.SchemaKeyspace.flush(SchemaKeyspace.java:279) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.schema.SchemaKeyspace.mergeSchema(SchemaKeyspace.java:1271) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.schema.SchemaKeyspace.mergeSchemaAndAnnounceVersion(SchemaKeyspace.java:1253) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.service.MigrationTask$1.response(MigrationTask.java:92) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.net.ResponseVerbHandler.doVerb(ResponseVerbHandler.java:53) ~[apache-cassandra-3.7.jar:3.7] at org.apache.cassandra.net.MessageDeliveryTask.run(MessageDeliveryTask.java:64) ~[apache-cassandra-3.7.jar:3.7] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) ~[na:1.8.0_51] at java.util.concurrent.FutureTask.run(FutureTask.java:266) ~[na:1.8.0_51] at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142) ~[na:1.8.0_51] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617) [na:1.8.0_51] at java.lang.Thread.run(Thread.java:745) [na:1.8.0_51]This is on a mixed 3.0.8, 3.8-tentative cluster</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Local/StartupandShutdown</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12278" opendate="2016-7-22 00:00:00" fixdate="2016-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra not working with Java 8u102 on Windows</summary>
+      <description>With the latest upgrade of Java to 8u102, Cassandra will no longer run and states "Cassandra 3.0 and later require Java 8u40 or later. Please see attached screenshot.</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12279" opendate="2016-7-22 00:00:00" fixdate="2016-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool repair hangs on non-existant table</summary>
+      <description>If nodetool repair is called with a table that does not exist, ist hangs infinitely without any error message or logs.E.g.nodetool repair foo barKeyspace foo exists but table bar does not</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairRunnable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12312" opendate="2016-7-27 00:00:00" fixdate="2016-8-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Restore JVM metric export for metric reporters</summary>
+      <description>JVM instrumentation as part of dropwizard metrics has been moved to a separate metrics-jvm artifact in metrics-v3.0. After CASSANDRA-5657, no jvm related metrics will be exported to any reporter configured via metrics-reporter-config, as this isn't part of metrics-core anymore. As memory and GC stats are essential for monitoring Cassandra, this turns out to be a blocker for us for upgrading to 2.2.I've included a patch that would add the now separate metrics-jvm package and enables some of the provided metrics on startup in case a metrics reporter is used (-Dcassandra.metricsReporterConfigFile).</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12335" opendate="2016-7-28 00:00:00" fixdate="2016-8-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Super columns are broken after upgrading to 3.0 on thrift</summary>
+      <description>Super Columns are broken after upgrading to cassandra-3.0 HEAD. The below script shows this.2.1 cli output for get:[default@test] get Sites[utf8('Bob')][utf8('attr')]['name'] as utf8;=&gt; (name=name, value=Bob, timestamp=1469724504357000)cqlsh:[default@test] key | blobAsText(column1)--------------+--------------------- 0x53696d6f6e | attr 0x426f62 | attr3.0 cli:[default@unknown] use test;unconfigured table schema_columnfamilies[default@test] get Sites[utf8('Bob')][utf8('attr')]['name'] as utf8;null[default@test]cqlsh: key | system.blobastext(column1)--------------+---------------------------------- 0x53696d6f6e | \x00\x04attr\x00\x00\x04name\x00 0x426f62 | \x00\x04attr\x00\x00\x04name\x00Run this from a directory with cassandra-3.0 checked out and compiledccm create -n 2 -v 2.1.14 testsuperecho "####################### Starting 2.1 #######################"ccm startMYFILE=`mktemp`echo "create keyspace test with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy' and strategy_options = {replication_factor:2};use test;create column family Sites with column_type = 'Super' and comparator = 'BytesType' and subcomparator='UTF8Type';set Sites[utf8('Simon')][utf8('attr')]['name'] = utf8('Simon');set Sites[utf8('Bob')][utf8('attr')]['name'] = utf8('Bob');get Sites[utf8('Bob')][utf8('attr')]['name'] as utf8;" &gt; $MYFILE~/.ccm/repository/2.1.14/bin/cassandra-cli &lt; $MYFILErm $MYFILE~/.ccm/repository/2.1.14/bin/nodetool -p 7100 flush~/.ccm/repository/2.1.14/bin/nodetool -p 7200 flushccm stop# run from cassandra-3.0 checked out and compiledccm setdirecho "####################### Starting Current Directory #######################"ccm start./bin/nodetool -p 7100 upgradesstables./bin/nodetool -p 7200 upgradesstables./bin/nodetool -p 7100 enablethrift./bin/nodetool -p 7200 enablethriftMYFILE=`mktemp`echo "use test;get Sites[utf8('Bob')][utf8('attr')]['name'] as utf8;" &gt; $MYFILE~/.ccm/repository/2.1.14/bin/cassandra-cli &lt; $MYFILErm $MYFILE</description>
+      <version>3.0.9,3.8</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaMigrator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12371" opendate="2016-8-3 00:00:00" fixdate="2016-8-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>INSERT JSON - numbers not accepted for smallint and tinyint</summary>
+      <description>Contrary to what is written down on http://cassandra.apache.org/doc/latest/cql/json.html#json-encoding-of-cassandra-data-types, numbers are not an accepted format for tinyints and smallints.Steps to reproduce on CQLSH:&gt; create table default.test(id text PRIMARY KEY, small smallint, tiny tinyint);&gt; INSERT INTO default.test JSON '{"id":"123","small":11}';InvalidRequest: Error from server: code=2200 &amp;#91;Invalid query&amp;#93; message="Error decoding JSON value for small: Expected a short value, but got a Integer: 11"&gt; INSERT INTO default.test JSON '{"id":"123","tiny":11}';InvalidRequest: Error from server: code=2200 &amp;#91;Invalid query&amp;#93; message="Error decoding JSON value for tiny: Expected a byte value, but got a Integer: 11"The good news is that when you wrap the numeric values into strings - it works like a charm.</description>
+      <version>2.2.8,3.0.9,3.8</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ShortType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ByteType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12385" opendate="2016-8-4 00:00:00" fixdate="2016-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disk failure policy should not be invoked on out of space</summary>
+      <description>If a node fills up temporarily due to compaction the disk failure policy may be invoked. Weuse stop, so the node will be disabled. This leaves the node down even though it recovers from thisfailure by aborting the compaction.</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.AbstractCompactionTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12423" opendate="2016-8-10 00:00:00" fixdate="2016-9-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cells missing from compact storage table after upgrading from 2.1.9 to 3.7</summary>
+      <description>Schema:create table ks1.test ( id int, c1 text, c2 text, v int, primary key (id, c1, c2)) with compact storage and compression = {'sstable_compression': ''};sstable2json before upgrading:[{"key": "1", "cells": [["","0",1470761440040513], ["a","asd",2470761440040513,"t",1470764842], ["asd:","0",1470761451368658], ["asd:asd","0",1470761449416613]]}]Query result with 2.1.9:cqlsh&gt; select * from ks1.test; id | c1 | c2 | v----+-----+------+--- 1 | | null | 0 1 | asd | | 0 1 | asd | asd | 0(3 rows)Query result with 3.7:cqlsh&gt; select * from ks1.test; id | 6331 | 6332 | v----+------+------+--- 1 | | null | 0(1 rows)</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.CompositeType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.LegacyLayout.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12425" opendate="2016-8-10 00:00:00" fixdate="2016-8-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Log at DEBUG when running unit tests</summary>
+      <description>patch heresample run here - looks like the logs are 13MB gzipped vs about 1.5MB with only INFO logging</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">test.conf.logback-test.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12436" opendate="2016-8-11 00:00:00" fixdate="2016-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Under some races commit log may incorrectly think it has unflushed data</summary>
+      <description>This can mainfest itself as a "Failed to force-recycle all segments; at least one segment is still in use with dirty CFs." message after CASSANDRA-11828.</description>
+      <version>3.0.9,3.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegment.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12449" opendate="2016-8-12 00:00:00" fixdate="2016-8-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Docs: Cassandra Development Section</summary>
+      <description>The new documentation already contains some user specific topics, but details on developing Cassandra are still missing. I'd like to create a new "Cassandra Development" section that would be initially created based on the following content: How to contribute (should probably be split up into sub pages) &amp;#91;~iamaleksey&amp;#93;'s On how to submit patches and have Cassandra committers like you (some overlapping content with "How to contribute" here) Code Style Running Cassandra in IDEA / Running Cassandra in Eclipse (needs to be reviewed for latest IDE versions)Additional content would be nice to have as well, e.g. on contributing documentation.</description>
+      <version>None</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.source..templates.indexcontent.html</file>
+      <file type="M">doc.source.index.rst</file>
+      <file type="M">doc.source.bugs.rst</file>
+      <file type="M">doc.source.development.images.eclipse.debug6.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug5.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug4.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug3.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug2.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug1.png</file>
+      <file type="M">doc.source.development.images.eclipse.debug0.png</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12476" opendate="2016-8-17 00:00:00" fixdate="2016-8-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SyntaxException when COPY FROM Counter Table with Null value</summary>
+      <description>I have a simple counter table CREATE TABLE test ( a int PRIMARY KEY, b counter, c counter) ;I have updated b column value with UPDATE test SET b = b + 1 WHERE a = 1;Now I have export the data with COPY test TO 'test.csv';And Import it with COPY test FROM 'test.csv';I get this ErrorFailed to import 1 rows: SyntaxException - line 1:34 no viable alternative at input 'WHERE' (...=b+1,c=c+ [WHERE]...) - will retry later, attempt 1 of 5</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12481" opendate="2016-8-17 00:00:00" fixdate="2016-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in cqlshlib.test.test_cqlsh_output.TestCqlshOutput.test_describe_keyspace_output</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-3.0_cqlsh_tests/29/testReport/cqlshlib.test.test_cqlsh_output/TestCqlshOutput/test_describe_keyspace_outputError Messageerrors={'127.0.0.1': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.1http://cassci.datastax.com/job/cassandra-3.0_cqlsh_tests/lastCompletedBuild/cython=no,label=ctool-lab/testReport/cqlshlib.test.test_cqlsh_output/TestCqlshOutput/test_describe_keyspace_output/</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Test/dtest/python</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.cassconnect.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12508" opendate="2016-8-19 00:00:00" fixdate="2016-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool repair returns status code 0 for some errors</summary>
+      <description>For instance, when specifying hosts that don’t exist, an error message is logged, but the return code is zero.</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.RepairRunner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12528" opendate="2016-8-24 00:00:00" fixdate="2016-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix eclipse-warning problems</summary>
+      <description>The ant eclipse-warning target has accumulated some failures again. Locally, I'm seeing 3 errors on 2.2, 5 errors on 3.0, 23 errors on 3.9, and 33 errors on trunk.Depending on the amount of overlap between these errors, it may make sense to split this into sub-issues.</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.TimeWindowCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.security.EncryptionUtils.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessageOut.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.TableMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.DataOutputBuffer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.ChecksummedRebufferer.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.ChecksummedRandomAccessReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableTxnWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.plan.QueryController.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.disk.StaticTokenTreeBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.disk.PerSSTableIndexWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.hints.HintsWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.UnfilteredSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegmentReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6216" opendate="2013-10-18 00:00:00" fixdate="2013-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Level Compaction should persist last compacted key per level</summary>
+      <description>Level compaction does not persist the last compacted key per level. This is important for higher levels. The sstables with higher token and in higher levels wont get a chance to compact as the last compacted key will get reset after a restart.</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7190" opendate="2014-5-7 00:00:00" fixdate="2014-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add schema to snapshot manifest</summary>
+      <description>followup from CASSANDRA-6326</description>
+      <version>3.0.9,3.10</version>
+      <fixedVersion>Feature/MaterializedViews,Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.antlr.Parser.g</file>
+      <file type="M">test.unit.org.apache.cassandra.schema.LegacySchemaMigratorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ColumnIdentifier.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8523" opendate="2014-12-19 00:00:00" fixdate="2014-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Writes should be sent to a replacement node which has a new IP while it is streaming in data</summary>
+      <description>In our operations, we make heavy use of replace_address (or replace_address_first_boot) in order to replace broken nodes. We now realize that writes are not sent to the replacement nodes while they are in hibernate state and streaming in data. This runs counter to what our expectations were, especially since we know that writes ARE sent to nodes when they are bootstrapped into the ring.It seems like cassandra should arrange to send writes to a node that is in the process of replacing another node, just like it does for a nodes that are bootstraping. I hesitate to phrase this as "we should send writes to a node in hibernate" because the concept of hibernate may be useful in other contexts, as per CASSANDRA-8336. Maybe a new state is needed here?Among other things, the fact that we don't get writes during this period makes subsequent repairs more expensive, proportional to the number of writes that we miss (and depending on the amount of data that needs to be streamed during replacement and the time it may take to rebuild secondary indexes, we could miss many many hours worth of writes). It also leaves us more exposed to consistency violations.</description>
+      <version>2.2.8,3.0.9,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.LoadBroadcaster.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.TokenMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.VersionedValue.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">doc.source.operating.topo.changes.rst</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

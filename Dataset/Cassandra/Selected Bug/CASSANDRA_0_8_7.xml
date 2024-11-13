@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2011-9-15 01:00:00" id="2777" opendate="2011-6-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pig storage handler should implement LoadMetadata</summary>
+      <description>The reason for this is many builtin functions like SUM won't work on longs (you can workaround using LongSum, but that's lame) because the query planner doesn't know about the types beforehand, even though we are casting to native longs.There is some impact to this, though. With LoadMetadata implemented, existing scripts that specify schema will need to remove it (since LM is doing it for them) and they will need to conform to LM's terminology (key, columns, name, value) within the script. This is trivial to change, however, and the increased functionality is worth the switch.</description>
+      <version>0.8.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">contrib.pig.src.java.org.apache.cassandra.hadoop.pig.CassandraStorage.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-10-5 01:00:00" id="3137" opendate="2011-9-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement wrapping intersections for ConfigHelper&amp;#39;s InputKeyRange</summary>
+      <description>Before there was no support for multiple intersections between the split's range and the job's configured range.After CASSANDRA-3108 it is now possible.</description>
+      <version>0.8.7,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilyInputFormat.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-14 01:00:00" id="3206" opendate="2011-9-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>increase file descriptor limit in deb, rpm packages</summary>
+      <description>We can use a lot of file descriptors (one per socket, 5? per sstable). People hit this regularly on the user list and it will get worse with Leveled compaction, which limits sstable size to a relatively low size (currently 5MB).</description>
+      <version>0.8.7</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra.conf</file>
+      <file type="M">debian.init</file>
+      <file type="M">debian.cassandra.conf</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-14 01:00:00" id="3208" opendate="2011-9-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>USE &lt;keyspace&gt; doesn&amp;#39;t work for numeric keyspaces</summary>
+      <description>In the CLI, USE &lt;keyspace&gt;; doesn't work for keyspaces' names that contain only digits.The error I'm getting is:Syntax error at position 4: mismatched input '20110914' expecting Identifier</description>
+      <version>0.8.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-16 01:00:00" id="3222" opendate="2011-9-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cfhistograms is transposed/wrong again</summary>
+      <description>Read/write latencies are transposed, row size is always equal the column count. I think we've fixed this at least twice before, but here it is again.</description>
+      <version>0.7.10,0.8.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2011-9-22 01:00:00" id="3239" opendate="2011-9-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>can&amp;#39;t use RackInferringSnitch and CQL JDBC&amp;#39;s "CREATE KEYSPACE" with NetworkTopologyStrategy</summary>
+      <description>If using the CQL JDBC driver, there's a problem with using RackInferringSnitch1. With RackInferringSnitch, the datacenter names are numeric2. With CQL and NetworkTopologyStrategy, the data center replicas are specified as strategy_options:&lt;dc-name&gt;=&lt;#-of-replicas&gt;3. Using a number for &lt;dc-name&gt; fails4. Using a quoted number for &lt;dc-name&gt; fails</description>
+      <version>0.8.7</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.Cql.g</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-22 01:00:00" id="3243" opendate="2011-9-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Node which was decommissioned and shut-down reappears on a single node</summary>
+      <description>I decommissioned a node several days ago. It was no longer in the ring list on any node in the ring. However, it was in the dead gossip list.In an attempt to clean it out of the dead gossip list so I could truncate, I shut down the entire ring and bought it back up. Once the ring came back up, one node showed the decommissioned node as still in the ring in a state of 'Down'. No other node in the ring shows this info.I successfully ran removetoken on the node to get that phantom node out. However, it is back in the dead gossip list, preventing me from truncating.Where might the info on this decommissioned node be being stored? Is HH possibly trying to deliver to the removed node, thus putting it back in the ring on one node?I find it extremely curious that none of the other nodes in the ring showed the phantom node. Shouldn't gossip have propagated the node everywhere, even if it was down?</description>
+      <version>0.8.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-9-23 01:00:00" id="3247" opendate="2011-9-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader ignores option doesn&amp;#39;t work correctly</summary>
+      <description>The --ignores option is supposed to take an argument but it doesn't.</description>
+      <version>0.8.7,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2011-10-4 01:00:00" id="3309" opendate="2011-10-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool Doesnt close the open JMX connection causing it to leak Threads</summary>
+      <description>When nodetool is used intensively we will see 1000's of "JMX server connection timeout"Fix is to close the connections when no longer needed.</description>
+      <version>0.8.7,1.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

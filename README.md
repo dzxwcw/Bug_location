@@ -15,7 +15,7 @@ We propose a novel approach called BisL to locate fault with Issue-Fix Graph. In
 | HIVE        | [https://github.com/apache/hive.git](https://github.com/apache/hbase.git)      |
 | NUTCH       | [https://github.com/apache/nutch.git](https://github.com/apache/hbase.git)     |
 
-#### Repository Directory Structure
+#### Dataset Directory Structure
 
 *   Dataset: This folder includes all data we crawl from issue trackers. We collect eight github projects such as Aries, Calcite, Cassandra, Flink, Geode, Hbase, Hive and Nutch.
 
@@ -41,19 +41,6 @@ We propose a novel approach called BisL to locate fault with Issue-Fix Graph. In
 
     *   Nutch
 
-*   Experiment: This folder includes all expreiment result of baselines and BisL.
+![](README_md_files/f2c7b890-a0d8-11ef-adbc-b36e8252c198.jpeg?v=1\&type=image)
 
-    *   BugLocator:
-
-        *   recommended\_multiple: This folder includes all recommended buggy files of each version using the multiple version matching strategy.
-
-        *   recommender\_latest: This folder includes all recommended buggy files using the latest version matching strategy.
-
-        *   answer\_multiple: This folder includes the value of MAP and MRR of the multiple version strategy.
-
-        *   answer\_latest: This folder includes the value of MAP and MRR of the latest version strategy.
-
-    *   BRTeacer
-
-    *   BisL
-
+Issue reports are stored in xml format and each report contains information such as fixdate, opendate, summary, description, fixed version and fixed files.&#x20;

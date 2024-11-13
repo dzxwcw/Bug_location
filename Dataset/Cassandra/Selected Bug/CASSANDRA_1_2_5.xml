@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  <bug fixdate="2013-4-9 01:00:00" id="5447" opendate="2013-4-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include fatal errors in trace events</summary>
+      <description>This would help tracking down which query is causing errors.</description>
+      <version>1.2.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2013-4-10 01:00:00" id="5452" opendate="2013-4-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow empty blob literals in CQL3</summary>
+      <description>The current grammar don't allow empty blob literals (so '0x'). The goal here is to allow the following syntax for that:INSERT INTO test(k, b) VALUES (0, 0x)I'll admit that '0x' is not the most beautiful syntax ever, but I think that's the only thing that make sense.I'll note that currently there is 2 workaround to insert empty blobs: you can either use prepared statement (not a bad idea when using blobs anyway) or, because we've deprecated but still support until 2.0 using strings as blob (to allow upgrade from 1.2.0 to 1.2.1), you can use an empty string. I'll note that this latter workaround will trigger a deprecation warning in the log however and will stop working in 2.0.</description>
+      <version>1.2.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2013-4-23 01:00:00" id="5507" opendate="2013-4-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The native protocol server is not correctly stopped on shutdown</summary>
+      <description/>
+      <version>1.2.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2013-5-3 01:00:00" id="5535" opendate="2013-5-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Manifest file not fsynced</summary>
+      <description>We had several cases where the the manifest file would get corrupted when doing power reset tests or iLO resets to mimic power failure scenarios, ungraceful resets, kernel panics etc. It wasn't clear at the time where the problem was, but I think the data below shows that Cassandra is missing an fsync call to the manifest file prior to closing it. This particular stack trace from below is on Cassandra 1.2.4.The trace was captured using strace options:strace -f -p 2200 -e trace=open,close,write,fsync,fdatasync,rename&amp;#91;pid 9710&amp;#93; open("/opt/mp/storage/persistent/cassandra/cassandra-lib/data/MSA/subinfo/subinfo-tmp.json", O_WRONLY|O_CREAT|O_TRUNC, 0666) = 238&amp;#91;pid 9710&amp;#93; write(238, "{\n \"generations\" : [ {\n \"gen"..., 3996) = 3996&amp;#91;pid 9710&amp;#93; write(238, "14, 263161, 263484, 270816, 2593"..., 3996) = 3996&amp;#91;pid 9710&amp;#93; write(238, "275136, 275137, 275138, 275139, "..., 1173) = 1173&amp;#91;pid 9710&amp;#93; close(238) = 0&amp;#91;pid 9710&amp;#93; rename("/opt/mp/storage/persistent/cassandra/cassandra-lib/data/MSA/subinfo/subinfo.json", "/opt/mp/storage/persistent/cassandra/cassandra-lib/data/MSA/subinfo/subinfo-old.json") = 0&amp;#91;pid 9710&amp;#93; rename("/opt/mp/storage/persistent/cassandra/cassandra-lib/data/MSA/subinfo/subinfo-tmp.json", "/opt/mp/storage/persistent/cassandra/cassandra-lib/data/MSA/subinfo/subinfo.json") = 0</description>
+      <version>1.1.12,1.2.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2013-5-10 01:00:00" id="5556" opendate="2013-5-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enabling/Disabling incremental backup via nodetool</summary>
+      <description>Change incremental backup setting via nodetool. In some scenarios, we'd like to control whether the incremental backup is switched on or off without redeploying</description>
+      <version>1.2.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2013-5-13 01:00:00" id="5562" opendate="2013-5-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablescrub should respect MAX_HEAP_SIZE</summary>
+      <description>sstablescrub has Xmx hardcoded to 256MB. This is not enough in my installation and causes an OOM.Since it's meant to be run offline, the memory usually allocated to the daemon can be safely given to the tool.Attached is a patch that makes it respect $MAX_HEAP_SIZE (with fallback to 256MB if not defined)</description>
+      <version>1.2.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.sstablescrub</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

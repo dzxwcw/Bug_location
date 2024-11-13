@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CALCITE">
+  <bug id="1008" opendate="2015-12-6 00:00:00" fixdate="2015-12-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replace Closeable with AutoCloseable</summary>
+      <description>Now Calcite no longer supports JDK 1.6 we can use AutoCloseable if we want to. It is more appropriate interface for releasing resources on close because it is not so tightly associated with I/O. (Closeable.close throws IOException.) Most, if not all, uses of Closeable in Calcite should instead use AutoCloseable.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">linq4j.src.main.java.org.apache.calcite.linq4j.Linq4j.java</file>
+      <file type="M">linq4j.src.main.java.org.apache.calcite.linq4j.Enumerator.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlTester.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.util.IteratorCursor.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.util.Cursor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1009" opendate="2015-12-9 00:00:00" fixdate="2015-12-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SelfPopulatingList is not thread-safe</summary>
+      <description>When I use drill, I found a bug when calcite parsing sql.in org.apache.calcite.rex.RexLocalRef, there is a method named createName(int index), when this method is called distributed, you find that you're not, NAMES may not be {$0 $1 .... $n}, but {$0...$29,$30...$59,$30...}NAMES is SelfPopulatingList.class liked Thread-safe list, but unfortunately it's Thread-unsafe list, although addAll() has a lock, this method is Thread-safe, but in method get(int index)@Override public String get(int index) { for (;;) { try { return super.get(index); } catch (IndexOutOfBoundsException e) { if (index &lt; 0) { throw new IllegalArgumentException(); } addAll( fromTo( prefix, size(), Math.max(index + 1, size() * 2))); } } }method fromTo() is not thread-safe, so it get error. So as you can see, {$30...$59} is added repeatedly.bugfix:There are several ways to solve this bug.one is, add lock before addAll(), seemed like@Override public String get(int index) { for (;;) { try { return super.get(index); } catch (IndexOutOfBoundsException e) { if (index &lt; 0) { throw new IllegalArgumentException(); }/*********lock************/ addAll( fromTo( prefix, size(), Math.max(index + 1, size() * 2))); }/*********unlock************/ } }But there is over design, catch(e) is not good.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.rex.RexExecutorTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexSlot.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1016" opendate="2015-12-10 00:00:00" fixdate="2015-12-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"GROUP BY constant" on empty relation should return 0 rows</summary>
+      <description>What should "GROUP BY 1" return on an empty table? Calcite currently returns 0 rows. Does that comply with the SQL standard?Here is what Oracle 11.2.0.2.0 does.SQL&gt; select count(*) from emp where 1 = 0; COUNT(*)---------- 0SQL&gt; select count(*) from emp where 1 = 0 group by ();no rows selectedSQL&gt; select count(*) from emp where 1 = 0 group by 1;no rows selectedSQL&gt; select count(*) from emp; COUNT(*)---------- 14SQL&gt; select count(*) from emp group by (); COUNT(*)---------- 14SQL&gt; select count(*) from emp group by 1; COUNT(*)---------- 14I had expected select count(*) from emp where 1 = 0 group by () would return 1 row, but it returns 0, like group by 1.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.sql.agg.iq</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1021" opendate="2015-12-11 00:00:00" fixdate="2015-1-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade Jackson</summary>
+      <description>Upgrade Jackson to latest stable (2.6.3); current is 2.1.1 (released 2012).Before fixing, make a list in this JIRA case of places that Jackson classes appear in Calcite public APIs.See email thread.This issue is marked "avatica" because JSON is one of the message encodings uses by Avatica uses but also affects Calcite core.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1023" opendate="2015-12-11 00:00:00" fixdate="2015-12-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Planner rule that removes Aggregate keys that are constant</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.sql.agg.iq</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.Bug.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.ReduceExpressionsRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdPredicates.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.RelOptUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.RelOptPredicateList.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1028" opendate="2015-12-18 00:00:00" fixdate="2015-12-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move populate materializations after sql-to-rel conversion</summary>
+      <description>This is to allow Phoenix to figure out which materializations are concerned with the query and thus have a chance to define them right before materializations are populated.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MaterializationTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.schema.impl.MaterializedViewTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.Prepare.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalcitePrepareImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.model.ModelHandler.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.model.JsonMaterialization.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.materialize.MaterializationService.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.materialize.MaterializationActor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1029" opendate="2015-12-18 00:00:00" fixdate="2015-12-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add "purpose" explanations to Avatica JSON docs</summary>
+      <description>Looking at the JSON docs again, they serve as a easily viewable/readable source for what objects (requests, responses, and "other") might be used with the JSON API. An area in which it is lacking is how each of these objects is actually used.Add a brief explanation to each object that describe how (and why, if necessary to give adequate explanation to "how") each are used, similar to a class-level Javadoc comment feel.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.avatica.json.reference.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1032" opendate="2015-12-20 00:00:00" fixdate="2015-12-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Verify javadoc of private methods</summary>
+      <description>Currently we only verify javadoc links for methods and classes that will occur in the site javadoc, so we skip private and package-protected methods. We should verify (and fix) all javadoc references, because we use javadoc references for code-level documentation.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.ImmutableBitSet.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.BitSets.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlJdbcFunctionCall.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexMultisetUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.ReduceDecimalsRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.LoptOptimizeJoinRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdPredicates.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.externalize.RelXmlWriter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalciteMaterializer.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.SubstitutionVisitor.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.RexImplicationChecker.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.util.DateTimeUtils.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.util.AbstractCursor.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.MetaImpl.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.ConnectStringParser.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.AvaticaConnection.java</file>
+      <file type="M">avatica-server.src.main.java.org.apache.calcite.avatica.server.DelegatingAvaticaHandler.java</file>
+      <file type="M">.travis.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1040" opendate="2016-1-4 00:00:00" fixdate="2016-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ColumnValue and TypedValue are unnecessarily both repeated</summary>
+      <description>cartershanklin sent me some nice notes from working on a Python interface to the Phoenix QueryServer. He saw this strange thing in the code he had to write:count = response.results[0].first_frame.rows[0].value[0].value[0].number_valueThe value[0].value[0] is strange. Looking at the protobuf definition, it seems like both ColumnValue and TypedValue are repeated which is causing this. Only one of them should be repeated, not both. This creates the equivalent of a 2dim array inside each row instead of just a 1dim array.</description>
+      <version>1.5.0</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.avatica.protobuf.reference.md</file>
+      <file type="M">avatica.src.test.java.org.apache.calcite.avatica.remote.ProtobufTranslationImplTest.java</file>
+      <file type="M">avatica.src.test.java.org.apache.calcite.avatica.remote.ProtobufHandlerTest.java</file>
+      <file type="M">avatica.src.test.java.org.apache.calcite.avatica.FrameTest.java</file>
+      <file type="M">avatica.src.main.protobuf.common.proto</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.proto.Common.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.Meta.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1041" opendate="2016-1-4 00:00:00" fixdate="2016-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User-defined function that returns DATE or TIMESTAMP value</summary>
+      <description>In CALCITE-986 comments there are reported problems with a UDF that returns a TIMESTAMP value. Droopyhu, since that case is resolved, can you add details here?</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.util.Smalls.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.UdfTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.CalciteAssert.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.BuiltInMethod.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.SqlTypeUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.SqlTypeExplicitPrecedenceList.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.Utilities.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.SqlFunctions.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.FlatLists.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalciteCatalogReader.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.StrictAggImplementor.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexToLixTranslator.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexImpTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.ReflectiveCallNotNullImplementor.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.PhysTypeImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.EnumUtils.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.EnumerableRelImplementor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1054" opendate="2016-1-13 00:00:00" fixdate="2016-1-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NPE caused by wrong code generation for Timestamp fields</summary>
+      <description>Problem occurs when: Execute a query containing 2 checks on a Timestamp field Table contains records which have NULL values for this fieldExample query:select * from aTable where aTimestamp &gt; timestamp '2015-1-1 00:00:00' and aTimestamp &lt; timestamp '2015-2-1 00:00:00';/* 48 */ public boolean moveNext() {/* 49 */ while (inputEnumerator.moveNext()) {/* 50 */ final java.sql.Timestamp inp23_ = (java.sql.Timestamp) ((Object[]) inputEnumerator.current())[23];/* 51 */ final long v = org.apache.calcite.runtime.SqlFunctions.toLong(inp23_);/* 52 */ if (inp23_ != null &amp;&amp; v &gt; 1420070400000L &amp;&amp; (inp23_ != null &amp;&amp; v &lt; 1422748800000L)) {/* 53 */ return true;/* 54 */ }/* 55 */ }/* 56 */ return false;/* 57 */ }Stack trace snippetCaused by: java.lang.NullPointerException at org.apache.calcite.runtime.SqlFunctions.toLong(SqlFunctions.java:1094) at org.apache.calcite.runtime.SqlFunctions.toLong(SqlFunctions.java:1089) at Baz$1$1.moveNext(ANONYMOUS.java:51) at org.apache.calcite.linq4j.Linq4j$EnumeratorIterator.&lt;init&gt;(Linq4j.java:677) at org.apache.calcite.linq4j.Linq4j.enumeratorIterator(Linq4j.java:103)The generated code also looks wrong for date fields./* 15 */ public boolean moveNext() {/* 16 */ while (inputEnumerator.moveNext()) {/* 17 */ final java.sql.Date current = (java.sql.Date) inputEnumerator.current();/* 18 */ final int v = org.apache.calcite.runtime.SqlFunctions.toInt(current);/* 19 */ if (current != null &amp;&amp; v &gt; 2780 &amp;&amp; (current != null &amp;&amp; v &lt; 5290)) {/* 20 */ return true;/* 21 */ }/* 22 */ }/* 23 */ return false;/* 24 */ }Other types of fields do not have this problem. Below is what the generated code looks like in the case of a String field. On line 20 there is a null check. This is the type of check that needs to be generated for Timestamp fields as well. select empno from sales.emps where gender &gt; 'A' and gender &lt; 'Z';/* 17 */ public boolean moveNext() {/* 18 */ while (inputEnumerator.moveNext()) {/* 19 */ final Object[] current = (Object[]) inputEnumerator.current();/* 20 */ final String inp3_ = current[3] == null ? (String) null : current[3].toString();/* 21 */ if (inp3_ != null &amp;&amp; org.apache.calcite.runtime.SqlFunctions.gt(inp3_, $L4J$C$org_apache_calcite_runtime_SqlFunctions_rtrim_A_) &amp;&amp; (inp3_ != null &amp;&amp; org.apache.calcite.runtime.SqlFunctions.lt(inp3_, $L4J$C$org_apache_calcite_runtime_SqlFunctions_rtrim_Z_))) {/* 22 */ return true;/* 23 */ }/* 24 */ }/* 25 */ return false;/* 26 */ }</description>
+      <version>1.6.0,1.5.0,1.4.0-incubating</version>
+      <fixedVersion>1.16.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">example.csv.src.test.resources.bug.DATE.csv</file>
+      <file type="M">example.csv.src.test.java.org.apache.calcite.test.CsvTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexToLixTranslator.java</file>
+      <file type="M">core.src.test.resources.sql.misc.iq</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexImpTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1066" opendate="2016-1-23 00:00:00" fixdate="2016-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add an extension operator table with Oracle-specific operators</summary>
+      <description>Add a mechanism to allow connections to use additional operator tables, the first of which will be one with Oracle-specific functions. We don't aim to do every function.Important functions: DECODE NVL RTRIM LTRIM LPAD RPAD TO_CHAR TO_NUMBER TO_DATE TRUNC SUBSTR (different from standard SUBSTRING) INSTREasy: PI DEGREES RADIANS SIGN GREATEST LEAST</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.adapter.md</file>
+      <file type="M">core.src.test.java.org.apache.calcite.util.UtilTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorFeatureTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.CalciteSqlOperatorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.CalciteAssert.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlTestFactory.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlTesterImpl.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlTester.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.DelegatingSqlTestFactory.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.DefaultSqlTestFactory.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.Util.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.SqlTypeUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.SqlTypeTransforms.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlKind.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlTrimFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlStdOperatorTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.StandardConvertletTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.AggregateReduceFunctionsRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalcitePrepareImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionProperty.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionConfigImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1070" opendate="2016-1-28 00:00:00" fixdate="2016-2-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade to new Apache logo</summary>
+      <description>Upgrade web site to new Apache logo.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..sass..style.scss</file>
+      <file type="M">site..includes.footer.html</file>
+      <file type="M">site.img.feather.png</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1074" opendate="2016-2-2 00:00:00" fixdate="2016-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Please delete old releases from mirroring system</summary>
+      <description>To reduce the load on the ASF mirrors, projects are required to delete old releases &amp;#91;1&amp;#93;Please can you remove all non-current releases?i.e. 1.5.0Thanks!&amp;#91;1&amp;#93; http://www.apache.org/dev/release.html#when-to-archive</description>
+      <version>1.5.0</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site.downloads.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1104" opendate="2016-2-27 00:00:00" fixdate="2016-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Materialized view support for Cassandra adapter</summary>
+      <description>I managed to get support for a subset of Cassandra materialized views. ( Thanks owed to some hints from maryannxue!)The one thing I noticed so far which is not supported is UUID literals in the WHERE clauses in the Cassandra view definition. However, I don't think that's a common use case. The adapter will log a warning if it encounters a view that can't be processed. At the very least, the view will be exposed as a table to Calcite (it wasn't in the previous version of the adapter).As per CALCITE-1101, there is probably a better way to hook in and add these views. I thought I would still put this up for now. I'd still like to add some tests before considering this viable.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">cassandra.src.test.java.org.apache.calcite.test.CassandraAdapterIT.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraTable.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraSchemaFactory.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraSchema.java</file>
+      <file type="M">cassandra.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1111" opendate="2016-2-29 00:00:00" fixdate="2016-3-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade Guava, and test on a range of Guava versions</summary>
+      <description>Cassandra server depends on Guava 15.0. To use it we'd need to upgrade Guava too. But Hive is still on Guava 14, as is the rest of Hadoop.It might just work if we upgrade Calcite to Guava 15.0 but mark the dependency "provided". Then Hive can continue to provide Guava 14. It should give other projects more flexibility too.We should continue to run on versions of Guava as early as 11, and also try running on recent versions (the latest is 19). We should describe the dependencies in http://calcite.apache.org/downloads/#maven-artifacts.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.howto.md</file>
+      <file type="M">site..docs.history.md</file>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="888" opendate="2015-9-17 00:00:00" fixdate="2015-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Overlay window loses PARTITION BY list</summary>
+      <description>Having parenthesis around window would produce wrong result. For example,select empno, sum(empno) over (w), count(*) over wfrom empwindow w as (partition by empno order by empno)Notice that the second select item has parenthesis in the window clause. This query would generate a wrong plan:LogicalProject(EMPNO=[$0], $1=[$9], $2=[$10]) LogicalWindow(window#0=[window(partition {} order by [0] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [SUM($0)])], window#1=[window(partition {0} order by [0] range between UNBOUNDED PRECEDING and CURRENT ROW aggs [COUNT()])]) LogicalTableScan(table=[[CATALOG, SALES, EMP]])where we have two windows in the LogicalWindow.</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlWindow.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="889" opendate="2015-9-17 00:00:00" fixdate="2015-10-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement SortUnionTransposeRule</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.SortJoinTransposeRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalcitePrepareImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="890" opendate="2015-9-18 00:00:00" fixdate="2015-11-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Register all combinations of materialization substitutions</summary>
+      <description>When a query has multiple table references, there could be:1) Multiple combinations of substituted Rels if one materialization is applicable for more than one sub-tree.2) Multiple combinations of substituted Rels if different materializations are applicable for different sub-trees respectively. @Test public void testSingleMaterializationMultiUsage() { String q = "select *\n" + "from (select * from \"emps\" where \"empid\" &lt; 300)\n" + "join (select * from \"emps\" where \"empid\" &lt; 200) using (\"empid\")"; try { Prepare.THREAD_TRIM.set(true); MaterializationService.setThreadLocal(); CalciteAssert.that() .withMaterializations(JdbcTest.HR_MODEL, "m0", "select * from \"emps\" where \"empid\" &lt; 500") .query(q) .enableMaterializations(true) .explainMatches("", new Function&lt;ResultSet, Void&gt;() { public Void apply(ResultSet s) { try { final String actual = Util.toLinux(CalciteAssert.toString(s)); final String scan = "EnumerableTableScan(table=[[hr, m0]])"; assertTrue(actual + " should have had two occurrences of " + scan, StringUtils.countMatches(actual, scan) == 2); return null; } catch (SQLException e) { throw new RuntimeException(e); } } }) .sameResultWithMaterializationsDisabled(); } finally { Prepare.THREAD_TRIM.set(false); } } @Test public void testMultiMaterializationMultiUsage() { String q = "select *\n" + "from (select * from \"emps\" where \"empid\" &lt; 300)\n" + "join (select * from \"emps\" where \"deptno\" &lt; 10) using (\"empid\")"; try { Prepare.THREAD_TRIM.set(true); MaterializationService.setThreadLocal(); CalciteAssert.that() .withMaterializations(JdbcTest.HR_MODEL, "m0", "select * from \"emps\" where \"empid\" &lt; 500", "m1", "select * from \"emps\" where \"deptno\" &lt; 20") .query(q) .enableMaterializations(true) .explainContains("EnumerableTableScan(table=[[hr, m0]])") .explainContains("EnumerableTableScan(table=[[hr, m1]])") .sameResultWithMaterializationsDisabled(); } finally { Prepare.THREAD_TRIM.set(false); } }</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.pom.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MaterializationTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.volcano.VolcanoPlanner.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.SubstitutionVisitor.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.MaterializedViewSubstitutionVisitor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="891" opendate="2015-9-18 00:00:00" fixdate="2015-10-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TableScan without Project cannot be substituted by any projected materialization</summary>
+      <description>A TableScan that does not have a Project as its parent cannot be matched by any UnifyRules and thus cannot be substituted by a projected materialization; while the same TableScan with an identity projection could. @Test public void testJoinMaterialization2() { String q = "select *\n" + "from \"emps\"\n" + "join \"depts\" using (\"deptno\")"; checkMaterialize("select \"deptno\", \"empid\", \"name\", \"salary\", \"commission\" from \"emps\"", q); }In the above test case, the initial Rel was like:LogicalProject(...) LogicalJoin(...) TableScan(table=[[hr, emps]]) TableScan(table=[[hr, depts]])And the queryDescendent TableScan(table=[[hr, emps]]) cannot be matched by any UnifyRules that could have matched LogicalProject(&lt;identity_project_list&gt;, TableScan(table=[[hr, emps]])).The following changes would make this test case pass. Not sure if this would be the best fix, but it is at least a good illustration of the problem.diff --git a/core/src/main/java/org/apache/calcite/plan/RelOptUtil.java b/core/src/main/java/org/apache/calcite/plan/RelOptUtil.javaindex 7762bf7..ccece75 100644--- a/core/src/main/java/org/apache/calcite/plan/RelOptUtil.java+++ b/core/src/main/java/org/apache/calcite/plan/RelOptUtil.java@@ -2861,9 +2861,6 @@ public static RelNode permute( public static RelNode createProject(final RelFactories.ProjectFactory factory, final RelNode child, final List&lt;Integer&gt; posList) { RelDataType rowType = child.getRowType();- if (Mappings.isIdentity(posList, rowType.getFieldCount())) {- return child;- } final List&lt;String&gt; fieldNames = rowType.getFieldNames(); final RexBuilder rexBuilder = child.getCluster().getRexBuilder(); return factory.createProject(child,diff --git a/core/src/main/java/org/apache/calcite/sql2rel/SqlToRelConverter.java b/core/src/main/java/org/apache/calcite/sql2rel/SqlToRelConverter.javaindex 50f22c1..b0a519a 100644--- a/core/src/main/java/org/apache/calcite/sql2rel/SqlToRelConverter.java+++ b/core/src/main/java/org/apache/calcite/sql2rel/SqlToRelConverter.java@@ -2240,6 +2240,8 @@ protected RelNode createJoin( } }+ leftRel = leftRel instanceof Project ? leftRel : RelOptUtil.createProject(leftRel, ImmutableIntList.identity(leftRel.getRowType().getFieldCount()));+ rightRel = rightRel instanceof Project ? rightRel : RelOptUtil.createProject(rightRel, ImmutableIntList.identity(rightRel.getRowType().getFieldCount())); final Join originalJoin = (Join) RelFactories.DEFAULT_JOIN_FACTORY.createJoin(leftRel, rightRel, joinCond, joinType, ImmutableSet.&lt;String&gt;of(), false);</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MaterializationTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.SubstitutionVisitor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="892" opendate="2015-9-18 00:00:00" fixdate="2015-9-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement SortJoinTransposeRule</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.sql.join.oq</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdRowCount.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalcitePrepareImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="951" opendate="2015-11-4 00:00:00" fixdate="2015-11-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Server-side stack not included in printStackTrace from Avatica</summary>
+      <description>Was debugging some PQS work, and I noticed that I wasn't getting the stack trace from the avatica server as I expected (via sqlline).Turns out, I forgot to add in an override for the printStackTrace methods which resulted in not printing the additional context to the console.</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.AvaticaSqlException.java</file>
+      <file type="M">avatica-server.src.test.java.org.apache.calcite.avatica.remote.RemoteMetaTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="952" opendate="2015-11-4 00:00:00" fixdate="2015-11-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Organize applicable materializations in reversed topological order</summary>
+      <description>With CALCITE-890, we now try applying each materialization with all possible substitution combinations. And this works fine if all applicable materializations are independent of each other. But with dependent materializations, the order of materializations in which we perform substitution matters. For example, if we have tables A and B, a materialization table C that uses A, and another materialization table D that uses tables C and B. Thus, we should apply materialization C before applying materialization D.Right now we output the applicable materialization list as we iterate through the input materialization list which could be of random order (and it actually is). A directed graph is used to find all the applicable materializations, but we can also take advantage of this graph to organize them in the desired order.</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MaterializationTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.volcano.VolcanoPlanner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="958" opendate="2015-11-6 00:00:00" fixdate="2015-11-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Overloaded Table Functions with named arguments</summary>
+      <description>When returning more than one function with the same name for a call using named parameters we get a NullPointerException during planning. This is because there is a separate code path when there is only one function.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlCallBinding.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="960" opendate="2015-11-11 00:00:00" fixdate="2015-11-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Download links for pgp, md5, KEYS files, and direct from mirrors</summary>
+      <description>I noticed the recent announce mail of Calcite 1.5.0, which points to the generic ASF download page.However I could not find any links to download releases on the website.I found the developer page, but that only shows links for the current source.Have I overlooked the page?If so, where is it?It would help if there were a page that linked to the official releases on the ASF mirror system; this should be clearly linked from the main menu.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..includes.primary-nav-items.html</file>
+      <file type="M">site..docs.downloads.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="965" opendate="2015-11-13 00:00:00" fixdate="2015-11-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add links to download page from News pages</summary>
+      <description>The News pages describe the releases, but don't appear to have links to actually download them.Maybe the Red "RELEASES" bar could be a link to the appropriate section of the Downloads page?</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..layouts.news.item.html</file>
+      <file type="M">site..includes.news.item.html</file>
+      <file type="M">site.downloads.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="968" opendate="2015-11-14 00:00:00" fixdate="2015-12-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support stream joins</summary>
+      <description>Stream joins are used to relate information from different streams or stream and relation combinations. Calcite lacks (proper) support for stream-to-relation joins and stream-to-stream joins.stream-to-relation join like below fails at the SQL validation stage.select stream orders.orderId, orders.productId, products.name from orders join products on orders.productId = products.idBut if 'products' is a stream, the query is valid according to Calcite, even though the stream-to-stream join in above query is not valid due to unbounded nature of streams.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlAdvisorTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.PruneEmptyRules.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.StreamTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MockCatalogReader.java</file>
+      <file type="M">core.src.main.resources.org.apache.calcite.runtime.CalciteResource.properties</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.CalciteResource.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.stream.StreamRules.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="979" opendate="2015-11-17 00:00:00" fixdate="2015-11-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Broken links in web site</summary>
+      <description>There are broken links in the web site.Scan using http://www.brokenlinkcheck.com or similar, find and fix links.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.model.md</file>
+      <file type="M">site..docs.lattice.md</file>
+      <file type="M">site..docs.index.md</file>
+      <file type="M">site..docs.howto.md</file>
+      <file type="M">site..docs.history.md</file>
+      <file type="M">site..docs.algebra.md</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.package-info.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.model.package-info.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="988" opendate="2015-11-23 00:00:00" fixdate="2015-11-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>FilterToProjectUnifyRule.invert(MutableRel, MutableRel, MutableProject) works incorrectly</summary>
+      <description>The below code does not "invert" but only projects what's been projected. A type mismatch exception would be thrown when creating the new MutableProject. for (Ord&lt;RexNode&gt; expr : Ord.zip(project.getProjects())) { if (expr.e instanceof RexInputRef) { final int target = ((RexInputRef) expr.e).getIndex(); exprList.set(expr.i, rexBuilder.ensureType(expr.e.getType(), RexInputRef.of(target, input.rowType), false)); } else { throw MatchFailed.INSTANCE; } }However, the exposure of this bug is quite low. Actually I couldn't find a query that would go through this code path, coz looks like any query that has a Filter will have a Project on top of that, which makes it go the other branch and use the other invert() method. A filtered view will produce a Filter on top of another Filter thus can reproduce this problem.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MaterializationTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.SubstitutionVisitor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="993" opendate="2015-11-25 00:00:00" fixdate="2015-12-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Predicate Pull up above Project enhancement</summary>
+      <description>Predicate Pull up on Project can also pull up deterministic functions whose arguments are all literals.Ex: select r1.x from (select cast('10' as int) as x, y from r1 where y&lt;10)r1 join r2 on r1.x=r2.x;Currently deterministic functions involving constants are ignored which results in missed transitive inference.</description>
+      <version>1.5.0</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelMetadataTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.metadata.RelMdPredicates.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="996" opendate="2015-11-30 00:00:00" fixdate="2015-1-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Predicate should be simplified when we create a Filter operator</summary>
+      <description>When we create a Filter operator, there is a chance we end up with duplicate predicate factors (for instance, this has been seen in Hive when we use FilterMergeRule). It seems appropriate to simplify the predicate to eliminate those factors before we create the filter.</description>
+      <version>1.5.0</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelBuilderTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.tools.RelBuilder.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

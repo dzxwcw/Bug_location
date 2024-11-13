@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="12743" opendate="2016-10-3 00:00:00" fixdate="2016-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Assertion error while running compaction</summary>
+      <description>While running compaction I run into an error sometimes :nodetool compacterror: null-- StackTrace --java.lang.AssertionError at org.apache.cassandra.io.compress.CompressionMetadata$Chunk.&lt;init&gt;(CompressionMetadata.java:463) at org.apache.cassandra.io.compress.CompressionMetadata.chunkFor(CompressionMetadata.java:228) at org.apache.cassandra.io.util.CompressedSegmentedFile.createMappedSegments(CompressedSegmentedFile.java:80) at org.apache.cassandra.io.util.CompressedPoolingSegmentedFile.&lt;init&gt;(CompressedPoolingSegmentedFile.java:38) at org.apache.cassandra.io.util.CompressedPoolingSegmentedFile$Builder.complete(CompressedPoolingSegmentedFile.java:101) at org.apache.cassandra.io.util.SegmentedFile$Builder.complete(SegmentedFile.java:198) at org.apache.cassandra.io.sstable.format.big.BigTableWriter.openEarly(BigTableWriter.java:315) at org.apache.cassandra.io.sstable.SSTableRewriter.maybeReopenEarly(SSTableRewriter.java:171) at org.apache.cassandra.io.sstable.SSTableRewriter.append(SSTableRewriter.java:116) at org.apache.cassandra.db.compaction.writers.DefaultCompactionWriter.append(DefaultCompactionWriter.java:64) at org.apache.cassandra.db.compaction.CompactionTask.runMayThrow(CompactionTask.java:184) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) at org.apache.cassandra.db.compaction.CompactionTask.executeInternal(CompactionTask.java:74) at org.apache.cassandra.db.compaction.AbstractCompactionTask.execute(AbstractCompactionTask.java:59) at org.apache.cassandra.db.compaction.CompactionManager$8.runMayThrow(CompactionManager.java:599) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) at java.util.concurrent.FutureTask.run(FutureTask.java:266) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617) at java.lang.Thread.run(Thread.java:745)Why is that happening?Is there anyway to provide more details (e.g. which SSTable cannot be compacted)?We are using Cassandra 2.2.7</description>
+      <version>2.2.13,3.0.17,3.11.3,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.util.SequentialWriterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.compress.CompressedSequentialWriterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.SequentialWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressedSequentialWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13891" opendate="2017-9-21 00:00:00" fixdate="2017-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>fromJson(null) throws java.lang.NullPointerException on Cassandra</summary>
+      <description>Basically, fromJson throws a java.lang.NullPointerException when NULL is passed, instead of just returning a NULL itself. Say I create a UDT and a table as follows:create type type1(id int,name text);create table table1(id int,t FROZEN&lt;type1&gt;,primary key (id));And then try and insert a row as such:insert into table1 (id, t) VALUES (1, fromJson(null));I get the error: java.lang.NullPointerExceptionThis works as expected: insert into table1 (id, t) VALUES (1, null);Programmatically, one does not always know when a UDT will be null, hence me expecting fromJson to just return NULL.</description>
+      <version>2.2.13,3.0.17,3.11.3,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.FunctionCall.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14318" opendate="2018-3-16 00:00:00" fixdate="2018-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix query pager DEBUG log leak causing hit in paged reads throughput</summary>
+      <description>Debug logging can involve in many cases (especially very low latency ones) a very important overhead on the read path in 2.2 as we've seen when upgrading clusters from 2.0 to 2.2.The performance impact was especially noticeable on the client side metrics, where p99 could go up to 10 times higher, while ClientRequest metrics recorded by Cassandra didn't show any overhead.Below shows latencies recorded on the client side with debug logging on first, and then without it :  We generated a flame graph before turning off debug logging that shows the read call stack is dominated by debug logging : I've attached the original flame graph for exploration.Once disabled, the new flame graph shows that the read call stack gets extremely thin, which is further confirmed by client recorded metrics : The query pager code has been reworked since 3.0 and it looks like log.debug() calls are gone there, but for 2.2 users and to prevent such issues to appear with default settings, I really think debug logging should be disabled by default.</description>
+      <version>2.2.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.SliceQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14411" opendate="2018-4-23 00:00:00" fixdate="2018-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use Bounds instead of Range to represent sstable first/last token when checking how to anticompact sstables</summary>
+      <description>There is currently a chance of missing marking a token as repaired due to the fact that we use Range which are (a, b] to represent first/last token in sstables instead of Bounds which are &amp;#91;a, b&amp;#93;.</description>
+      <version>2.2.13,3.0.17,3.11.3,4.0-alpha1,4.0</version>
+      <fixedVersion>Consistency/Repair</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.AntiCompactionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14423" opendate="2018-4-27 00:00:00" fixdate="2018-6-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSTables stop being compacted</summary>
+      <description>So seeing a problem in 3.11.0 where SSTables are being lost from the view and not being included in compactions/as candidates for compaction. It seems to get progressively worse until there's only 1-2 SSTables in the view which happen to be the most recent SSTables and thus compactions completely stop for that table.The SSTables seem to still be included in reads, just not compactions.The issue can be fixed by restarting C*, as it will reload all SSTables into the view, but this is only a temporary fix. User defined/major compactions still work - not clear if they include the result back in the view but is not a good work around.This also results in a discrepancy between SSTable count and SSTables in levels for any table using LCS.Keyspace : xxxRead Count: 57761088Read Latency: 0.10527088681224288 ms.Write Count: 2513164Write Latency: 0.018211106398149903 ms.Pending Flushes: 0Table: xxxSSTable count: 10SSTables in each level: [2, 0, 0, 0, 0, 0, 0, 0, 0]Space used (live): 894498746Space used (total): 894498746Space used by snapshots (total): 0Off heap memory used (total): 11576197SSTable Compression Ratio: 0.6956629530569777Number of keys (estimate): 3562207Memtable cell count: 0Memtable data size: 0Memtable off heap memory used: 0Memtable switch count: 87Local read count: 57761088Local read latency: 0.108 msLocal write count: 2513164Local write latency: NaN msPending flushes: 0Percent repaired: 86.33Bloom filter false positives: 43Bloom filter false ratio: 0.00000Bloom filter space used: 8046104Bloom filter off heap memory used: 8046024Index summary off heap memory used: 3449005Compression metadata off heap memory used: 81168Compacted partition minimum bytes: 104Compacted partition maximum bytes: 5722Compacted partition mean bytes: 175Average live cells per slice (last five minutes): 1.0Maximum live cells per slice (last five minutes): 1Average tombstones per slice (last five minutes): 1.0Maximum tombstones per slice (last five minutes): 1Dropped Mutations: 0Also for STCS we've confirmed that SSTable count will be different to the number of SSTables reported in the Compaction Bucket's. In the below example there's only 3 SSTables in a single bucket - no more are listed for this table. Compaction thresholds haven't been modified for this table and it's a very basic KV schema.Keyspace : yyy Read Count: 30485 Read Latency: 0.06708991307200263 ms. Write Count: 57044 Write Latency: 0.02204061776873992 ms. Pending Flushes: 0 Table: yyy SSTable count: 19 Space used (live): 18195482 Space used (total): 18195482 Space used by snapshots (total): 0 Off heap memory used (total): 747376 SSTable Compression Ratio: 0.7607394576769735 Number of keys (estimate): 116074 Memtable cell count: 0 Memtable data size: 0 Memtable off heap memory used: 0 Memtable switch count: 39 Local read count: 30485 Local read latency: NaN ms Local write count: 57044 Local write latency: NaN ms Pending flushes: 0 Percent repaired: 79.76 Bloom filter false positives: 0 Bloom filter false ratio: 0.00000 Bloom filter space used: 690912 Bloom filter off heap memory used: 690760 Index summary off heap memory used: 54736 Compression metadata off heap memory used: 1880 Compacted partition minimum bytes: 73 Compacted partition maximum bytes: 124 Compacted partition mean bytes: 96 Average live cells per slice (last five minutes): NaN Maximum live cells per slice (last five minutes): 0 Average tombstones per slice (last five minutes): NaN Maximum tombstones per slice (last five minutes): 0 Dropped Mutations: 0 Apr 27 03:10:39 cassandra[9263]: TRACE o.a.c.d.c.SizeTieredCompactionStrategy Compaction buckets are [[BigTableReader(path='/var/lib/cassandra/data/yyy/yyy-5f7a2d60e4a811e6868a8fd39a64fd59/mc-67168-big-Data.db'), BigTableReader(path='/var/lib/cassandra/data/yyy/yyy-5f7a2d60e4a811e6868a8fd39a64fd59/mc-67167-big-Data.db'), BigTableReader(path='/var/lib/cassandra/data/yyy/yyy-5f7a2d60e4a811e6868a8fd39a64fd59/mc-67166-big-Data.db')]]Also for every LCS table we're seeing the following warning being spammed (seems to be in line with anticompaction spam):Apr 26 21:30:09 cassandra[9263]: WARN  o.a.c.d.c.LeveledCompactionStrategy Live sstable /var/lib/cassandra/data/xxx/xxx-8c3ef9e0e3fc11e6868a8fd39a64fd59/mc-79024-big-Data.db from level 0 is not on corresponding level in the leveled manifest. This is not a problem per se, but may indicate an orphaned sstable due to a failed compaction not cleaned up properly.This is a vnodes cluster with 256 tokens per node, and the only thing that seems like it could be causing issues is anticompactions.CASSANDRA-14079 might be related but doesn't quite describe the same issue, and in this case we're using only a single disk for data. Have yet to reproduce but figured worth reporting here first.</description>
+      <version>2.2.13,3.0.17,3.11.3</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.AntiCompactionTest.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

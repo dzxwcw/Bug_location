@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="18438" opendate="2017-7-23 00:00:00" fixdate="2017-10-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Precommit doesn&amp;#39;t warn about unused imports</summary>
+      <description>On HBASE-18419 I accidentally included an unused import in my patch, but precommit didn't flag it. Use this issue to diagnose and fix.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.3.2,1.1.13,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18718" opendate="2017-8-30 00:00:00" fixdate="2017-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document the coprocessor.Export</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.ops.mgt.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18749" opendate="2017-9-3 00:00:00" fixdate="2017-9-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Apply the CF specific TimeRange from Scan to filter the segment scanner</summary>
+      <description>We can evict the unused segment scanner early.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-alpha-3,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.SegmentScanner.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.Segment.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.MutableSegment.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.ImmutableSegment.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.CompositeImmutableSegment.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="19141" opendate="2017-10-31 00:00:00" fixdate="2017-11-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[compat 1-2] getClusterStatus always return empty ClusterStatus</summary>
+      <description>We are able to limit the scope to get part of ClusterStatus in 2.0. However the request sent by 1.x client has no specific scope info to retrieve any information from ClusterStatus.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-1,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestClientClusterStatus.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="19203" opendate="2017-11-7 00:00:00" fixdate="2017-11-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update Hadoop version used for build to 2.7.4</summary>
+      <description>See parent. 2.5 is really old. Based on discussions I've seen on the Hadoop *-dev@ lists, Hadoop is thinking about maintaining 2.8 and up, not 2.7. Using 2.7 for convenience binary builds is fine. We should probably update it to 2.8.2, but that's not strictly necessary so I'll opt for the oldest.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="19260" opendate="2017-11-15 00:00:00" fixdate="2017-11-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add lock back to avoid parallel accessing meta to locate region</summary>
+      <description>In branch-0.98 we have below codes to avoid accessing meta in parallel in HConnectionManager: Result regionInfoRow; // This block guards against two threads trying to load the meta // region at the same time. The first will load the meta region and // the second will use the value that the first one found. if (useCache) { if (TableName.META_TABLE_NAME.equals(parentTable) &amp;&amp; usePrefetch &amp;&amp; getRegionCachePrefetch(tableName)) { synchronized (regionLockObject) { // Check the cache again for a hit in case some other thread made the // same query while we were waiting on the lock. ... } } ...while in HBASE-10018 we removed such logic along with region-location-prefetching. We regard this as an unexpected behavior change and observed below phenomenon in our product env:1. Unnecessary connection setup to meta when multiple threads locating region in a client process2. Priority handler of the RS holding meta region exhausted, application keep retrying and cause a vicious circleTo resolve this problem, we propose to add the userRegionLock back and keep the behavior in accordance with 0.98</description>
+      <version>1.3.1,1.2.6,2.0.0-alpha-3,1.1.12</version>
+      <fixedVersion>1.4.0,1.3.2,2.0.0-beta-1,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ConnectionImplementation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21141" opendate="2018-9-2 00:00:00" fixdate="2018-11-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enable MOB in backup / restore test involving incremental backup</summary>
+      <description>Currently we only have one test (TestRemoteBackup) where MOB feature is enabled. The test only performs full backup.This issue is to enable MOB in backup / restore test(s) involving incremental backup.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-backup.src.test.java.org.apache.hadoop.hbase.backup.TestIncrementalBackup.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

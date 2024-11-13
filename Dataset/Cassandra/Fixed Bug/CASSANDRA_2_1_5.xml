@@ -1,0 +1,796 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="6458" opendate="2013-12-6 00:00:00" fixdate="2013-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool getendpoints doesn&amp;#39;t validate key arity</summary>
+      <description>I have a complex row key.$ create table b (x int, s text, ((x,s)) primary key);In cqlsh I cannot fill row key partially:$ insert into b (x) values(4);Bad Request: Missing mandatory PRIMARY KEY part sBut nodetool can find hosts by incomplete key$ nodetool -h cas3 getendpoints anti_portal b 12192.168.4.4192.168.4.5192.168.4.6No error is reported.I found that columns are separated by ":".And If I pass to many elements then the error happens.$ nodetool -h cas3 getendpoints anit_portal b 12:dd:ddException in thread "main" org.apache.cassandra.serializers.MarshalException: unable to make int from '12:dd:dd' at org.apache.cassandra.db.marshal.Int32Type.fromString(Int32Type.java:69) at org.apache.cassandra.service.StorageService.getNaturalEndpoints(StorageService.java:2495) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at sun.reflect.misc.Trampoline.invoke(MethodUtil.java:75) at sun.reflect.GeneratedMethodAccessor7.invoke(Unknown Source) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at sun.reflect.misc.MethodUtil.invoke(MethodUtil.java:279) at com.sun.jmx.mbeanserver.StandardMBeanIntrospector.invokeM2(StandardMBeanIntrospector.java:112) at com.sun.jmx.mbeanserver.StandardMBeanIntrospector.invokeM2(StandardMBeanIntrospector.java:46) at com.sun.jmx.mbeanserver.MBeanIntrospector.invokeM(MBeanIntrospector.java:237) at com.sun.jmx.mbeanserver.PerInterface.invoke(PerInterface.java:138) at com.sun.jmx.mbeanserver.MBeanSupport.invoke(MBeanSupport.java:252) at com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.invoke(DefaultMBeanServerInterceptor.java:819) at com.sun.jmx.mbeanserver.JmxMBeanServer.invoke(JmxMBeanServer.java:801) at javax.management.remote.rmi.RMIConnectionImpl.doOperation(RMIConnectionImpl.java:1487) at javax.management.remote.rmi.RMIConnectionImpl.access$300(RMIConnectionImpl.java:97) at javax.management.remote.rmi.RMIConnectionImpl$PrivilegedOperation.run(RMIConnectionImpl.java:1328) at javax.management.remote.rmi.RMIConnectionImpl.doPrivilegedOperation(RMIConnectionImpl.java:1420) at javax.management.remote.rmi.RMIConnectionImpl.invoke(RMIConnectionImpl.java:848) at sun.reflect.GeneratedMethodAccessor12.invoke(Unknown Source) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:322) at sun.rmi.transport.Transport$1.run(Transport.java:177) at sun.rmi.transport.Transport$1.run(Transport.java:174) at java.security.AccessController.doPrivileged(Native Method) at sun.rmi.transport.Transport.serviceCall(Transport.java:173) at sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:556) at sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:811) at sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:670) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) at java.lang.Thread.run(Thread.java:744)Caused by: java.lang.NumberFormatException: For input string: "12:dd:dd" at java.lang.NumberFormatException.forInputString(NumberFormatException.java:65) at java.lang.Integer.parseInt(Integer.java:492) at java.lang.Integer.parseInt(Integer.java:527) at org.apache.cassandra.db.marshal.Int32Type.fromString(Int32Type.java:65) ... 36 moreI think showing huge stack trace is not proper behavior.Error message should be printer if arity of passed key and table key are not equal.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7292" opendate="2014-5-23 00:00:00" fixdate="2014-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Can&amp;#39;t seed new node into ring with (public) ip of an old node</summary>
+      <description>This bug prevents node to return with bootstrap into the cluster with its old ip.Scenario: five node ec2 cluster spread into three AZ, all in one region. I'm using Ec2MultiRegionSnitch. Nodes are reported with their public ips (as Ec2MultiRegionSnitch requires)I simulated a loss of one node by terminating one instance. nodetool status reported correctly that node was down. Then I launched new instance with the old public ip (i'm using elastic ips) with "Dcassandra.replace_address=IP_ADDRESS" but the new node can't join the cluster: INFO 07:20:43,424 Gathering node replacement information for /54.86.191.30 INFO 07:20:43,428 Starting Messaging Service on port 9043 INFO 07:20:43,489 Handshaking version with /54.86.171.10 INFO 07:20:43,491 Handshaking version with /54.86.187.245(some delay)ERROR 07:21:14,445 Exception encountered during startupjava.lang.RuntimeException: Unable to gossip with any seeds at org.apache.cassandra.gms.Gossiper.doShadowRound(Gossiper.java:1193) at org.apache.cassandra.service.StorageService.prepareReplacementInfo(StorageService.java:419) at org.apache.cassandra.service.StorageService.prepareToJoin(StorageService.java:650) at org.apache.cassandra.service.StorageService.initServer(StorageService.java:612) at org.apache.cassandra.service.StorageService.initServer(StorageService.java:505) at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:362) at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:480) at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:569)It does not help if I remove the "Dcassandra.replace_address=IP_ADDRESS" system property. Also it does not help to remove the node with "nodetool removenode" with or without the cassandra.replace_address property.I think this is because the node information is preserved in the gossip info as seen this output of "nodetool gossipinfo"/54.86.191.30 INTERNAL_IP:172.16.1.231 DC:us-east REMOVAL_COORDINATOR:REMOVER,d581309a-8610-40d4-ba30-cb250eda22a8 STATUS:removed,19311925-46b5-4fe4-928a-321e8adb731d,1401089960664 HOST_ID:19311925-46b5-4fe4-928a-321e8adb731d RPC_ADDRESS:0.0.0.0 NET_VERSION:7 SCHEMA:226f9315-b4b2-32c1-bfe1-f4bb49fccfd5 RACK:1b LOAD:7.075290515E9 SEVERITY:0.0 RELEASE_VERSION:2.0.7</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.ReconnectableSnitchHelper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7688" opendate="2014-8-4 00:00:00" fixdate="2014-2-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add data sizing to a system table</summary>
+      <description>Currently you can't implement something similar to describe_splits_ex purely from the a native protocol driver. https://datastax-oss.atlassian.net/browse/JAVA-312 is open to expose easily getting ownership information to a client in the java-driver. But you still need the data sizing part to get splits of a given size. We should add the sizing information to a system table so that native clients can get to it.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SizeEstimatesRecorder.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7712" opendate="2014-8-7 00:00:00" fixdate="2014-3-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>temporary files need to be cleaned by unit tests</summary>
+      <description>There are many unit test temporary files left behind after test runs. In the case of CI servers, I have seen &gt;70,000 files accumulate in /tmp over a period of time. Each unit test should make an effort to remove its temporary files when the test is completed.My current unit test cleanup block:# clean up after unit tests..rm -rf /tmp/140*-0 /tmp/CFWith* /tmp/Counter1* /tmp/DescriptorTest* /tmp/Keyspace1* \ /tmp/KeyStreamingTransferTestSpace* /tmp/SSTableExportTest* /tmp/SSTableImportTest* \ /tmp/Standard1* /tmp/Statistics.db* /tmp/StreamingTransferTest* /tmp/ValuesWithQuotes* \ /tmp/cassandra* /tmp/jna-* /tmp/ks-cf-ib-1-* /tmp/lengthtest* /tmp/liblz4-java*.so /tmp/readtest* \ /tmp/set_length_during_read_mode* /tmp/set_negative_length* /tmp/snappy-*.so</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7816" opendate="2014-8-21 00:00:00" fixdate="2014-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Duplicate DOWN/UP Events Pushed with Native Protocol</summary>
+      <description>Added "MOVED_NODE" as a possible type of topology change and also specified that it is possible to receive the same event multiple times.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">doc.native.protocol.v2.spec</file>
+      <file type="M">doc.native.protocol.v1.spec</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.EndpointState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8154" opendate="2014-10-20 00:00:00" fixdate="2014-2-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>desc table output shows key-only index ambiguously</summary>
+      <description>When creating a secondary index on a map type, for keys, the DESC TABLE output does not create correct DDL (it omits the keys part). So if someone uses describe to recreate a schema they could end up with a values index instead of a keys index.First, create a table and add an index:CREATE TABLE test.foo ( id1 text, id2 text, categories map&lt;text, text&gt;, PRIMARY KEY (id1, id2));create index on foo(keys(categories));|Now DESC TABLE and you'll see the incomplete index DDL:CREATE TABLE test.foo ( id1 text, id2 text, categories map&lt;text, text&gt;, PRIMARY KEY (id1, id2)) WITH CLUSTERING ORDER BY (id2 ASC).......................snip..............................................CREATE INDEX foo_categories_idx ON test.foo (categories);</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.1.3.post.zip</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8275" opendate="2014-11-7 00:00:00" fixdate="2014-2-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Some queries with multicolumn relation do not behave properly when secondary index is used</summary>
+      <description>In the case where we perform a select using a multicolumn relation over multiple columns that use a secondary index the error message returned is wrong.The following unit test can be use to reproduce the problem: @Test public void testMultipleClusteringWithIndex() throws Throwable { createTable("CREATE TABLE %s (a int, b int, c int, d int, PRIMARY KEY (a, b, c, d))"); createIndex("CREATE INDEX ON %s (b)"); execute("INSERT INTO %s (a, b, c, d) VALUES (?, ?, ?, ?)", 0, 0, 0, 0); execute("INSERT INTO %s (a, b, c, d) VALUES (?, ?, ?, ?)", 0, 0, 1, 0); execute("INSERT INTO %s (a, b, c, d) VALUES (?, ?, ?, ?)", 0, 0, 1, 1); execute("INSERT INTO %s (a, b, c, d) VALUES (?, ?, ?, ?)", 0, 1, 0, 0); execute("INSERT INTO %s (a, b, c, d) VALUES (?, ?, ?, ?)", 0, 1, 1, 0); execute("INSERT INTO %s (a, b, c, d) VALUES (?, ?, ?, ?)", 0, 1, 1, 1); assertRows(execute("SELECT * FROM %s WHERE (b) = (?)", 1), row(0, 1, 0, 0), row(0, 1, 1, 0), row(0, 1, 1, 1) ); assertRows(execute("SELECT * FROM %s WHERE (b, c) = (?, ?) ALLOW FILTERING", 1, 1), row(0, 1, 1, 0), row(0, 1, 1, 1) ); }</description>
+      <version>2.1.5</version>
+      <fixedVersion>Feature/2iIndex,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8336" opendate="2014-11-18 00:00:00" fixdate="2014-4-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add shutdown gossip state to prevent timeouts during rolling restarts</summary>
+      <description>In CASSANDRA-3936 we added a gossip shutdown announcement. The problem here is that this isn't sufficient; you can still get TOEs and have to wait on the FD to figure things out. This happens due to gossip propagation time and variance; if node X shuts down and sends the message to Y, but Z has a greater gossip version than Y for X and has not yet received the message, it can initiate gossip with Y and thus mark X alive again. I propose quarantining to solve this, however I feel it should be a -D parameter you have to specify, so as not to destroy current dev and test practices, since this will mean a node that shuts down will not be able to restart until the quarantine expires.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.VersionedValue.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.HeartBeatState.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.GossipShutdownVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8359" opendate="2014-11-21 00:00:00" fixdate="2014-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make DTCS consider removing SSTables much more frequently</summary>
+      <description>When I run DTCS on a table where every value has a TTL (always the same TTL), SSTables are completely expired, but still stay on disk for much longer than they need to. I've applied CASSANDRA-8243, but it doesn't make an apparent difference (probably because the subject SSTables are purged via compaction anyway, if not by directly dropping them).Disk size graphs show clearly that tombstones are only removed when the oldest SSTable participates in compaction. In the long run, size on disk continually grows bigger. This should not have to happen. It should easily be able to stay constant, thanks to DTCS separating the expired data from the rest.I think checks for whether SSTables can be dropped should happen much more frequently. This is something that probably only needs to be tweaked for DTCS, but perhaps there's a more general place to put this. Anyway, my thinking is that DTCS should, on every call to getNextBackgroundTask, check which SSTables can be dropped. It would be something like a call to CompactionController.getFullyExpiredSSTables with all non-compactingSSTables sent in as "compacting" and all other SSTables sent in as "overlapping". The returned SSTables, if any, are then added to whichever set of SSTables that DTCS decides to compact. Then before the compaction happens, Cassandra is going to make another call to CompactionController.getFullyExpiredSSTables, where it will see that it can just drop them.This approach has a bit of redundancy in that it needs to call CompactionController.getFullyExpiredSSTables twice. To avoid that, the code path for deciding SSTables to drop would have to be changed.(Side tracking a little here: I'm also thinking that tombstone compactions could be considered more often in DTCS. Maybe even some kind of multi-SSTable tombstone compaction involving the oldest couple of SSTables...)</description>
+      <version>2.0.15,2.1.5,2.2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8360" opendate="2014-11-21 00:00:00" fixdate="2014-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>In DTCS, always compact SSTables in the same time window, even if they are fewer than min_threshold</summary>
+      <description>DTCS uses min_threshold to decide how many time windows of the same size that need to accumulate before merging into a larger window. The age of an SSTable is determined as its min timestamp, and it always falls into exactly one of the time windows. If multiple SSTables fall into the same window, DTCS considers compacting them, but if they are fewer than min_threshold, it decides not to do it.When do more than 1 but fewer than min_threshold SSTables end up in the same time window (except for the current window), you might ask? In the current state, DTCS can spill some extra SSTables into bigger windows when the previous window wasn't fully compacted, which happens all the time when the latest window stops being the current one. Also, repairs and hints can put new SSTables in old windows.I think, and jjordan agreed in a comment on CASSANDRA-6602, that DTCS should ignore min_threshold and compact tables in the same windows regardless of how few they are. I guess max_threshold should still be respected.jjordan suggested that this should apply to all windows but the current window, where all the new SSTables end up. That could make sense. I'm not clear on whether compacting many SSTables at once is more cost efficient or not, when it comes to the very newest and smallest SSTables. Maybe compacting as soon as 2 SSTables are seen is fine if the initial window size is small enough? I guess the opposite could be the case too; that the very newest SSTables should be compacted very many at a time?</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8366" opendate="2014-11-24 00:00:00" fixdate="2014-3-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair grows data on nodes, causes load to become unbalanced</summary>
+      <description>There seems to be something weird going on when repairing data.I have a program that runs 2 hours which inserts 250 random numbers and reads 250 times per second. It creates 2 keyspaces with SimpleStrategy and RF of 3. I use size-tiered compaction for my cluster. After those 2 hours I run a repair and the load of all nodes goes up. If I run incremental repair the load goes up alot more. I saw the load shoot up 8 times the original size multiple times with incremental repair. (from 2G to 16G)with node 9 8 7 and 6 the repro procedure looked like this:(Note that running full repair first is not a requirement to reproduce.)After 2 hours of 250 reads + 250 writes per second:UN 9 583.39 MB 256 ? 28220962-26ae-4eeb-8027-99f96e377406 rack1UN 8 584.01 MB 256 ? f2de6ea1-de88-4056-8fde-42f9c476a090 rack1UN 7 583.72 MB 256 ? 2b6b5d66-13c8-43d8-855c-290c0f3c3a0b rack1UN 6 583.84 MB 256 ? b8bd67f1-a816-46ff-b4a4-136ad5af6d4b rack1Repair -pr -par on all nodes sequentiallyUN 9 746.29 MB 256 ? 28220962-26ae-4eeb-8027-99f96e377406 rack1UN 8 751.02 MB 256 ? f2de6ea1-de88-4056-8fde-42f9c476a090 rack1UN 7 748.89 MB 256 ? 2b6b5d66-13c8-43d8-855c-290c0f3c3a0b rack1UN 6 758.34 MB 256 ? b8bd67f1-a816-46ff-b4a4-136ad5af6d4b rack1repair -inc -par on all nodes sequentiallyUN 9 2.41 GB 256 ? 28220962-26ae-4eeb-8027-99f96e377406 rack1UN 8 2.53 GB 256 ? f2de6ea1-de88-4056-8fde-42f9c476a090 rack1UN 7 2.6 GB 256 ? 2b6b5d66-13c8-43d8-855c-290c0f3c3a0b rack1UN 6 2.17 GB 256 ? b8bd67f1-a816-46ff-b4a4-136ad5af6d4b rack1after rolling restartUN 9 1.47 GB 256 ? 28220962-26ae-4eeb-8027-99f96e377406 rack1UN 8 1.5 GB 256 ? f2de6ea1-de88-4056-8fde-42f9c476a090 rack1UN 7 2.46 GB 256 ? 2b6b5d66-13c8-43d8-855c-290c0f3c3a0b rack1UN 6 1.19 GB 256 ? b8bd67f1-a816-46ff-b4a4-136ad5af6d4b rack1compact all nodes sequentiallyUN 9 989.99 MB 256 ? 28220962-26ae-4eeb-8027-99f96e377406 rack1UN 8 994.75 MB 256 ? f2de6ea1-de88-4056-8fde-42f9c476a090 rack1UN 7 1.46 GB 256 ? 2b6b5d66-13c8-43d8-855c-290c0f3c3a0b rack1UN 6 758.82 MB 256 ? b8bd67f1-a816-46ff-b4a4-136ad5af6d4b rack1repair -inc -par on all nodes sequentiallyUN 9 1.98 GB 256 ? 28220962-26ae-4eeb-8027-99f96e377406 rack1UN 8 2.3 GB 256 ? f2de6ea1-de88-4056-8fde-42f9c476a090 rack1UN 7 3.71 GB 256 ? 2b6b5d66-13c8-43d8-855c-290c0f3c3a0b rack1UN 6 1.68 GB 256 ? b8bd67f1-a816-46ff-b4a4-136ad5af6d4b rack1restart once moreUN 9 2 GB 256 ? 28220962-26ae-4eeb-8027-99f96e377406 rack1UN 8 2.05 GB 256 ? f2de6ea1-de88-4056-8fde-42f9c476a090 rack1UN 7 4.1 GB 256 ? 2b6b5d66-13c8-43d8-855c-290c0f3c3a0b rack1UN 6 1.68 GB 256 ? b8bd67f1-a816-46ff-b4a4-136ad5af6d4b rack1Is there something im missing or is this strange behavior?</description>
+      <version>2.1.5</version>
+      <fixedVersion>Consistency/Repair</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8406" opendate="2014-12-2 00:00:00" fixdate="2014-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add option to set max_sstable_age in fractional days in DTCS</summary>
+      <description>Using days as the unit for max_sstable_age in DTCS might be too much, add option to set it in seconds</description>
+      <version>2.1.5</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyOptions.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8495" opendate="2014-12-16 00:00:00" fixdate="2014-2-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add data type serialization formats to native protocol specs</summary>
+      <description>We currently describe the serialization format for collections, UDTs, and tuples in the native protocol spec. We should expand that to include all data types supported by Cassandra.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.native.protocol.v2.spec</file>
+      <file type="M">doc.native.protocol.v1.spec</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8516" opendate="2014-12-19 00:00:00" fixdate="2014-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NEW_NODE topology event emitted instead of MOVED_NODE by moving node</summary>
+      <description>As discovered in CASSANDRA-8373, when you move a node in a single-node cluster, a NEW_NODE event is generated instead of a MOVED_NODE event.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8559" opendate="2015-1-5 00:00:00" fixdate="2015-3-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>OOM caused by large tombstone warning.</summary>
+      <description>When running with high amount of tombstones the error message generation from CASSANDRA-6117 can lead to out of memory situation with the default setting.Attached a heapdump viewed in visualvm showing how this construct created two 777mb strings to print the error message for a read query and then crashed OOM. if (respectTombstoneThresholds() &amp;&amp; columnCounter.ignored() &gt; DatabaseDescriptor.getTombstoneWarnThreshold()) { StringBuilder sb = new StringBuilder(); CellNameType type = container.metadata().comparator; for (ColumnSlice sl : slices) { assert sl != null; sb.append('['); sb.append(type.getString(sl.start)); sb.append('-'); sb.append(type.getString(sl.finish)); sb.append(']'); } logger.warn("Read {} live and {} tombstoned cells in {}.{} (see tombstone_warn_threshold). {} columns was requested, slices={}, delInfo={}", columnCounter.live(), columnCounter.ignored(), container.metadata().ksName, container.metadata().cfName, count, sb, container.deletionInfo()); }</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8613" opendate="2015-1-13 00:00:00" fixdate="2015-3-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression in mixed single and multi-column relation support</summary>
+      <description>In 2.0.6 through 2.0.8, a query like the following was supported:SELECT * FROM mytable WHERE clustering_0 = ? AND (clustering_1, clustering_2) &gt; (?, ?)However, after CASSANDRA-6875, you'll get the following error:Clustering columns may not be skipped in multi-column relations. They should appear in the PRIMARY KEY order. Got (c, d) &gt; (0, 0)</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8614" opendate="2015-1-13 00:00:00" fixdate="2015-2-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Select optimal CRC32 implementation at runtime</summary>
+      <description>JDK 8 has support for an intrinsic for CRC32 that runs at 12-13 gigabytes/sec per core in my quick and dirty test. PureJavaCRC32 is &lt; 800 megabytes/sec if I recall and it has a lookup table that evicts random cache lines every time it runs.In order to capture the benefit of that when it is available we can select a CRC32 implementation at startup in a static block.If JDK 8 is not what is running we can fall back to the existing PureJavaCRC32 implementation.</description>
+      <version>None</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths,Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.PureJavaCrc32.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8669" opendate="2015-1-22 00:00:00" fixdate="2015-4-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>simple_repair test failing on 2.1</summary>
+      <description>The dtest simple_repair_test began failing on 12/22 on 2.1 and trunk. The test fails intermittently both locally and on cassci. The test is here: https://github.com/riptano/cassandra-dtest/blob/master/repair_test.py#L32The output is here: http://cassci.datastax.com/job/cassandra-2.1_dtest/661/testReport/repair_test/TestRepair/simple_repair_test/</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8689" opendate="2015-1-26 00:00:00" fixdate="2015-3-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Assertion error in 2.1.2: ERROR [IndexSummaryManager:1]</summary>
+      <description>After upgrading a 6 nodes cassandra from 2.1.0 to 2.1.2, start getting the following assertion error.ERROR [IndexSummaryManager:1] 2015-01-26 20:55:40,451 CassandraDaemon.java:153 - Exception in thread Thread[IndexSummaryManager:1,1,main]java.lang.AssertionError: null at org.apache.cassandra.io.util.Memory.size(Memory.java:307) ~[apache-cassandra-2.1.2.jar:2.1.2] at org.apache.cassandra.io.sstable.IndexSummary.getOffHeapSize(IndexSummary.java:192) ~[apache-cassandra-2.1.2.jar:2.1.2] at org.apache.cassandra.io.sstable.SSTableReader.getIndexSummaryOffHeapSize(SSTableReader.java:1070) ~[apache-cassandra-2.1.2.jar:2.1.2] at org.apache.cassandra.io.sstable.IndexSummaryManager.redistributeSummaries(IndexSummaryManager.java:292) ~[apache-cassandra-2.1.2.jar:2.1.2] at org.apache.cassandra.io.sstable.IndexSummaryManager.redistributeSummaries(IndexSummaryManager.java:238) ~[apache-cassandra-2.1.2.jar:2.1.2] at org.apache.cassandra.io.sstable.IndexSummaryManager$1.runMayThrow(IndexSummaryManager.java:139) ~[apache-cassandra-2.1.2.jar:2.1.2] at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) ~[apache-cassandra-2.1.2.jar:2.1.2] at org.apache.cassandra.concurrent.DebuggableScheduledThreadPoolExecutor$UncomplainingRunnable.run(DebuggableScheduledThreadPoolExecutor.java:77) ~[apache-cassandra-2.1.2.jar:2.1.2] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471) [na:1.7.0_45] at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:304) [na:1.7.0_45] at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(ScheduledThreadPoolExecutor.java:178) [na:1.7.0_45] at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:293) [na:1.7.0_45] at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) [na:1.7.0_45] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) [na:1.7.0_45] at java.lang.Thread.run(Thread.java:744) [na:1.7.0_45]cassandra service is still running despite the issue. Node has total 8G memory with 2G allocated to heap. We are basically running read queries to retrieve data out of cassandra.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableRewriterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.IndexSummaryManagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableRewriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8692" opendate="2015-1-27 00:00:00" fixdate="2015-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Coalesce intra-cluster network messages</summary>
+      <description>While researching CASSANDRA-8457 we found that it is effective and can be done without introducing additional latency at low concurrency/throughput.The patch from that was used and found to be useful in a real life scenario so I propose we implement this in 2.1 in addition to 3.0.The change set is a single file and is small enough to be reviewable.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.OutboundTcpConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IncomingTcpConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8734" opendate="2015-2-3 00:00:00" fixdate="2015-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose commit log archive status</summary>
+      <description>The operational procedure to modify commit log archiving is to edit commitlog_archiving.properties and then perform a restart. However this has troublesome edge cases:1) It is possible for people to modify commitlog_archiving.properties but then not perform a restart2) It is possible for people to modify commitlog_archiving.properties only on some nodes3) It is possible for people to have modified file + restart but then later add more nodes without correct modifications.Because of these reasons, it is operationally useful to be able to audit the commit log archive state of a node. Simply parsing commitlog_archiving.properties is insufficient due to #1. I would suggest exposing either via some system table or JMX would be useful.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogArchiver.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8739" opendate="2015-2-4 00:00:00" fixdate="2015-3-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t check for overlap with sstables that have had their start positions moved in LCS</summary>
+      <description>When picking compaction candidates in LCS, we check that we won't cause any overlap in the higher level. Problem is that we compare the files that have had their start positions moved meaning we can cause overlap. We need to also include the tmplink files when checking this.Note that in 2.1 overlap is not as big problem as earlier, if adding an sstable would cause overlap, we send it back to L0 instead, meaning we do a bit more compaction but we never actually have overlap.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8769" opendate="2015-2-9 00:00:00" fixdate="2015-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Extend cassandra-stress to be slightly more configurable</summary>
+      <description>Some simple extensions to cassandra stress: Configurable warm up iterations Output results by command type for USER (e.g. 5000 ops/sec, 1000 inserts, 1000 reads, 3000 range reads) Count errors when ignore flag is set Configurable truncate for more consistent resultsPatch attached.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.TimingInterval.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.Timing.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.util.Timer.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressProfile.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressMetrics.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressAction.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandUser.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommandPreDefined.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsCommand.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionReplication.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionRatioDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionMulti.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.OptionAnyProbabilities.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.Option.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.Command.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.SampledOpDistributionFactory.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.SampledOpDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.OpDistributionFactory.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.OpDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.FixedOpDistribution.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.Operation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8776" opendate="2015-2-10 00:00:00" fixdate="2015-2-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool status reports success for missing keyspace</summary>
+      <description>'nodetool status somethinginvalid' will correctly output an error message that the keyspace does not exist, but still returns a 'success' code of 0.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8796" opendate="2015-2-12 00:00:00" fixdate="2015-2-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>&amp;#39;nodetool info&amp;#39; prints exception against older node</summary>
+      <description>nodetool info from current 2.1 branch (2.1.3) issued against a 2.1.2 node prints the following:bin/nodetool infoobjc[57382]: Class JavaLaunchHelper is implemented in both /Library/Java/JavaVirtualMachines/jdk1.8.0_31.jdk/Contents/Home/bin/java and /Library/Java/JavaVirtualMachines/jdk1.8.0_31.jdk/Contents/Home/jre/lib/libinstrument.dylib. One of the two will be used. Which one is undefined.ID : 28b5c1dd-1822-412a-aa16-11f35438e464Gossip active : trueThrift active : trueNative Transport active: trueLoad : 41,1 KBGeneration No : 1423767989Uptime (seconds) : 258Heap Memory (MB) : 183,07 / 4016,00error: org.apache.cassandra.metrics:type=ColumnFamily,keyspace=system,scope=IndexInfo,name=BloomFilterOffHeapMemoryUsed-- StackTrace --javax.management.InstanceNotFoundException: org.apache.cassandra.metrics:type=ColumnFamily,keyspace=system,scope=IndexInfo,name=BloomFilterOffHeapMemoryUsed at com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.getMBean(DefaultMBeanServerInterceptor.java:1095) at com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.getAttribute(DefaultMBeanServerInterceptor.java:643) at com.sun.jmx.mbeanserver.JmxMBeanServer.getAttribute(JmxMBeanServer.java:678) at javax.management.remote.rmi.RMIConnectionImpl.doOperation(RMIConnectionImpl.java:1464) at javax.management.remote.rmi.RMIConnectionImpl.access$300(RMIConnectionImpl.java:97) at javax.management.remote.rmi.RMIConnectionImpl$PrivilegedOperation.run(RMIConnectionImpl.java:1328) at javax.management.remote.rmi.RMIConnectionImpl.doPrivilegedOperation(RMIConnectionImpl.java:1420) at javax.management.remote.rmi.RMIConnectionImpl.getAttribute(RMIConnectionImpl.java:657) at sun.reflect.GeneratedMethodAccessor10.invoke(Unknown Source) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:322) at sun.rmi.transport.Transport$2.run(Transport.java:202) at sun.rmi.transport.Transport$2.run(Transport.java:199) at java.security.AccessController.doPrivileged(Native Method) at sun.rmi.transport.Transport.serviceCall(Transport.java:198) at sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:567) at sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828) at sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.access$400(TCPTransport.java:619) at sun.rmi.transport.tcp.TCPTransport$ConnectionHandler$1.run(TCPTransport.java:684) at sun.rmi.transport.tcp.TCPTransport$ConnectionHandler$1.run(TCPTransport.java:681) at java.security.AccessController.doPrivileged(Native Method) at sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:681) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) at java.lang.Thread.run(Thread.java:745) at sun.rmi.transport.StreamRemoteCall.exceptionReceivedFromServer(StreamRemoteCall.java:276) at sun.rmi.transport.StreamRemoteCall.executeCall(StreamRemoteCall.java:253) at sun.rmi.server.UnicastRef.invoke(UnicastRef.java:162) at com.sun.jmx.remote.internal.PRef.invoke(Unknown Source) at javax.management.remote.rmi.RMIConnectionImpl_Stub.getAttribute(Unknown Source) at javax.management.remote.rmi.RMIConnector$RemoteMBeanServerConnection.getAttribute(RMIConnector.java:906) at javax.management.MBeanServerInvocationHandler.invoke(MBeanServerInvocationHandler.java:267) at com.sun.proxy.$Proxy19.getValue(Unknown Source) at org.apache.cassandra.tools.NodeProbe.getColumnFamilyMetric(NodeProbe.java:1047) at org.apache.cassandra.tools.NodeTool$Info.getOffHeapMemoryUsed(NodeTool.java:443) at org.apache.cassandra.tools.NodeTool$Info.execute(NodeTool.java:373) at org.apache.cassandra.tools.NodeTool$NodeToolCmd.run(NodeTool.java:250) at org.apache.cassandra.tools.NodeTool.main(NodeTool.java:164)From 2.1.2 it looks like:bin/nodetool infoobjc[57525]: Class JavaLaunchHelper is implemented in both /Library/Java/JavaVirtualMachines/jdk1.8.0_31.jdk/Contents/Home/bin/java and /Library/Java/JavaVirtualMachines/jdk1.8.0_31.jdk/Contents/Home/jre/lib/libinstrument.dylib. One of the two will be used. Which one is undefined.ID : 28b5c1dd-1822-412a-aa16-11f35438e464Gossip active : trueThrift active : trueNative Transport active: trueLoad : 41,1 KBGeneration No : 1423767989Uptime (seconds) : 292Heap Memory (MB) : 186,72 / 4016,00Data Center : datacenter1Rack : rack1Exceptions : 0Key Cache : entries 8, size 600 bytes, capacity 100 MB, 14 hits, 21 requests, 0,667 recent hit rate, 14400 save period in secondsRow Cache : entries 0, size 0 bytes, capacity 0 bytes, 0 hits, 0 requests, NaN recent hit rate, 0 save period in secondsCounter Cache : entries 0, size 0 bytes, capacity 50 MB, 0 hits, 0 requests, NaN recent hit rate, 7200 save period in secondsToken : (invoke with -T/--tokens to see all 256 tokens)I.e. cache and token information is missing.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8802" opendate="2015-2-13 00:00:00" fixdate="2015-2-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Leaked reference on windows</summary>
+      <description>The dtest counter_tests.py:TestCounters.upgrade_test is failing on Windows with the following error:ERROR [Reference-Reaper:1] 2015-02-13 11:06:17,802 Ref.java:167 - LEAK DETECTED: a reference (org.apache.cassandra.utils.concurrent.Ref$State@2d0bdc9) to class org.apache.cassandra.utils.concurrent.WrappedSharedCloseable$1@669450811:[OffHeapBitSet] was not released before the reference was garbage collectedThis exception is not occurring on Linux or OSX. The test is also erroring from CASSANDRA-8535./cc benedict JoshuaMcKenzie</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableRewriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8829" opendate="2015-2-18 00:00:00" fixdate="2015-2-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add extra checks to catch SSTable ref counting bugs</summary>
+      <description>There have been some bad affects from ref counting bugs (see e.g. CASSANDRA-7704). We should add extra checks so we can more easily diagnose any future problems and avoid some of the side effects.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8834" opendate="2015-2-19 00:00:00" fixdate="2015-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Top partitions reporting wrong cardinality</summary>
+      <description>It always reports a cardinality of 1. Patch also includes a try/catch around the conversion of partition keys that isn't always handled well in thrift cfs.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.TopKSamplerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.TopKSampler.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8841" opendate="2015-2-20 00:00:00" fixdate="2015-3-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>single_file_split_test fails on 2.1</summary>
+      <description>In CASSANDRA-8623, we fix an issue about getting "Data component is missing" errors when splitting multiple sstable one at the time. I wrote a dtest for that, which work properly to test that error. However, it seems that the CompactionExecutor is failing. It's not the same error, but looks related. Test: https://github.com/riptano/cassandra-dtest/blob/master/sstablesplit_test.py#L68Output: http://cassci.datastax.com/job/cassandra-2.1_dtest/726/testReport/junit/sstablesplit_test/TestSSTableSplit/single_file_split_test/</description>
+      <version>2.1.5</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableRewriterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneSplitter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableRewriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8842" opendate="2015-2-20 00:00:00" fixdate="2015-2-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade java-driver used for stress</summary>
+      <description>There are a number of java-driver issues I've been hitting while using stress on large clusters. These issues are fixed in the later driver releases. Mainly race conditions.https://github.com/datastax/java-driver/blob/2.0/driver-core/CHANGELOG.rst#2010</description>
+      <version>2.1.5</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.lib.cassandra-driver-core-2.0.5.jar</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8848" opendate="2015-2-22 00:00:00" fixdate="2015-2-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Protocol exceptions always use streamID 0</summary>
+      <description>When decoding the binary protocol if a ProtocolException is thrown the streamID the request came in on is lost. This makes it very hard for drivers to correctly handle improper protocol implementations.Included is a test case which sends a frame with version 0x82 and op 0x9 which should return a ProtocolError indicating that PREPARE should be a client Request not a response.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.messages.ErrorMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Frame.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8860" opendate="2015-2-24 00:00:00" fixdate="2015-3-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove cold_reads_to_omit from STCS</summary>
+      <description>While I upgrading my cluster to 2.1.3, I find some nodes (not all) may have GC issue after the node restarting successfully. Old gen grows very fast and most of the space can not be recycled after setting its status to normal immediately. The qps of both reading and writing are very low and there is no heavy compaction.Jmap result seems strange that there are too many java.util.HashMap$Entry objects in heap, where in my experience the "[B" is usually the No1.If I downgrade it to 2.1.1, this issue will not appear.I uploaded conf files and jstack/jmap outputs. I'll upload heap dump if someone need it.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.SizeTieredCompactionStrategyTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.SizeTieredCompactionStrategyOptions.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8882" opendate="2015-3-1 00:00:00" fixdate="2015-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Wrong type mapping for varint -- Cassandra Stress 2.1</summary>
+      <description>Run a workload with a varint type, you'll see the following error:com.datastax.driver.core.exceptions.InvalidTypeException: Invalid type for value 2 of CQL type varint, expecting class java.math.BigInteger but class java.lang.Integer providedcom.datastax.driver.core.exceptions.InvalidTypeException: Invalid type for value 2 of CQL type varint, expecting class java.math.BigInteger but class java.lang.Integer providedcom.datastax.driver.core.exceptions.InvalidTypeException: Invalid type for value 2 of CQL type varint, expecting class java.math.BigInteger but class java.lang.Integer providedcom.datastax.driver.core.exceptions.InvalidTypeException: Invalid type for value 2 of CQL type varint, expecting class java.math.BigInteger but class java.lang.Integer providedcom.datastax.driver.core.exceptions.InvalidTypeException: Invalid type for value 2 of CQL type varint, expecting class java.math.BigInteger but class java.lang.Integer providedcom.datastax.driver.core.exceptions.InvalidTypeException: Invalid type for value 2 of CQL type varint, expecting class java.math.BigInteger but class java.lang.Integer providedcom.datastax.driver.core.exceptions.InvalidTypeException: Invalid type for value 2 of CQL type varint, expecting class java.math.BigInteger but class java.lang.Integer provided</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressProfile.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8886" opendate="2015-3-2 00:00:00" fixdate="2015-3-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool netstats shows the progress of every streaming session</summary>
+      <description>Now if there is a streaming session in one node, the nodetool netstats only shows how many files and bytes should be sent or received. I think users may want to know how many files and bytes have been sent or received without counting the receiving/sending files themselves. It is a very small patch to show the progress of a session.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8909" opendate="2015-3-4 00:00:00" fixdate="2015-3-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replication Strategy creation errors are lost in try/catch</summary>
+      <description>I was initially executing a bad cassandra-stress command and was getting this error:Unable to create stress keyspace: Error constructing replication strategy classwith the following command:cassandra-stress -o insert --replication-strategy NetworkTopologyStrategy --strategy-properties dc1:1,dc2:1 --replication-factor 1After digging in the code, I noticed that the error displayed was not the one thrown by the replication strategy code and that the try/catch block could be improved. Basically, the Constructor.newInstance can throw an InvocationTargetException, which provide a better error report.I think this improvement can also be done in 2.1 (not tested yet). If my attached patch is acceptable, I will test and provide the right version for 2.1 and trunk.With the patch, I can see the proper error when executing my bad command:Unable to create stress keyspace: replication_factor is an option for SimpleStrategy, not NetworkTopologyStrategy</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.AbstractReplicationStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8912" opendate="2015-3-5 00:00:00" fixdate="2015-3-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool command to get the status of things that can be enable/disable&amp;#39;d for backup and handoff</summary>
+      <description>request to create a nodetool quick display status for backup and handoff statusbackup - Status of incremental backupstatushandoff - Status of storing future hints on the current nodesimilar to the following status commands:statusbinary - Status of native transport (binary protocol)statusgossip - Status of gossipstatusthrift - Status of thrift serverThe output would just need to be simple as ON/OFF or similar TRUE/FALSE.</description>
+      <version>2.1.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8913" opendate="2015-3-5 00:00:00" fixdate="2015-3-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use long for key count estimate in cfstats</summary>
+      <description>We use an int to get estimated key count in cfstats</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8934" opendate="2015-3-9 00:00:00" fixdate="2015-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY command has inherent 128KB field size limit</summary>
+      <description>In using the COPY command as follows:cqlsh -e "COPY test.test1mb(pkey, ccol, data) FROM 'in/data1MB/data1MB_9.csv'"the following error is thrown:&lt;stdin&gt;:1:field larger than field limit (131072)The data file contains a field that is greater than 128KB (it's more like almost 1MB).A work-around (thanks to jjordan and thobbs is to modify the cqlsh script and add the linecsv.field_size_limit(1000000000)anywhere after the lineimport csv</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8948" opendate="2015-3-11 00:00:00" fixdate="2015-3-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-stress does not honour consistency level (cl) parameter when used in combination with user command</summary>
+      <description>The stress test tool does not honour "cl" parameter when used in combination with the "user" command. Consistency level will be default ONE no matter what is set by "cl=".Works fine with "write" command.How to reproduce:1. Create a suitable yaml-file to use in test2. Run e.g. ./cassandra-stress user profile=./file.yaml cl=ALL no-warmup duration=10s ops\(insert=1\) -rate threads=4 -port jmx=71003. Observe that cl=ONE in trace logs</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.operations.userdefined.SchemaStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8982" opendate="2015-3-17 00:00:00" fixdate="2015-3-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader outputs progress information and summary stats to stderr instead of stdout</summary>
+      <description>On Cassandra 2.1.0+, the progress information from sstableloader is output into the stderr stream instead of stdout. This can be reproduced by running an sstableloader and redirecting stderr to a file:sstableloader -d 127.0.0.1 /home/automaton/cassandra-src/data/data/keyspace1/standard1-abfab2e0ccb811e49d4417363885fa00 2&gt; error.log</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8993" opendate="2015-3-19 00:00:00" fixdate="2015-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>EffectiveIndexInterval calculation is incorrect</summary>
+      <description>I'm not familiar enough with the calculation itself to understand why this is happening, but see discussion on CASSANDRA-8851 for the background. I've introduced a test case to look for this during downsampling, but it seems to pass just fine, so it may be an artefact of upgrading.The problem was, unfortunately, not manifesting directly because it would simply result in a failed lookup. This was only exposed when early opening used firstKeyBeyond, which does not use the effective interval, and provided the result to getPosition().I propose a simple fix that ensures a bug here cannot break correctness. Perhaps thobbs can follow up with an investigation as to how it actually went wrong?</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryBuilder.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.IndexSummaryTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummary.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.Downsampling.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9036" opendate="2015-3-25 00:00:00" fixdate="2015-3-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"disk full" when running cleanup (on a far from full disk)</summary>
+      <description>I'm trying to run cleanup, but get this: INFO [CompactionExecutor:18] 2015-03-25 10:29:16,355 CompactionManager.java (line 564) Cleaning up SSTableReader(path='/cassandra/production/Data_daily/production-Data_daily-jb-4345750-Data.db')ERROR [CompactionExecutor:18] 2015-03-25 10:29:16,664 CassandraDaemon.java (line 199) Exception in thread Thread[CompactionExecutor:18,1,main]java.io.IOException: disk full at org.apache.cassandra.db.compaction.CompactionManager.doCleanupCompaction(CompactionManager.java:567) at org.apache.cassandra.db.compaction.CompactionManager.access$400(CompactionManager.java:63) at org.apache.cassandra.db.compaction.CompactionManager$5.perform(CompactionManager.java:281) at org.apache.cassandra.db.compaction.CompactionManager$2.call(CompactionManager.java:225) at java.util.concurrent.FutureTask.run(FutureTask.java:262) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) at java.lang.Thread.run(Thread.java:745)Now that's odd, since: Disk has some 680G left The sstable it's trying to cleanup is far less than 680G:# ls -lh *4345750*-rw-r--r-- 1 cassandra cassandra 64M Mar 21 04:42 production-Data_daily-jb-4345750-CompressionInfo.db-rw-r--r-- 1 cassandra cassandra 219G Mar 21 04:42 production-Data_daily-jb-4345750-Data.db-rw-r--r-- 1 cassandra cassandra 503M Mar 21 04:42 production-Data_daily-jb-4345750-Filter.db-rw-r--r-- 1 cassandra cassandra 42G Mar 21 04:42 production-Data_daily-jb-4345750-Index.db-rw-r--r-- 1 cassandra cassandra 5.9K Mar 21 04:42 production-Data_daily-jb-4345750-Statistics.db-rw-r--r-- 1 cassandra cassandra 81M Mar 21 04:42 production-Data_daily-jb-4345750-Summary.db-rw-r--r-- 1 cassandra cassandra 79 Mar 21 04:42 production-Data_daily-jb-4345750-TOC.txtSure, it's large, but it's not 680G. No other compactions are running on that server. I'm getting this on 12 / 56 servers right now. Could it be some bug in the calculation of the expected size of the new sstable, perhaps?</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9060" opendate="2015-3-27 00:00:00" fixdate="2015-5-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Anticompaction hangs on bloom filter bitset serialization</summary>
+      <description>I tried running an incremental repair against a 15-node vnode-cluster with roughly 500GB data running on 2.1.3-SNAPSHOT, without performing the suggested migration steps. I manually chose a small range for the repair (using --start/end-token). The actual repair part took almost no time at all, but the anticompactions took a lot of time (not surprisingly).Obviously, this might not be the ideal way to run incremental repairs, but I wanted to look into what made the whole process so slow. The results were rather surprising. The majority of the time was spent serializing bloom filters.The reason seemed to be two-fold. First, the bloom-filters generated were huge (probably because the original SSTables were large). With a proper migration to incremental repairs, I'm guessing this would not happen. Secondly, however, the bloom filters were being written to the output one byte at a time (with quite a few type-conversions on the way) to transform the little-endian in-memory representation to the big-endian on-disk representation.I have implemented a solution where big-endian is used in-memory as well as on-disk, which obviously makes de-/serialization much, much faster. This introduces some slight overhead when checking the bloom filter, but I can't see how that would be problematic. An obvious alternative would be to still perform the serialization/deserialization using a byte array, but perform the byte-order swap there.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9066" opendate="2015-3-29 00:00:00" fixdate="2015-3-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BloomFilter serialization is inefficient</summary>
+      <description>As pointed out by grddev in CASSANDRA-9060, bloom filter serialization is very slow. In that ticket I proposed that 2.1 use buffered serialization, and 3.0 make the serialization format itself more efficient.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9077" opendate="2015-3-31 00:00:00" fixdate="2015-4-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Deleting an element from a List which is null throws a NPE</summary>
+      <description>I am seeing an NPE on the latest 2.1 branch with this sequence of deletes from a list - first delete the entire list, then attempt to delete one element.I expected to see List index 0 out of bound, list has size 0 but instead got an NPE../bin/cqlshConnected to Test Cluster at 127.0.0.1:9042.[cqlsh 5.0.1 | Cassandra 2.1.3-SNAPSHOT | CQL spec 3.2.0 | Native protocol v3]Use HELP for help.cqlsh&gt; use frozen_collections ;cqlsh:frozen_collections&gt; DROP TABLE IF EXISTS t;cqlsh:frozen_collections&gt; CREATE TABLE t (id text PRIMARY KEY, l list&lt;text&gt;, s set&lt;text&gt;);cqlsh:frozen_collections&gt; INSERT INTO t (id, l, s) VALUES ('user', ['1'], {'1'});cqlsh:frozen_collections&gt;cqlsh:frozen_collections&gt; DELETE l FROM t WHERE id ='user';cqlsh:frozen_collections&gt; //INSERT INTO t (id, l) VALUES ('user', ['1']);cqlsh:frozen_collections&gt; DELETE l[0] FROM t WHERE id = 'user';ServerError: &lt;ErrorMessage code=0000 [Server error] message="java.lang.NullPointerException"&gt;cqlsh:frozen_collections&gt;cqlsh:frozen_collections&gt; DELETE s FROM t WHERE id ='user';cqlsh:frozen_collections&gt; DELETE s['1'] FROM t WHERE id = 'user';It appears the DELETE emails... directly followed by DELETE emails&amp;#91;0&amp;#93;... is the offending sequence. Either one alone works fine, as does adding an intervening insert/update.The same sequence performed on a Set rather than List works (as shown above).</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9080" opendate="2015-3-31 00:00:00" fixdate="2015-4-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM doesn&amp;#39;t quote column names</summary>
+      <description>The changes in CASSANDRA-8225 had one bug: column names aren't quoted in the insert statement (when needed).</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9081" opendate="2015-3-31 00:00:00" fixdate="2015-4-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix display of triggers in cqlsh</summary>
+      <description>https://datastax-oss.atlassian.net/browse/PYTHON-231, included in 2.5.0, prevents triggers from being displayed in cqlsh</description>
+      <version>2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.1.4.post.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9098" opendate="2015-4-2 00:00:00" fixdate="2015-4-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Anticompactions not visible in nodetool compactionstats</summary>
+      <description>There seems to be no way to monitor the progress of anticompactions except parsing the logs (which incidentally is quite complicated).</description>
+      <version>2.1.5</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9116" opendate="2015-4-3 00:00:00" fixdate="2015-4-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Indexes lost on upgrading to 2.1.4</summary>
+      <description>How to reproduce: Create a 2.0.12 cluster Create the following keyspace/table (or something similar, it's primarily the indexes that matter to this case afaict)CREATE KEYSPACE tshirts WITH replication = {'class': 'NetworkTopologyStrategy', 'datacenter1': '1'} AND durable_writes = true;CREATE TABLE tshirts.tshirtorders ( store text, order_time timestamp, order_number uuid, color text, qty int, size text, PRIMARY KEY (store, order_time, order_number)) WITH CLUSTERING ORDER BY (order_time ASC, order_number ASC) AND bloom_filter_fp_chance = 0.01 AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}' AND comment = '' AND compaction = {'min_threshold': '4', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32'} AND compression = {'sstable_compression': 'org.apache.cassandra.io.compress.LZ4Compressor'} AND dclocal_read_repair_chance = 0.1 AND default_time_to_live = 0 AND gc_grace_seconds = 864000 AND max_index_interval = 2048 AND memtable_flush_period_in_ms = 0 AND min_index_interval = 128 AND read_repair_chance = 0.0 AND speculative_retry = '99.0PERCENTILE';CREATE INDEX color ON tshirts.tshirtorders (color);CREATE INDEX size ON tshirts.tshirtorders (size); Load it with data Stop the node (one node cluster is enough to replicate) Upgrade the node to 2.1.4 Start the node Optional: Run nodetool upgradesstables Run the following queries:SELECT * FROM tshirts.tshirtorders WHERE store = 'store 65';SELECT store, color, qty, size FROM tshirts.tshirtorders WHERE store = 'store 65' AND color = 'red';No rows containing will appear in the indexed table.Sample output:cqlsh&gt; SELECT * FROM tshirts.tshirtorders WHERE store = 'store 65'; store | order_time | order_number | color | qty | size----------+--------------------------+--------------------------------------+--------+------+------ store 65 | 2000-01-03 18:20:20+0000 | 457e60e6-da39-11e4-add3-42010af08298 | red | 1295 | M store 65 | 2000-01-04 01:29:21+0000 | 45947304-da39-11e4-add3-42010af08298 | grey | 2805 | M store 65 | 2000-01-04 19:55:51+0000 | 45d69220-da39-11e4-add3-42010af08298 | brown | 3380 | XXXL store 65 | 2000-01-04 22:45:07+0000 | 45e16894-da39-11e4-add3-42010af08298 | yellow | 7000 | XXL store 65 | 2000-01-05 17:09:56+0000 | 46083bd6-da39-11e4-add3-42010af08298 | purple | 2440 | S store 65 | 2000-01-05 19:16:48+0000 | 460cadd8-da39-11e4-add3-42010af08298 | green | 5690 | L store 65 | 2000-01-06 00:26:06+0000 | 461ccdbc-da39-11e4-add3-42010af08298 | brown | 9890 | P store 65 | 2000-01-06 11:35:11+0000 | 4633aa00-da39-11e4-add3-42010af08298 | black | 9350 | P store 65 | 2000-01-07 06:07:20+0000 | 4658e0ea-da39-11e4-add3-42010af08298 | black | 1300 | S store 65 | 2000-01-07 06:47:40+0000 | 465be93e-da39-11e4-add3-42010af08298 | purple | 9630 | XL store 65 | 2000-01-09 12:42:38+0000 | 46bafdd4-da39-11e4-add3-42010af08298 | purple | 1470 | M store 65 | 2000-01-09 19:07:35+0000 | 46c43e08-da39-11e4-add3-42010af08298 | pink | 6005 | S store 65 | 2000-01-10 04:47:56+0000 | 46d4b170-da39-11e4-add3-42010af08298 | red | 345 | XL store 65 | 2000-01-10 20:25:44+0000 | 46ef7d52-da39-11e4-add3-42010af08298 | pink | 420 | XXL store 65 | 2000-01-11 00:55:27+0000 | 46f7a84c-da39-11e4-add3-42010af08298 | purple | 9045 | S store 65 | 2000-01-11 17:54:25+0000 | 4724ea00-da39-11e4-add3-42010af08298 | green | 5030 | XXL store 65 | 2000-01-12 08:21:15+0000 | 473c0370-da39-11e4-add3-42010af08298 | white | 2860 | XL store 65 | 2000-01-12 17:09:19+0000 | 47497d2a-da39-11e4-add3-42010af08298 | red | 6425 | L store 65 | 2000-01-14 07:27:37+0000 | 478662a8-da39-11e4-add3-42010af08298 | pink | 330 | XXXL store 65 | 2000-01-14 11:31:38+0000 | 478b43cc-da39-11e4-add3-42010af08298 | pink | 3335 | XXL store 65 | 2000-01-14 18:55:59+0000 | 47955a24-da39-11e4-add3-42010af08298 | yellow | 500 | P store 65 | 2000-01-15 01:59:52+0000 | 479f0c5e-da39-11e4-add3-42010af08298 | red | 8415 | XL store 65 | 2000-01-15 02:26:13+0000 | 47a00c08-da39-11e4-add3-42010af08298 | green | 2265 | P store 65 | 2000-01-15 14:31:50+0000 | 47b28c34-da39-11e4-add3-42010af08298 | green | 8165 | M store 65 | 2000-01-16 20:39:31+0000 | 47de6908-da39-11e4-add3-42010af08298 | purple | 1330 | XXL store 65 | 2000-01-17 06:02:33+0000 | 47eb832c-da39-11e4-add3-42010af08298 | black | 9495 | M store 65 | 2000-01-17 12:32:09+0000 | 47f4ca18-da39-11e4-add3-42010af08298 | grey | 4645 | L store 65 | 2000-01-18 02:46:05+0000 | 48080c9a-da39-11e4-add3-42010af08298 | pink | 5220 | L store 65 | 2000-01-18 22:38:49+0000 | 48271c0c-da39-11e4-add3-42010af08298 | red | 3515 | XL store 65 | 2000-01-19 05:14:17+0000 | 48311860-da39-11e4-add3-42010af08298 | black | 8970 | P store 65 | 2000-01-19 09:15:57+0000 | 48368a8e-da39-11e4-add3-42010af08298 | red | 6110 | P store 65 | 2000-01-20 07:48:34+0000 | 485a21ec-da39-11e4-add3-42010af08298 | green | 9455 | XXXL store 65 | 2000-01-22 23:03:05+0000 | 48b94686-da39-11e4-add3-42010af08298 | red | 5370 | P store 65 | 2000-01-23 00:15:27+0000 | 48bb7a32-da39-11e4-add3-42010af08298 | green | 2465 | S store 65 | 2000-01-23 03:40:35+0000 | 48c10eb6-da39-11e4-add3-42010af08298 | red | 795 | P store 65 | 2000-01-23 20:52:24+0000 | 48db904c-da39-11e4-add3-42010af08298 | brown | 9690 | XL store 65 | 2000-01-23 23:52:08+0000 | 48df5f24-da39-11e4-add3-42010af08298 | blue | 9330 | S store 65 | 2000-01-25 06:10:55+0000 | 490ae194-da39-11e4-add3-42010af08298 | pink | 2380 | M store 65 | 2000-01-25 14:04:42+0000 | 4914777c-da39-11e4-add3-42010af08298 | purple | 8425 | S store 65 | 2000-01-25 20:31:39+0000 | 491da19e-da39-11e4-add3-42010af08298 | brown | 70 | M store 65 | 2000-01-26 09:33:27+0000 | 4932033c-da39-11e4-add3-42010af08298 | green | 8150 | L store 65 | 2000-01-28 10:18:38+0000 | 4976c38c-da39-11e4-add3-42010af08298 | pink | 3175 | XXL store 65 | 2000-01-31 00:22:38+0000 | 49d37fbe-da39-11e4-add3-42010af08298 | black | 8310 | XL store 65 | 2000-01-31 11:21:25+0000 | 49e2fcdc-da39-11e4-add3-42010af08298 | white | 6240 | XXXL store 65 | 2000-01-31 16:22:50+0000 | 49e9904c-da39-11e4-add3-42010af08298 | green | 8310 | XXXL store 65 | 2000-01-31 17:12:11+0000 | 49eac6ce-da39-11e4-add3-42010af08298 | grey | 4315 | XL store 65 | 2000-02-01 13:42:19+0000 | 4a086486-da39-11e4-add3-42010af08298 | white | 6955 | XXXL store 65 | 2000-02-03 09:21:18+0000 | 4a47abbe-da39-11e4-add3-42010af08298 | white | 5360 | P store 65 | 2000-02-03 21:09:39+0000 | 4a58acde-da39-11e4-add3-42010af08298 | pink | 8665 | P store 65 | 2000-02-04 17:57:51+0000 | 4a77aa76-da39-11e4-add3-42010af08298 | brown | 8550 | L store 65 | 2000-02-04 21:37:13+0000 | 4a7cdc26-da39-11e4-add3-42010af08298 | black | 9195 | P store 65 | 2000-02-05 20:35:33+0000 | 4a9fc81c-da39-11e4-add3-42010af08298 | brown | 4460 | M store 65 | 2000-02-06 03:28:23+0000 | 4aaa30ae-da39-11e4-add3-42010af08298 | pink | 4175 | M store 65 | 2000-02-06 07:45:29+0000 | 4ab0cd4c-da39-11e4-add3-42010af08298 | yellow | 5270 | M store 65 | 2000-02-06 07:47:06+0000 | 4ab100d2-da39-11e4-add3-42010af08298 | grey | 165 | P store 65 | 2000-02-06 20:21:10+0000 | 4ac434e0-da39-11e4-add3-42010af08298 | black | 5480 | P store 65 | 2000-02-07 01:49:04+0000 | 4acca18e-da39-11e4-add3-42010af08298 | green | 7520 | L store 65 | 2000-02-07 17:02:03+0000 | 4ae1a2fa-da39-11e4-add3-42010af08298 | purple | 5630 | P store 65 | 2000-02-09 09:46:37+0000 | 4b1bcc28-da39-11e4-add3-42010af08298 | yellow | 6985 | S store 65 | 2000-02-09 19:08:30+0000 | 4b2a10bc-da39-11e4-add3-42010af08298 | blue | 7505 | M store 65 | 2000-02-10 02:23:35+0000 | 4b35e428-da39-11e4-add3-42010af08298 | blue | 730 | M store 65 | 2000-02-10 16:12:10+0000 | 4b49dad2-da39-11e4-add3-42010af08298 | brown | 9940 | XL store 65 | 2000-02-12 05:10:22+0000 | 4b7c430a-da39-11e4-add3-42010af08298 | yellow | 3890 | S store 65 | 2000-02-14 20:16:52+0000 | 4bd9cb42-da39-11e4-add3-42010af08298 | green | 5335 | XL store 65 | 2000-02-14 22:40:38+0000 | 4bdcfb3c-da39-11e4-add3-42010af08298 | green | 2370 | XXXL store 65 | 2000-02-15 17:30:08+0000 | 4bf6c45e-da39-11e4-add3-42010af08298 | red | 6875 | L store 65 | 2000-02-16 15:19:40+0000 | 4c16783a-da39-11e4-add3-42010af08298 | pink | 7880 | XL store 65 | 2000-02-17 05:01:18+0000 | 4c2aab20-da39-11e4-add3-42010af08298 | white | 160 | XL store 65 | 2000-02-17 06:45:08+0000 | 4c2d66d0-da39-11e4-add3-42010af08298 | brown | 6005 | XXXL store 65 | 2000-02-17 08:43:02+0000 | 4c302f8c-da39-11e4-add3-42010af08298 | purple | 4970 | L store 65 | 2000-02-17 21:10:53+0000 | 4c44dea0-da39-11e4-add3-42010af08298 | white | 9530 | M store 65 | 2000-02-18 01:57:35+0000 | 4c4c55e0-da39-11e4-add3-42010af08298 | blue | 5695 | M store 65 | 2000-02-18 06:56:21+0000 | 4c53c50a-da39-11e4-add3-42010af08298 | red | 9705 | S store 65 | 2000-02-18 07:52:10+0000 | 4c555f78-da39-11e4-add3-42010af08298 | black | 5205 | XXL store 65 | 2000-02-20 07:01:49+0000 | 4ca0db9c-da39-11e4-add3-42010af08298 | pink | 2645 | S store 65 | 2000-02-20 07:48:56+0000 | 4ca244be-da39-11e4-add3-42010af08298 | brown | 2465 | XXXL store 65 | 2000-02-21 03:55:08+0000 | 4cc08474-da39-11e4-add3-42010af08298 | red | 4095 | M store 65 | 2000-02-21 07:25:29+0000 | 4cc5c736-da39-11e4-add3-42010af08298 | pink | 7200 | XXXL store 65 | 2000-02-21 23:08:29+0000 | 4cdba1b4-da39-11e4-add3-42010af08298 | brown | 9190 | M store 65 | 2000-02-21 23:08:56+0000 | 4cdbd832-da39-11e4-add3-42010af08298 | green | 7895 | XXL store 65 | 2000-02-23 00:17:30+0000 | 4d021ba0-da39-11e4-add3-42010af08298 | pink | 3955 | XXXL store 65 | 2000-02-23 04:40:20+0000 | 4d083b5c-da39-11e4-add3-42010af08298 | blue | 6435 | XXL store 65 | 2000-02-23 13:23:49+0000 | 4d1651c4-da39-11e4-add3-42010af08298 | purple | 2595 | S store 65 | 2000-02-24 14:51:42+0000 | 4d3b4e3e-da39-11e4-add3-42010af08298 | purple | 5685 | M store 65 | 2000-02-24 15:07:04+0000 | 4d3b805c-da39-11e4-add3-42010af08298 | brown | 5045 | S store 65 | 2000-02-24 22:04:02+0000 | 4d44af74-da39-11e4-add3-42010af08298 | pink | 6780 | L store 65 | 2000-02-25 00:53:13+0000 | 4d4910be-da39-11e4-add3-42010af08298 | green | 1285 | XXL store 65 | 2000-02-26 03:48:24+0000 | 4d729498-da39-11e4-add3-42010af08298 | red | 1895 | XXL store 65 | 2000-02-26 08:17:34+0000 | 4d7a717c-da39-11e4-add3-42010af08298 | brown | 6400 | M store 65 | 2000-02-26 17:41:23+0000 | 4d897d02-da39-11e4-add3-42010af08298 | white | 5870 | S store 65 | 2000-02-26 21:18:35+0000 | 4d8fbfbe-da39-11e4-add3-42010af08298 | green | 265 | P store 65 | 2000-02-26 23:51:47+0000 | 4d93bc40-da39-11e4-add3-42010af08298 | grey | 3950 | XXXL store 65 | 2000-02-27 09:34:06+0000 | 4da1b480-da39-11e4-add3-42010af08298 | white | 1150 | XXL store 65 | 2000-02-27 13:22:07+0000 | 4da87716-da39-11e4-add3-42010af08298 | pink | 3395 | XXL store 65 | 2000-02-27 16:49:46+0000 | 4dada0f6-da39-11e4-add3-42010af08298 | blue | 1430 | XXL(97 rows)cqlsh&gt; SELECT store, color, qty, size FROM tshirts.tshirtorders WHERE store = 'store 65' AND color = 'red'; store | order_time | order_number | color | qty | size-------+------------+--------------+-------+-----+------(0 rows)</description>
+      <version>2.1.5</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9128" opendate="2015-4-7 00:00:00" fixdate="2015-4-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Flush system.IndexInfo after index state changed</summary>
+      <description>We don't force a flush of system.IndexInfo after updating it by marking an index as built. This may lead to indexes being unnecessarily rebuilt following a disorderly shutdown.We also don't update it after an index is removed, but that's probably less of an issue as we do flush system.schema_columns after removing the index, so those won't get rebuilt.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9138" opendate="2015-4-8 00:00:00" fixdate="2015-4-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BlacklistingCompactionsTest failing on test-compression target</summary>
+      <description>org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklistingWithSizeTieredCompactionStrategy and org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklistingWithLeveledCompactionStrategy are failing on 2.0-head with the test-compression ant target. I've tried bisecting, but I can't find a time they passed within 500 commits.The stack trace isjunit.framework.AssertionFailedError: expected:&lt;25&gt; but was:&lt;8&gt; at org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklisting(BlacklistingCompactionsTest.java:158) at org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.testBlacklistingWithLeveledCompactionStrategy(BlacklistingCompactionsTest.java:69To reproduce run ant test-compression -Dtest.name=BlacklistingCompactionsTest</description>
+      <version>2.0.15,2.1.5,2.2.0beta1</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableScanner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9180" opendate="2015-4-13 00:00:00" fixdate="2015-4-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Failed bootstrap/replace attempts persist entries in system.peers</summary>
+      <description>In working on CASSANDRA-8336, I discovered vanilla C* has this problem. Just start a bootstrap or replace and kill it during the ring info gathering phase. System.peers, the gift that keeps on giving.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9196" opendate="2015-4-15 00:00:00" fixdate="2015-4-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Do not rebuild indexes if no columns are actually indexed</summary>
+      <description>When rebuilding secondary indexes, the index task is executed regardless if the actual SecondaryIndex#indexes(ByteBuffer ) implementation of any index returns true for any column, meaning that the expensive task of going through all sstables and related rows will be executed even if in the end no column/row will be actually indexed.This is a huge performance hit when i.e. bootstrapping with large datasets on tables having custom secondary index implementations whose indexes() implementation might return false.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.index.PerRowSecondaryIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyStoreTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9203" opendate="2015-4-16 00:00:00" fixdate="2015-4-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Removing cold_reads_to_omit is not backwards compatible</summary>
+      <description>While doing some tests on cassandra-2.1.5-tentative I found the cold_reads_to_omit parameter in SizeTieredCompactionStrategy was removed, this breaks our CREATE TABLE statements. This was done in CASSANDRA-8860 and if I understand Marcus comment in that JIRA, the intention was to keep the parameter in 2.1 but ignore it to avoid breaking existing code. But the patch actually removes the parameter.</description>
+      <version>2.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.SizeTieredCompactionStrategyOptions.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9235" opendate="2015-4-24 00:00:00" fixdate="2015-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Max sstable size in leveled manifest is an int, creating large sstables overflows this and breaks LCS</summary>
+      <description>nodetool compactionstatspending tasks: -222222228I can see negative numbers in 'pending tasks' on all 8 nodesit looks like -222222228 + real number of pending tasksfor example -222222128 for 100 real pending tasks</description>
+      <version>2.0.15,2.1.5,2.2.0beta1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

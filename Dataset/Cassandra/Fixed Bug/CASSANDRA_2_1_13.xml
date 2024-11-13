@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10585" opendate="2015-10-23 00:00:00" fixdate="2015-12-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSTablesPerReadHistogram seems wrong when row cache hit happend</summary>
+      <description>SSTablePerReadHistogram metric now not considers case when row has been read from row cache.And so, this metric will have big values even almost all requests processed by row cache (and without touching SSTables, of course).So, it seems that correct behavior is to consider that if we read row from row cache then we read zero SSTables by this request.The patch at the attachment.</description>
+      <version>2.1.13,2.2.5,3.0.1,3.1</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RowCacheTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10701" opendate="2015-11-13 00:00:00" fixdate="2015-12-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>stop referring to batches as atomic</summary>
+      <description>We still refer to logged batches as atomic, we should remove those references.</description>
+      <version>2.1.13,2.2.5,3.0.3,3.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">doc.cql3.CQL.textile</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10764" opendate="2015-11-23 00:00:00" fixdate="2015-12-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra Daemon should print JVM arguments</summary>
+      <description>While debugging, its useful to check if Cassandra indeed is picking up the JVM args supplied to it. Therefore, we should print those on startup.Patch is attached, and straightforward.</description>
+      <version>2.1.13</version>
+      <fixedVersion>Legacy/Observability,Local/StartupandShutdown</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10831" opendate="2015-12-9 00:00:00" fixdate="2015-12-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix the way we replace sstables after anticompaction</summary>
+      <description>We have a bug when we replace sstables after anticompaction, we keep adding duplicates which causes leveled compaction to fail after. Reason being that LCS does not keep its sstables in a Set, so after first compaction, we will keep around removed sstables in the leveled manifest and that will put LCS in an infinite loop as it tries to mark non-existing sstables as compacting</description>
+      <version>2.1.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10839" opendate="2015-12-10 00:00:00" fixdate="2015-1-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh failed to format value bytearray</summary>
+      <description>Execute the following in cqlsh (5.0.1):&gt; create table test(column blob, primary key(column));&gt; insert into test (column) VALUES(0x00);&gt; select * from test; column-------------------- bytearray(b'\x00')(1 rows)Failed to format value bytearray(b'\x00') : b2a_hex() argument 1 must be string or read-only buffer, not bytearray</description>
+      <version>2.1.13</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10847" opendate="2015-12-11 00:00:00" fixdate="2015-1-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Log a message when refusing a major compaction due to incremental repairedAt status</summary>
+      <description>When you do a major compaction, but have some repaired sstables and some that are not, it will correctly not compact them together. However, it can be somewhat confusing the operator as to why they aren't compacting together. It would be beneficial, specifically when doing a major, to log that we aren't going to do a full major because of this.</description>
+      <version>2.1.13,2.2.5,3.0.3,3.3</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10854" opendate="2015-12-13 00:00:00" fixdate="2015-12-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY FROM csv having line with more than one consecutive &amp;#39;,&amp;#39; delimiter is throwing &amp;#39;list index out of range&amp;#39;</summary>
+      <description>cqlsh COPY FROM csv having line with more than one consecutive ',' delimiter is throwing 'list index out of range'Steps to re-produce:CREATE TABLE tracks_by_album ( album_title TEXT, album_year INT, performer TEXT STATIC, album_genre TEXT STATIC, track_number INT, track_title TEXT, PRIMARY KEY ((album_title, album_year), track_number));Create a file: tracks_by_album.csv having following 2 lines :album,year,performer,genre,number,titlea,2015,b c d,e f g,,cqlsh&gt; COPY music.tracks_by_album (album_title, album_year, performer, album_genre, track_number, track_title)FROM '~/tracks_by_album.csv'WITH HEADER = 'true';Error :Starting copy of music.tracks_by_album with columns ['album_title', 'album_year', 'performer', 'album_genre', 'track_number', 'track_title'].list index out of rangeAborting import at record #1. Previously inserted records are still present, and some records after that may be present as well.</description>
+      <version>2.1.13,2.2.5,3.0.3,3.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10938" opendate="2015-12-24 00:00:00" fixdate="2015-2-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>test_bulk_round_trip_blogposts is failing occasionally</summary>
+      <description>We get timeouts occasionally that cause the number of records to be incorrect:http://cassci.datastax.com/job/trunk_dtest/858/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_bulk_round_trip_blogposts/</description>
+      <version>2.1.13,2.2.5,3.0.3,3.3</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.ServerConnection.java</file>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11005" opendate="2016-1-13 00:00:00" fixdate="2016-1-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Split consistent range movement flag</summary>
+      <description>CASSANDRA-7069 added a flag which does not allow multiple range movements in the ring. We want to turn this off as we want to move tokens far apart in the ring to speed up the moves. The problem is that this flag also turns off strict source check. We want to split this flag so that we can keep strict source but not stop parallel moves.</description>
+      <version>2.1.13,2.2.5,3.3</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.RangeStreamer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9179" opendate="2015-4-13 00:00:00" fixdate="2015-12-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to "point in time" restore if table/cf has been recreated</summary>
+      <description>With Cassandra 2.1, and the addition of the CF UUID, the ability to do a "point in time" restore by restoring a snapshot and replaying commitlogs is lost if the table has been dropped and recreated.When the table is recreated, the cf_id changes, and the commitlog replay mechanism skips the desired mutations as the cf_id no longer matches what's present in the schema.There should exist a way to inform the replay that you want the mutations replayed even if the cf_id doesn't match.</description>
+      <version>2.1.13,2.2.5,3.0.3,3.2</version>
+      <fixedVersion>Legacy/CQL,Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CFPropDefs.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9294" opendate="2015-5-4 00:00:00" fixdate="2015-12-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Streaming errors should log the root cause</summary>
+      <description>Currently, when a streaming error occurs all you get is something like:java.util.concurrent.ExecutionException: org.apache.cassandra.streaming.StreamException: Stream failedInstead, we should log the root cause. Was the connection reset by peer, did it timeout, etc?</description>
+      <version>2.1.13,2.2.5,3.0.3,3.2</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9302" opendate="2015-5-5 00:00:00" fixdate="2015-12-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Optimize cqlsh COPY FROM, part 3</summary>
+      <description>We've had some discussion moving to Spark CSV import for bulk load in 3.x, but people need a good bulk load tool now. One option is to add a separate Java bulk load tool (CASSANDRA-9048), but if we can match that performance from cqlsh I would prefer to leave COPY FROM as the preferred option to which we point people, rather than adding more tools that need to be supported indefinitely.Previous work on COPY FROM optimization was done in CASSANDRA-7405 and CASSANDRA-8225.</description>
+      <version>2.1.13,2.2.5,3.0.3,3.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.util.py</file>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9303" opendate="2015-5-5 00:00:00" fixdate="2015-1-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Match cassandra-loader options in COPY FROM</summary>
+      <description>https://github.com/brianmhess/cassandra-loader added a bunch of options to handle real world requirements, we should match those.</description>
+      <version>2.1.13,2.2.5,3.0.3,3.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.ClientWarningsTest.java</file>
+      <file type="M">bin.cqlsh.py</file>
+      <file type="M">tools.bin.cassandra-stress.bat</file>
+      <file type="M">src.java.org.apache.cassandra.transport.ServerConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cqlshrc.sample</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9474" opendate="2015-5-25 00:00:00" fixdate="2015-12-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Validate dc information on startup</summary>
+      <description>When using GossipingPropertyFileSnitch it is possible to change the data center and rack of a live node by changing the cassandra-rackdc.properties file. Should this really be possible? In the documentation at http://docs.datastax.com/en/cassandra/2.1/cassandra/initialize/initializeMultipleDS.html it's stated that you should Choose the name carefully; renaming a data center is not possible, but with this functionality it doesn't seem impossible(maybe a bit hard with changing replication etc.).This functionality was introduced by CASSANDRA-5897 so I'm guessing there is some use case for this?Personally I would want the DC/rack settings to be as restricted as the cluster name, otherwise if a node could just join another data center without removing it's local information couldn't it mess up the token ranges? And suddenly the old data center/rack would loose 1 replica of all the data that the node contains.</description>
+      <version>2.1.13,2.2.5,3.0.1,3.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

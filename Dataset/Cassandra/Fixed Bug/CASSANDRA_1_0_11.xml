@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="4010" opendate="2012-3-7 00:00:00" fixdate="2012-5-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Report thrift status in nodetool info</summary>
+      <description>Improve nodetool info command by reporting thrift status. Add following line:Thrift active: true</description>
+      <version>1.0.11,1.1.1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4266" opendate="2012-5-21 00:00:00" fixdate="2012-5-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Validate compression parameters</summary>
+      <description>compression_parameters doesn't warn when unknown options are specified; see http://ac31004.blogspot.co.uk/2012/05/snappy-compression-fails-for-apache.html</description>
+      <version>1.0.11,1.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.compress.SnappyCompressor.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.ICompressor.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.DeflateCompressor.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.CFPropDefs.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.CFPropDefs.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4279" opendate="2012-5-23 00:00:00" fixdate="2012-5-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>kick off background compaction when min/max changed</summary>
+      <description>When the threshold changes, we may be eligible for a compaction immediately (without waiting for a flush to trigger the eligibility check).</description>
+      <version>1.0.11,1.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4314" opendate="2012-6-6 00:00:00" fixdate="2012-6-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Index CF tombstones can cause OOM</summary>
+      <description>My database (now at 1.0.10) is in a state in which it goes out of memory with hardly any activity at all. A key slice nothing more.The logs attached are this including verbose gc in stdout. I started up cassandra and waited a bit to ensure that it was unperturbed.Then (about 15:46) I ran this slice (using Pelops), which in this case should return NO data. My client times out and the database goes OOM. ConsistencyLevel cl = ConsistencyLevel.TWO;//TWO nodes in my cluster Selector s = new Selector(this.pool); List&lt;IndexExpression&gt; indexExpressions = new ArrayList&lt;IndexExpression&gt;(); IndexExpression e = new IndexExpression( ByteBuffer.wrap("encryptionSettingsID".getBytes(ASCII)), IndexOperator.EQ, ByteBuffer.wrap(encryptionSettingsID.getBytes(Utils.ASCII))); indexExpressions.add(e); IndexClause indexClause = new IndexClause(indexExpressions, ByteBuffer.wrap(EMPTY_BYTE_ARRAY), 1); SlicePredicate predicate = new SlicePredicate(); predicate.setColumn_names(Arrays.asList(new ByteBuffer[] { ByteBuffer.wrap(COL_PAN_ENC_BYTES) })); List&lt;KeySlice&gt; slices = s.getKeySlices(CF_TOKEN, indexClause, predicate, cl);Note that “encryptionSettingsID” is an indexed column. When this is executed there should be no columns with the supplied value.I suppose I may have some kind of blatant error in this query but it is not obvious to me. I’m relatively new to cassandra.My key space is defined as follows:KsDef(name:TB_UNIT, strategy_class:org.apache.cassandra.locator.SimpleStrategy, strategy_options:{replication_factor=3}, cf_defs:[CfDef(keyspace:TB_UNIT, name:token, column_type:Standard, comparator_type:BytesType, column_metadata:&amp;#91;ColumnDef(name:70 61 6E 45 6E 63, validation_class:BytesType), ColumnDef(name:63 72 65 61 74 65 54 73, validation_class:DateType), ColumnDef(name:63 72 65 61 74 65 44 61 74 65, validation_class:DateType, index_type:KEYS, index_name:TokenCreateDate), ColumnDef(name:65 6E 63 72 79 70 74 69 6F 6E 53 65 74 74 69 6E 67 73 49 44, validation_class:UTF8Type, index_type:KEYS, index_name:EncryptionSettingsID)&amp;#93;, caching:keys_only), CfDef(keyspace:TB_UNIT, name:pan_d721fd40fd9443aa81cc6f59c8e047c6, column_type:Standard, comparator_type:BytesType, caching:keys_only), CfDef(keyspace:TB_UNIT, name:counters, column_type:Standard, comparator_type:BytesType, column_metadata:&amp;#91;ColumnDef(name:75 73 65 43 6F 75 6E 74, validation_class:CounterColumnType)&amp;#93;, default_validation_class:CounterColumnType, caching:keys_only)])tpstats show pending tasks many minutes after time out:&amp;#91;root@r610-lb6 bin&amp;#93;# ../cassandra/bin/nodetool -h 127.0.0.1 tpstatsPool Name Active Pending Completed Blocked All time blockedReadStage 3 3 107 0 0RequestResponseStage 0 0 56 0 0MutationStage 0 0 6 0 0ReadRepairStage 0 0 0 0 0ReplicateOnWriteStage 0 0 0 0 0GossipStage 0 0 2231 0 0AntiEntropyStage 0 0 0 0 0MigrationStage 0 0 0 0 0MemtablePostFlusher 0 0 3 0 0StreamStage 0 0 0 0 0FlushWriter 0 0 3 0 0MiscStage 0 0 0 0 0InternalResponseStage 0 0 0 0 0HintedHandoff 0 0 9 0 0Message type DroppedRANGE_SLICE 0READ_REPAIR 0BINARY 0READ 0MUTATION 0REQUEST_RESPONSE 0cfstats:Keyspace: keyspace Read Count: 118 Read Latency: 0.14722033898305084 ms. Write Count: 0 Write Latency: NaN ms. Pending Tasks: 0 Column Family: token SSTable count: 7 Space used (live): 4745885584 Space used (total): 4745885584 Number of Keys (estimate): 18626048 Memtable Columns Count: 0 Memtable Data Size: 0 Memtable Switch Count: 0 Read Count: 118 Read Latency: 0.147 ms. Write Count: 0 Write Latency: NaN ms. Pending Tasks: 0 Bloom Filter False Postives: 0 Bloom Filter False Ratio: 0.00000 Bloom Filter Space Used: 55058352 Key cache: disabled Row cache: disabled Compacted row minimum size: 150 Compacted row maximum size: 258 Compacted row mean size: 201 Column Family: pan_2fef6478b62242dd94aecaa049b9d7bb SSTable count: 7 Space used (live): 1987147156 Space used (total): 1987147156 Number of Keys (estimate): 14955264 Memtable Columns Count: 0 Memtable Data Size: 0 Memtable Switch Count: 0 Read Count: 0 Read Latency: NaN ms. Write Count: 0 Write Latency: NaN ms. Pending Tasks: 0 Bloom Filter False Postives: 0 Bloom Filter False Ratio: 0.00000 Bloom Filter Space Used: 28056224 Key cache: disabled Row cache: disabled Compacted row minimum size: 104 Compacted row maximum size: 124 Compacted row mean size: 124 Column Family: counters SSTable count: 11 Space used (live): 3433469364 Space used (total): 3433469364 Number of Keys (estimate): 21475328 Memtable Columns Count: 0 Memtable Data Size: 0 Memtable Switch Count: 0 Read Count: 0 Read Latency: NaN ms. Write Count: 0 Write Latency: NaN ms. Pending Tasks: 0 Bloom Filter False Postives: 0 Bloom Filter False Ratio: 0.00000 Bloom Filter Space Used: 40271696 Key cache capacity: 4652 Key cache size: 4652 Key cache hit rate: NaN Row cache: disabled Compacted row minimum size: 125 Compacted row maximum size: 179 Compacted row mean size: 150</description>
+      <version>1.0.11,1.1.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4462" opendate="2012-7-24 00:00:00" fixdate="2012-7-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>upgradesstables strips active data from sstables</summary>
+      <description>From the discussion here: http://mail-archives.apache.org/mod_mbox/cassandra-user/201207.mbox/%3CCAOac0GCtyDqS6ocuHOuQqre4re5wKj3o-ZpUZGkGsjCHzDVbTA%40mail.gmail.com%3EWe are trying to migrate a 0.8.8 cluster to 1.1.2 by migrating the sstables from the 0.8.8 ring to a parallel 1.1.2 ring. However, every time we run the `nodetool upgradesstables` step we find it removes active data from our CFs &amp;#8211; leading to lost data in our application.The steps we took were:1. Bring up a 1.1.2 ring in the same AZ/data center configuration withtokens matching the corresponding nodes in the 0.8.8 ring.2. Create the same keyspace on 1.1.2.3. Create each CF in the keyspace on 1.1.2.4. Flush each node of the 0.8.8 ring.5. Rsync each non-compacted sstable from 0.8.8 to the corresponding node in1.1.2.6. Move each 0.8.8 sstable into the 1.1.2 directory structure by renaming the file to the /cassandra/data/&lt;keyspace&gt;/&lt;cf&gt;/&lt;keyspace&gt;-&lt;cf&gt;... format. For example, for the keyspace "Metrics" and CF "epochs_60" we get:"cassandra/data/Metrics/epochs_60/Metrics-epochs_60-g-941-Data.db".7. On each 1.1.2 node run `nodetool -h localhost refresh Metrics &lt;CF&gt;` for each CF in the keyspace. We notice that storage load jumps accordingly.8. On each 1.1.2 node run `nodetool -h localhost upgradesstables`.Afterwards we would test the validity of the data by comparing it with data from the original 0.8.8 ring. After an upgradesstables command the data was always incorrect.With further testing we found that we could successfully use scrub to convert our sstables without data loss. However, any invocation of upgradesstables causes active data to be culled from the sstables: INFO &amp;#91;CompactionExecutor:4&amp;#93; 2012-07-24 04:27:36,837 CompactionTask.java (line 109) Compacting &amp;#91;SSTableReader(path=&amp;#39;/raid0/cassandra/data/Metrics/metrics_900/Metrics-metrics_900-hd-51-Data.db&amp;#39;)&amp;#93; INFO &amp;#91;CompactionExecutor:4&amp;#93; 2012-07-24 04:27:51,090 CompactionTask.java (line 221) Compacted to &amp;#91;/raid0/cassandra/data/Metrics/metrics_900/Metrics-metrics_900-hd-58-Data.db,&amp;#93;. 60,449,155 to 2,578,102 (~4% of original) bytes for 4,002 keys at 0.172562MB/s. Time: 14,248ms.These are the steps we've tried:WORKS refresh -&gt; scrubWORKS refresh -&gt; scrub -&gt; major compactionWORKS refresh -&gt; scrub -&gt; cleanupWORKS refresh -&gt; scrub -&gt; repairFAILS refresh -&gt; upgradesstablesFAILS refresh -&gt; scrub -&gt; upgradesstablesFAILS refresh -&gt; scrub -&gt; repair -&gt; upgradesstablesFAILS refresh -&gt; scrub -&gt; major compaction -&gt; upgradesstablesWe have fewer than 143 million row keys in the CFs we're testing and noneof the *-Filter.db files are &gt; 10MB, so I don't believe this is ourproblem: https://issues.apache.org/jira/browse/CASSANDRA-3820The keyspace is defined as:Keyspace: Metrics: Replication Strategy: org.apache.cassandra.locator.NetworkTopologyStrategy Durable Writes: true Options: &amp;#91;us-east:3&amp;#93;And the column family that we tested with is defined as: ColumnFamily: metrics_900 Key Validation Class: org.apache.cassandra.db.marshal.UTF8Type Default column value validator: org.apache.cassandra.db.marshal.BytesType Columns sorted by: org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.LongType,org.apache.cassandra.db.marshal.UTF8Type,org.apache.cassandra.db.marshal.UTF8Type) GC grace seconds: 0 Compaction min/max thresholds: 4/32 Read repair chance: 0.1 DC Local Read repair chance: 0.0 Replicate on write: true Caching: KEYS_ONLY Bloom Filter FP chance: default Built indexes: [] Compaction Strategy: org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy Compression Options: sstable_compression: org.apache.cassandra.io.compress.SnappyCompressorAll rows have a TTL of 30 days and a gc_grace=0 so it's possible that a small number of older columns would be removed during a compaction/scrub/upgradesstables step. However, the majority should still be kept as their TTL's have not expired yet.</description>
+      <version>1.0.11,1.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

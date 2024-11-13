@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HIVE">
+  <bug id="21787" opendate="2019-5-24 00:00:00" fixdate="2019-6-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Metastore table cache LRU eviction</summary>
+      <description>Metastore currently uses black/white list to specify patterns of tables to load into the cache. Cache is loaded in one shot "prewarm", and updated by a background thread. This is not a very efficient design. In this feature, we try to enhance the cache for Tables with LRU to improve cache utilization.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.test.java.org.apache.hadoop.hive.metastore.cache.TestCachedStore.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.cache.SharedCache.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.cache.CacheUtils.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.cache.CachedStore.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.metastore.cache.TestCachedStoreUpdateUsingEvents.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21874" opendate="2019-6-14 00:00:00" fixdate="2019-7-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement add partitions related methods on temporary table</summary>
+      <description>IMetaStoreClient exposes the following add partition related methods:Partition add_partition(Partition partition);int add_partitions(List&lt;Partition&gt; partitions);int add_partitions_pspec(PartitionSpecProxy partitionSpec);List&lt;Partition&gt; add_partitions(List&lt;Partition&gt; partitions, boolean ifNotExists, boolean needResults);These methods should be implemented in order to handle addition of partitions to temporary tables.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.test.java.org.apache.hadoop.hive.metastore.client.TestAddPartitionsFromPartSpec.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.test.java.org.apache.hadoop.hive.metastore.client.TestAddPartitions.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21875" opendate="2019-6-14 00:00:00" fixdate="2019-9-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement drop partition related methods on temporary tables</summary>
+      <description>IMetaStoreClient exposes the following methods related to dropping partitions:boolean dropPartition(String db_name, String tbl_name, List&lt;String&gt; part_vals, boolean deleteData);boolean dropPartition(String catName, String db_name, String tbl_name, List&lt;String&gt; part_vals, boolean deleteData);boolean dropPartition(String db_name, String tbl_name, List&lt;String&gt; part_vals, PartitionDropOptions options);boolean dropPartition(String catName, String db_name, String tbl_name, List&lt;String&gt; part_vals, PartitionDropOptions options);List&lt;Partition&gt; dropPartitions(String dbName, String tblName, List&lt;ObjectPair&lt;Integer, byte[]&gt;&gt; partExprs, boolean deleteData, boolean ifExists);List&lt;Partition&gt; dropPartitions(String catName, String dbName, String tblName, List&lt;ObjectPair&lt;Integer, byte[]&gt;&gt; partExprs, boolean deleteData, boolean ifExists);List&lt;Partition&gt; dropPartitions(String dbName, String tblName, List&lt;ObjectPair&lt;Integer, byte[]&gt;&gt; partExprs, boolean deleteData, boolean ifExists, boolean needResults);List&lt;Partition&gt; dropPartitions(String catName, String dbName, String tblName, List&lt;ObjectPair&lt;Integer, byte[]&gt;&gt; partExprs, boolean deleteData, boolean ifExists, boolean needResults);List&lt;Partition&gt; dropPartitions(String dbName, String tblName, List&lt;ObjectPair&lt;Integer, byte[]&gt;&gt; partExprs, PartitionDropOptions options);List&lt;Partition&gt; dropPartitions(String catName, String dbName, String tblName, List&lt;ObjectPair&lt;Integer, byte[]&gt;&gt; partExprs, PartitionDropOptions options);boolean dropPartition(String db_name, String tbl_name, String name, boolean deleteData);boolean dropPartition(String catName, String db_name, String tbl_name, String name, boolean deleteData)</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.test.java.org.apache.hadoop.hive.metastore.client.TestDropPartitions.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21886" opendate="2019-6-18 00:00:00" fixdate="2019-6-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>REPL - With table list - Handle rename events during replace policy</summary>
+      <description>If some rename events are found to be dumped and replayed while replace policy is getting executed, it needs to take care of the policy inclusion in both the policy for each table name. 1. Create a list of tables to be bootstrapped.   2. During handling of alter table, if the alter type is rename       1. If the old table name is present in the list of table to be bootstrapped, remove it.       2. If the new table name, matches the new policy, add it to the list of tables to be bootstrapped.       3. If the old table does not match the old policy drop it, even if the table is not present at target.  3. During handling of drop table       1. if the table is in the list of tables to be bootstrapped, then remove it and ignore the event.  4. During other event handling        1. if the table is there in the list of tables to be bootstrapped, then ignore the event.       2. If the new policy does not match the table name, then ignore the event. Rename handling during replace policy Old name not matching old policy – The old table will not be there at the target cluster. The table will not be returned by get-all-table. Old name is not matching new policy New name not matching old policy New name not matching new policy Ignore the event, no need to do anything. New name matching new policy The table will be returned by get-all-table. Replace policy handler will bootstrap this table as its matching new policy and not matching old policy. All the future events will be ignored as part of check added by replace policy handling. All the event with old table name will anyways be ignored as the old name is not matching the new policy. New name matching old policy New name not matching new policy As the new name is not matching the new policy, the table need not be replicated. As the old name is not matching the new policy, the rename events will be ignored. So nothing to be done for this scenario. New name matching new policy As the new name is matching both old and new policy, replace handler will not bootstrap the table. Add the table to the list of tables to be bootstrapped. Ignore all the events with new name. If there is a drop event for the table (with new name), then remove the table from the the list of table to be bootstrapped. In case of rename event (double rename) If the new name satisfies the table pattern, then add the new name to the list of tables to be bootstrapped and remove the old name from the list of tables to be bootstrapped. If the new name does not satisfies then just removed the table name from the list of tables to be bootstrapped. Old name is matching new policy – As per replace policy handler, which checks based on old table, the table should be bootstrapped and event should be ignored. But rename handler should decide based on new name.The old table name will not be returned by get-all-table, so replace handler will not d anything for the old table. New name not matching old policy New name not matching new policy As the old table is not there at target and new name is not matching new policy. Ignore the event. No need to add the table to the list of tables to be bootstrapped. All the subsequent events will be ignored as the new name is not matching the new policy. New name matching new policy As the new name is not matching old policy but matching new policy, the table will be bootstrapped by replace policy handler. So rename event need not add this table to list of table to be bootstrapped. All the future events will be ignored by replace policy handler. For rename event (double rename) If there is a rename, the table (with intermittent new name) will not be present and thus replace handler will not bootstrap the table. So if the new name (the latest one) is matching the new policy, then add it to the list of table to be bootstrapped. And If the new name (the latest one)  is not matching the new policy, then just ignore the event as the  intermittent new name would not have added to the list of table to be bootstrapped. New name matching old policy New name not matching new policy Dump the event. The table will be dropped by repl load at the target. New name matching new policy Replace handler will not bootstrap this table as the new name is matching both policies. As old name is not matching the old policy, the table will not be there at target. The rename event should add the new name to the list of table to be bootstrapped. Subsequent events with new table name should be ignored. Drop events should not be ignored as if the table is present during bootstrapped, then its a new table and thus should be dropped. In case of rename event (double rename) If the new name satisfies the table pattern, then add the new name to the list of tables to be bootstrapped and remove the old name from the list of tables to be bootstrapped. If the new name does not satisfies then just removed the table name from the list of tables to be bootstrapped. Old name is matching old policy – The old table will be there at the target cluster. The table will not be returned by get-all-table. Repl load should delete the old table as it is not matching the new policy. Old name is not matching new policy New name not matching old policy New name not matching new policy Nothing to be done. Ignore the event. New name matching new policy As the new name is not matching old policy but matching new policy, the table will be bootstrapped by replace policy handler. So rename event need not add this table to list of table to be bootstrapped. All the future events will be ignored by replace policy handler. For rename event (double rename) If there is a rename, the table (with intermittent new name) will not be present and thus replace handler will not bootstrap the table. So if the new name (the latest one) is matching the new policy, then add it to the list of table to be bootstrapped. And If the new name (the latest one)  is not matching the new policy, then just ignore the event as the  intermittent new name would not have added to the list of table to be bootstrapped. New name matching old policy New name not matching new policy Table with new name will be dropped by repl load Along with other event, ignore the rename event also. New name matching new policy As the new name is matching both old and new policy, replace handler will not bootstrap the table. Add the table to the list of tables to be bootstrapped. Ignore all the events with new name. If there is a drop event for the table (with new name), then remove the table from the the list of table to be bootstrapped. In case of rename event (double rename) If the new name satisfies the table pattern, then add the new name to the list of tables to be bootstrapped and remove the old name from the list of tables to be bootstrapped. If the new name does not satisfies then just removed the table name from the list of tables to be bootstrapped. Old name is matching new policy New name not matching old policy New name not matching new policy The old table needs to be dropped at target. Ignore this event, as the old table is not matching the new policy, it will be dropped by repl load. New name matching new policy Allow the event to dump and replayed at target. Allow further events to be handled as usual. In case of rename event (double rename) If the latest new name is matching the new policy, then keep it as is it. Let rename event replayed at target. If the latest new name is not matching the new policy, then change the rename event to drop event. New name matching old policy New name not matching new policy Nothing to be done. New name matching new policy Add the table name to the list of tables to be bootstrapped.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">testutils.ptest2.conf.deployed.master-mr2.properties</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.repl.dump.Utils.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.repl.dump.events.CommitTxnHandler.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.repl.dump.events.AlterTableHandler.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.repl.ReplDumpTask.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.ql.parse.TestTableLevelReplicationScenarios.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21887" opendate="2019-6-18 00:00:00" fixdate="2019-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Multiple implementations of PersistenceManager are on the classpath</summary>
+      <description>While writing some test I've just bumped into that PersistenceManager is not always AutoCloseable ; however when I was using it from the metastore it was.it turned out that: 'standalone-metastore' uses: org.datanucleus:javax.jdo:3.2.0-m3 'metastore' uses: javax.jdo:jdo-api:3.0.1the problem is that both dependency contains the jdo api; and sometimes jdo-api is earlier on the classpath</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.metadata.Hive.java</file>
+      <file type="M">ql.pom.xml</file>
+      <file type="M">pom.xml</file>
+      <file type="M">metastore.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21889" opendate="2019-6-18 00:00:00" fixdate="2019-6-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add reexecution configuration keys to the whitelist</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2191" opendate="2011-6-3 00:00:00" fixdate="2011-6-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow optional [inner] on equi-join.</summary>
+      <description>Lot's of databases including mysql support an optional "inner" keyword to explicitely select an equi-join.As shown in the mysql docs: http://dev.mysql.com/doc/refman/5.1/en/join.htmlFor completeness/portability we should allow this.</description>
+      <version>None</version>
+      <fixedVersion>0.8.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.Hive.g</file>
+      <file type="M">docs.xdocs.language.manual.joins.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21911" opendate="2019-6-21 00:00:00" fixdate="2019-7-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pluggable LlapMetricsListener on Tez side to disable / resize Daemons</summary>
+      <description>We need to have a way to plug in different listeners which act upon the LlapDaemon statistics.This listener should be able to disable / resize the LlapDaemons based on health data.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">llap-tez.src.test.org.apache.hadoop.hive.llap.tezplugins.metrics.TestLlapMetricsCollector.java</file>
+      <file type="M">llap-tez.src.java.org.apache.hadoop.hive.llap.tezplugins.metrics.LlapMetricsCollector.java</file>
+      <file type="M">llap-tez.src.java.org.apache.hadoop.hive.llap.tezplugins.LlapTaskSchedulerService.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21912" opendate="2019-6-21 00:00:00" fixdate="2019-7-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement BlacklistingLlapMetricsListener</summary>
+      <description>We should implement a DaemonStatisticsHandler which: If a node average response time is bigger than 150% (configurable) of the other nodes If the other nodes has enough empty executors to handle the requestsThen disables the limping node.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">llap-tez.src.test.org.apache.hadoop.hive.llap.tezplugins.metrics.TestLlapMetricsCollector.java</file>
+      <file type="M">llap-tez.src.java.org.apache.hadoop.hive.llap.tezplugins.metrics.LlapMetricsCollector.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.metrics.LlapDaemonExecutorInfo.java</file>
+      <file type="M">llap-client.src.java.org.apache.hadoop.hive.llap.registry.impl.LlapZookeeperRegistryImpl.java</file>
+      <file type="M">llap-client.src.java.org.apache.hadoop.hive.llap.registry.impl.LlapRegistryService.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21952" opendate="2019-7-3 00:00:00" fixdate="2019-6-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hive should allow to delete serde properties too, not just add them</summary>
+      <description>Hive should allow to delete serde properties not just add/change themWe have a use case when a presence of certain serde properties causes issues and we want to delete just that one serde property. It's not currently possible.Thanks. </description>
+      <version>2.3.5,3.0.0,4.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.llap.table.storage.q.out</file>
+      <file type="M">ql.src.test.queries.clientpositive.table.storage.q</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.HiveOperation.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.ddl.table.storage.serde.AlterTableSetSerdePropsAnalyzer.java</file>
+      <file type="M">parser.src.java.org.apache.hadoop.hive.ql.parse.HiveParser.g</file>
+      <file type="M">hcatalog.core.src.main.java.org.apache.hive.hcatalog.cli.SemanticAnalysis.HCatSemanticAnalyzer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22036" opendate="2019-7-24 00:00:00" fixdate="2019-1-24 01:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>HMS should identify events corresponding to replicated database for Atlas HMS hook</summary>
+      <description>An HMS Atlas hook allows an Atlas to create/update/delete its metadata based on the corresponding events in HMS. But Atlas replication happens out-side and before the Hive replication. Thus any events generated during replication may change the Atlas data already replicated, thus interfering with Atlas replication. Hence, provide an HMS interface which the hook can use to identify the events caused by Hive replication flow.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.HiveMetaStore.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.HiveAlterHandler.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.events.DropTableEvent.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.events.DropDatabaseEvent.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.events.CreateTableEvent.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.events.CreateDatabaseEvent.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.events.AlterTableEvent.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.events.AlterDatabaseEvent.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.main.java.org.apache.hadoop.hive.common.repl.ReplConst.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.repl.util.ReplUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22055" opendate="2019-7-26 00:00:00" fixdate="2019-9-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>select count gives incorrect result after loading data from text file</summary>
+      <description>Add one more load to mm_loaddata.q:Load data 3 times (both kv1.txt and kv2.txt contains 500 records)create table load0_mm (key string, value string) stored as textfile tblproperties("transactional"="true", "transactional_properties"="insert_only");load data local inpath '../../data/files/kv1.txt' into table load0_mm;select count(1) from load0_mm;load data local inpath '../../data/files/kv2.txt' into table load0_mm;select count(1) from load0_mm;load data local inpath '../../data/files/kv2.txt' into table load0_mm;select count(1) from load0_mm;Expected outputPREHOOK: query: load data local inpath '../../data/files/kv2.txt' into table load0_mmPREHOOK: type: LOAD#### A masked pattern was here ####PREHOOK: Output: default@load0_mmPOSTHOOK: query: load data local inpath '../../data/files/kv2.txt' into table load0_mmPOSTHOOK: type: LOAD#### A masked pattern was here ####POSTHOOK: Output: default@load0_mmPREHOOK: query: select count(1) from load0_mmPREHOOK: type: QUERYPREHOOK: Input: default@load0_mm#### A masked pattern was here ####POSTHOOK: query: select count(1) from load0_mmPOSTHOOK: type: QUERYPOSTHOOK: Input: default@load0_mm#### A masked pattern was here ####1500Got:&amp;#91;ERROR&amp;#93;   TestMiniLlapLocalCliDriver.testCliDriver:59 Client Execution succeeded but contained differences (error code = 1) after executing mm_loaddata.q63c63&lt; 1480—&gt; 1500 </description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.io.encoded.SerDeEncodedDataReader.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22087" opendate="2019-8-7 00:00:00" fixdate="2019-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HMS Translation: Translate getDatabase() API to alter warehouse location</summary>
+      <description>It makes sense to translate getDatabase() calls as well, to alter the location for the Database based on whether or not the processor has capabilities to write to the managed warehouse directory. Every DB has 2 locations, one external and the other in the managed warehouse directory. If the processor has any AcidWrite capability, then the location remains unchanged for the database.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.test.java.org.apache.hadoop.hive.metastore.client.TestAddPartitions.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.MetastoreDefaultTransformer.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.IMetaStoreMetadataTransformer.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.HiveMetaStore.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.main.thrift.hive.metastore.thrift</file>
+      <file type="M">standalone-metastore.metastore-common.src.main.java.org.apache.hadoop.hive.metastore.HiveMetaStoreClient.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-rb.thrift.hive.metastore.rb</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-rb.hive.metastore.types.rb</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-py.hive.metastore.ttypes.py</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-py.hive.metastore.ThriftHiveMetastore.py</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-py.hive.metastore.ThriftHiveMetastore-remote</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-php.metastore.Types.php</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-php.metastore.ThriftHiveMetastore.php</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.WMValidateResourcePlanResponse.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.WMGetTriggersForResourePlanResponse.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.WMGetAllResourcePlanResponse.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.WMFullResourcePlan.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.SchemaVersion.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.RenamePartitionRequest.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.GetPartitionsResponse.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.GetPartitionsRequest.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.GetPartitionsProjectionSpec.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.GetPartitionsFilterSpec.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.FindSchemasByColsResp.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.CreateTableRequest.java</file>
+      <file type="M">standalone-metastore.metastore-common.src.gen.thrift.gen-javabean.org.apache.hadoop.hive.metastore.api.AlterPartitionsRequest.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.metastore.TestHiveMetastoreTransformer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22094" opendate="2019-8-9 00:00:00" fixdate="2019-8-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>queries failing with ClassCastException: hive.ql.exec.vector.DecimalColumnVector cannot be cast to hive.ql.exec.vector.Decimal64ColumnVector</summary>
+      <description>When running a query like thisselect sum(salary.salary_paid) from salary, employee_closure where salary.employee_id = employee_closure.employee_id;with hive.auto.convert.join=true and hive.vectorized.execution.enabled=true the following exception occursCaused by: java.lang.ClassCastException: org.apache.hadoop.hive.ql.exec.vector.DecimalColumnVector cannot be cast to org.apache.hadoop.hive.ql.exec.vector.Decimal64ColumnVectorat org.apache.hadoop.hive.ql.exec.vector.expressions.aggregates.VectorUDAFSumDecimal64ToDecimal.aggregateInput(VectorUDAFSumDecimal64ToDecimal.java:320)at org.apache.hadoop.hive.ql.exec.vector.VectorGroupByOperator$ProcessingModeBase.processAggregators(VectorGroupByOperator.java:217)at org.apache.hadoop.hive.ql.exec.vector.VectorGroupByOperator$ProcessingModeHashAggregate.doProcessBatch(VectorGroupByOperator.java:414)at org.apache.hadoop.hive.ql.exec.vector.VectorGroupByOperator$ProcessingModeBase.processBatch(VectorGroupByOperator.java:182)at org.apache.hadoop.hive.ql.exec.vector.VectorGroupByOperator.process(VectorGroupByOperator.java:1124)at org.apache.hadoop.hive.ql.exec.Operator.vectorForward(Operator.java:919)at org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinGenerateResultOperator.forwardOverflow(VectorMapJoinGenerateResultOperator.java:706)at org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinInnerBigOnlyGenerateResultOperator.generateHashMultiSetResultMultiValue(VectorMapJoinInnerBigOnlyGenerateResultOperator.java:268)at org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinInnerBigOnlyGenerateResultOperator.finishInnerBigOnly(VectorMapJoinInnerBigOnlyGenerateResultOperator.java:180)at org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinInnerBigOnlyLongOperator.processBatch(VectorMapJoinInnerBigOnlyLongOperator.java:379)... 28 more</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.mapjoin.VectorMapJoinCommonOperator.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22225" opendate="2019-9-20 00:00:00" fixdate="2019-10-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add owner name for create database if missing</summary>
+      <description>When Spark connects to HMS, the database owner name is not filled. This could happen to other clients as well. We shall fill this in HMS. Ownership info is useful for authorizer component in Ranger, etc. </description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.test.java.org.apache.hadoop.hive.metastore.client.TestDatabases.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.HiveMetaStore.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.client.builder.DatabaseBuilder.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23633" opendate="2020-6-8 00:00:00" fixdate="2020-6-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Close Metastore JDO query objects properly</summary>
+      <description>After patched HIVE-10895, The metastore still has seen a memory leak on db resources: many StatementImpls left unclosed.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.ObjectStore.java</file>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.MetaStoreDirectSql.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2366" opendate="2011-8-10 00:00:00" fixdate="2011-11-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Metastore upgrade scripts for HIVE-2246 do not migrate indexes nor rename the old COLUMNS table</summary>
+      <description>The upgrade scripts for the hive metastore in HIVE-2246 do not upgrade the indexes. They also need to rename the old COLUMNS table after migration so that old clients will not accidentally access the COLUMNS table.</description>
+      <version>None</version>
+      <fixedVersion>0.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">metastore.scripts.upgrade.mysql.008-HIVE-2246.mysql.sql</file>
+      <file type="M">metastore.scripts.upgrade.derby.008-REVERT-HIVE-2246.derby.sql</file>
+      <file type="M">metastore.scripts.upgrade.derby.008-HIVE-2246.derby.sql</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23666" opendate="2020-6-8 00:00:00" fixdate="2020-6-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>checkHashModeEfficiency is skipped when a groupby operator doesn&amp;#39;t have a grouping set</summary>
+      <description>checkHashModeEfficiency is skipped when a groupby operator doesn't have a grouping set</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.VectorGroupByOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2635" opendate="2011-12-8 00:00:00" fixdate="2011-2-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>wrong class loader used for external jars</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.io.rcfile.merge.BlockMergeTask.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.Utilities.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.MapRedTask.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.MapredLocalTask.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.ExecDriver.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2764" opendate="2012-1-31 00:00:00" fixdate="2012-4-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Obtain delegation tokens for MR jobs in secure hbase setup</summary>
+      <description>As discussed in HCATALOG-244, in a secure hbase setup with 0.92, we need to obtain delegation tokens for hbase and save it in jobconf, so that tasks can access region servers.</description>
+      <version>None</version>
+      <fixedVersion>0.9.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">shims.src.common.java.org.apache.hadoop.hive.shims.HadoopShims.java</file>
+      <file type="M">shims.src.common-secure.java.org.apache.hadoop.hive.shims.HadoopShimsSecure.java</file>
+      <file type="M">shims.src.0.20.java.org.apache.hadoop.hive.shims.Hadoop20Shims.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.MapredWork.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.io.rcfile.merge.BlockMergeTask.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.io.RCFileOutputFormat.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.io.HiveSequenceFileOutputFormat.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.io.HiveOutputFormat.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.io.HiveNullValueSequenceFileOutputFormat.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.FileSinkOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.ExecDriver.java</file>
+      <file type="M">hbase-handler.src.java.org.apache.hadoop.hive.hbase.HiveHFileOutputFormat.java</file>
+      <file type="M">hbase-handler.src.java.org.apache.hadoop.hive.hbase.HiveHBaseTableOutputFormat.java</file>
+      <file type="M">hbase-handler.src.java.org.apache.hadoop.hive.hbase.HiveHBaseTableInputFormat.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

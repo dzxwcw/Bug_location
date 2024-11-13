@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2015-1-6 01:00:00" id="10010" opendate="2015-8-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paging on DISTINCT queries repeats result when first row in partition changes</summary>
+      <description>When paging, we always check new pages to see if they start with the same row that the previous page ended with, and if so, we trim that row to avoid duplicates. With DISTINCT queries, we only fetch the first row in each partition. If that row happens to change (it's deleted, or another row is inserted at the front of the partition) in between fetching the two pages, our check for a matching row will fail, resulting in a duplicate row being returned.It seems like the correct fix is to handle DISTINCT queries specially and only check to see if the partition key matches the last returned one instead checking that the rows match.</description>
+      <version>2.2.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeSliceQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-2-13 01:00:00" id="10512" opendate="2015-10-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>We do not save an upsampled index summaries</summary>
+      <description>If we downsample an index summary, we overwrite the existing summary, despite downsampling being inexpensive. However on upsampling (which is expensive) we do not, so that on restart all of our index summaries are the smallest they have ever been adjusted to.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableReaderTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.SegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.MmappedSegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-2-19 01:00:00" id="10733" opendate="2015-11-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inconsistencies in CQLSH auto-complete</summary>
+      <description>Auto-complete in cqlsh does not work correctly on some commands. We see some inconsistent behaviour when completing part of the statement and hitting the tab key.Works correctlyAuto-complete on 'desc table ', 'desc function ' and 'desc type ' works correctly. We see a list of all tables (or functions, types) in the current keyspace plus a list of all available keyspaces followed by a full stop (e.g. system.)cqlsh:fxaggr&gt; desc TABLE minutedata system_distributed.; rawtickdatabylp system_traces.&lt;enter&gt; rawtickdatabysymbol tickdatadaydata system. fxaggr. system_auth. Fix required'desc aggregate ' displays the aggregates in the current keyspace (in this case, only 1, called 'average') but does not display a list of available keyspaces. It only displays the current keyspace, with no following full stop.cqlsh:fxaggr&gt; desc aggregate ; &lt;enter&gt; average fxaggrWorks correctlyAuto-complete on 'desc table &lt;keyspace&gt;. ' and 'desc type &lt;keyspace&gt;.' works correctly. We see a list of all tables (or types) in the current keyspacecqlsh:fxaggr&gt; desc table fxaggr.daydata rawtickdatabylp tickdataminutedata rawtickdatabysymbol Fix requiredAuto-complete on 'desc function &lt;keyspace&gt;. ' and 'desc aggregate &lt;keyspace&gt;.' works inconsistently. In a keyspace with 2 functions, both beginning with the letters 'avg', if I type 'desc function &lt;keyspace&gt;' and hit tab, auto-complete will result in this: 'desc function fxaggr.avg ' and will not display the matching functions. If I type 'desc function &lt;keyspace&gt;.' (note the trailing full stop) and hit tab, auto-complete will work correctly:cqlsh:fxaggr&gt; desc function fxaggr.avgavgfinal avgstate If I type 'desc aggregate &lt;keyspace&gt;' and hit tab, auto-complete returns 'desc aggregate &lt;keyspace&gt; ' (it adds a space) and does not show me the list of available aggregates. If I type 'desc aggregate &lt;keyspace&gt;.' (note the trailing full stop) and hit tab, auto-complete will work correctly.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.test.keyspace.init.cql</file>
+      <file type="M">pylib.cqlshlib.test.test.cqlsh.completion.py</file>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-2-17 01:00:00" id="10888" opendate="2015-12-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tombstone error warning does not log partition key</summary>
+      <description>Log partition key if read fails due to the ERROR threshold on read tombstoned cells.Right now I can specify a warning and an error threshold for C* when reading from a partition with many tombstones.If the query reads more than the “warning threshold” then C* writes a warning to the log with the partition key.But if a query reads more than the “error threshold” then C* aborts the query and writes to the log – but not the partition key, this time. What I am missing is: Could C* also please write the partition key in case of query abort due to tombstones?</description>
+      <version>2.1.14,2.2.6</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-2-20 01:00:00" id="11037" opendate="2016-1-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh bash script cannot be called through symlink</summary>
+      <description>cqlsh bash script cannot be called through a symlink</description>
+      <version>2.2.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-2-20 01:00:00" id="11041" opendate="2016-1-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make it clear what timestamp_resolution is used for with DTCS</summary>
+      <description>We have had a few cases lately where users misunderstand what timestamp_resolution does, we should; make the option not autocomplete in cqlsh update documentation log a warning</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyOptions.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-21 01:00:00" id="11053" opendate="2016-1-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY FROM on large datasets: fix progress report and optimize performance part 4</summary>
+      <description>DescriptionRunning COPY from on a large dataset (20G divided in 20M records) revealed two issues: The progress report is incorrect, it is very slow until almost the end of the test at which point it catches up extremely quickly. The performance in rows per second is similar to running smaller tests with a smaller cluster locally (approx 35,000 rows per second). As a comparison, cassandra-stress manages 50,000 rows per second under the same set-up, therefore resulting 1.5 times faster.See attached file copy_from_large_benchmark.txt for the benchmark details.Doc-impacting changes to COPY FROM options A new option was added: PREPAREDSTATEMENTS - it indicates if prepared statements should be used; it defaults to true. The default value of CHUNKSIZE changed from 1000 to 5000. The default value of MINBATCHSIZE changed from 2 to 10.</description>
+      <version>2.1.14,2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.setup.py</file>
+      <file type="M">pylib.cqlshlib.util.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-2-10 01:00:00" id="11146" opendate="2016-2-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Adding field to UDT definition breaks SELECT JSON</summary>
+      <description>CREATE TYPE test_type ( i int);CREATE TABLE test_table ( id int PRIMARY KEY, model frozen&lt;test_type&gt;);INSERT INTO test_table JSON '{"id": 1, "model": {"i": 123}}';SELECT JSON * FROM test_table;successALTER TYPE test_type ADD b boolean;SELECT JSON * FROM test_table;errorServerError: &lt;ErrorMessage code=0000 [Server error] message="java.lang.ArrayIndexOutOfBoundsException: 1"&gt;</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.UserType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-3-19 01:00:00" id="11196" opendate="2016-2-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>tuple_notation_test upgrade tests flaps</summary>
+      <description>tuple_notation_test in the upgrade_tests.cql_tests module flaps on a number of different upgrade paths. Here are some of the tests that flap:upgrade_tests/cql_tests.py:TestCQLNodes2RF1_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes2RF1_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_2_HEAD_UpTo_Trunk.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_2_HEAD_UpTo_Trunk.tuple_notation_testHere's an example failure:http://cassci.datastax.com/job/upgrade_tests-all/9/testReport/upgrade_tests.cql_tests/TestCQLNodes2RF1_2_1_UpTo_2_2_HEAD/tuple_notation_test/All the failures I've seen fail with this error:&lt;ErrorMessage code=0000 [Server error] message="java.lang.IndexOutOfBoundsException"&gt;</description>
+      <version>2.2.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSetTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSet.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-23 01:00:00" id="11210" opendate="2016-2-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unresolved hostname in replace address</summary>
+      <description>If you provide a hostname which could not be resolved by DNS, it leads to replace args being ignored. If you provide an IP which is not in the cluster, it does the right thing and complain.</description>
+      <version>2.2.6,3.0.5,3.5,3.11.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-23 01:00:00" id="11215" opendate="2016-2-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reference leak with parallel repairs on the same table</summary>
+      <description>When starting multiple repairs on the same table Cassandra starts to log about reference leak as:ERROR [Reference-Reaper:1] 2016-02-23 15:02:05,516 Ref.java:187 - LEAK DETECTED: a reference (org.apache.cassandra.utils.concurrent.Ref$State@5213f926) to class org.apache.cassandra.io.sstable.format.SSTableReader$InstanceTidier@605893242:.../testrepair/standard1-dcf311a0da3411e5a5c0c1a39c091431/la-30-big was not released before the reference was garbage collectedReproducible with:ccm create repairtest -v 2.2.5 -n 3ccm startccm stress write n=1000000 -schema replication(strategy=SimpleStrategy,factor=3) keyspace=testrepair# And then perform two repairs concurrently with:ccm node1 nodetool repair testrepairI know that starting multiple repairs in parallel on the same table isn't very wise, but this shouldn't result in reference leaks.</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-3-11 01:00:00" id="11344" opendate="2016-3-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix bloom filter sizing with LCS</summary>
+      <description>Since CASSANDRA-7272 we most often over allocate the bloom filter size with LCS</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.writers.MaxSSTableSizeWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-4-30 01:00:00" id="11467" opendate="2016-3-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paging loses rows in certain conditions</summary>
+      <description>The bug occurs under the following conditions: RandomPartitioner a compact storage CF querying across rows a tombstone in the first column of a row on the pagesize boundary you need to be querying at least 2*pagesize + 1 recordsAttached is a go program using gocql which reproduces the bug fairly minimally.</description>
+      <version>2.1.14,2.2.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-6 01:00:00" id="11515" opendate="2016-4-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* won&amp;#39;t launch with whitespace in path on Windows</summary>
+      <description>In a directory named 'test space', I see the following on launch:Error: Could not find or load main class space\cassandra.logs.gc.log</description>
+      <version>2.2.6,3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-2-14 01:00:00" id="7238" opendate="2014-5-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool Status performance is much slower with VNodes On</summary>
+      <description>Nodetool status on a 1000 Node cluster without vnodes returns in several seconds. With vnodes on (256) there are OOM errors with the default XMX of 32. Adjusting the XMX to 128 allows nodetool status to complete but the execution takes roughly 10 minutes.TestedXMX | Status32 | OOM64 | OOM: GC Overhead128 | Finishes in ~10 minutes500 | Finishes in ~10 minutes1000 | Finishes in ~10 minutes</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+</bugrepository>

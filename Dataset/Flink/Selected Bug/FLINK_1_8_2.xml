@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="FLINK">
+  <bug fixdate="2018-12-12 01:00:00" id="11136" opendate="2018-12-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix the logical of merge for DISTINCT aggregates</summary>
+      <description>The logic of merge for DISTINCT aggregates has bug. For the following query:SELECT c, COUNT(DISTINCT b), SUM(DISTINCT b), SESSION_END(rowtime, INTERVAL '0.005' SECOND)FROM MyTableGROUP BY SESSION(rowtime, INTERVAL '0.005' SECOND), cthe following exception will be thrown:Caused by: java.lang.ClassCastException: org.apache.flink.types.Row cannot be cast to java.lang.Integerat scala.runtime.BoxesRunTime.unboxToInt(BoxesRunTime.java:101)at scala.math.Numeric$IntIsIntegral$.plus(Numeric.scala:58)at org.apache.flink.table.functions.aggfunctions.SumAggFunction.accumulate(SumAggFunction.scala:50)at GroupingWindowAggregateHelper$18.mergeAccumulatorsPair(Unknown Source)at org.apache.flink.table.runtime.aggregate.AggregateAggFunction.merge(AggregateAggFunction.scala:66)at org.apache.flink.table.runtime.aggregate.AggregateAggFunction.merge(AggregateAggFunction.scala:33)at org.apache.flink.runtime.state.heap.HeapAggregatingState.mergeState(HeapAggregatingState.java:117)at org.apache.flink.runtime.state.heap.AbstractHeapMergingState$MergeTransformation.apply(AbstractHeapMergingState.java:102)at org.apache.flink.runtime.state.heap.CopyOnWriteStateTable.transform(CopyOnWriteStateTable.java:463)at org.apache.flink.runtime.state.heap.CopyOnWriteStateTable.transform(CopyOnWriteStateTable.java:341)at org.apache.flink.runtime.state.heap.AbstractHeapMergingState.mergeNamespaces(AbstractHeapMergingState.java:91)at org.apache.flink.streaming.runtime.operators.windowing.WindowOperator$2.merge(WindowOperator.java:341)at org.apache.flink.streaming.runtime.operators.windowing.WindowOperator$2.merge(WindowOperator.java:311)at org.apache.flink.streaming.runtime.operators.windowing.MergingWindowSet.addWindow(MergingWindowSet.java:212)at org.apache.flink.streaming.runtime.operators.windowing.WindowOperator.processElement(WindowOperator.java:311)at org.apache.flink.streaming.runtime.io.StreamInputProcessor.processInput(StreamInputProcessor.java:202)at org.apache.flink.streaming.runtime.tasks.OneInputStreamTask.run(OneInputStreamTask.java:105)at org.apache.flink.streaming.runtime.tasks.StreamTask.invoke(StreamTask.java:300)at org.apache.flink.runtime.taskmanager.Task.run(Task.java:704)at java.lang.Thread.run(Thread.java:745)</description>
+      <version>None</version>
+      <fixedVersion>1.6.3,1.7.1,1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.sql.SqlITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.AggregationCodeGenerator.scala</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2019-12-4 01:00:00" id="13567" opendate="2019-8-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avro Confluent Schema Registry nightly end-to-end test failed on Travis</summary>
+      <description>The Avro Confluent Schema Registry nightly end-to-end test failed on Travis with[FAIL] 'Avro Confluent Schema Registry nightly end-to-end test' failed after 2 minutes and 11 seconds! Test exited with exit code 1No taskexecutor daemon (pid: 29044) is running anymore on travis-job-b0823aec-c4ec-4d4b-8b59-e9f968de9501.No standalonesession daemon to stop on host travis-job-b0823aec-c4ec-4d4b-8b59-e9f968de9501.rm: cannot remove '/home/travis/build/apache/flink/flink-dist/target/flink-1.10-SNAPSHOT-bin/flink-1.10-SNAPSHOT/plugins': No such file or directoryhttps://api.travis-ci.org/v3/job/567273939/log.txt</description>
+      <version>1.8.2,1.9.0,1.10.0</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.confluent.schema.registry.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.kafka-common.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+      <file type="M">tools.travis.splits.split.misc.hadoopfree.sh</file>
+      <file type="M">tools.travis.splits.split.misc.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-7 01:00:00" id="13999" opendate="2019-9-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Correct the documentation of MATCH_RECOGNIZE</summary>
+      <description>Regarding to the following example in the doc:SELECT *FROM Ticker MATCH_RECOGNIZE ( PARTITION BY symbol ORDER BY rowtime MEASURES FIRST(A.rowtime) AS start_tstamp, LAST(A.rowtime) AS end_tstamp, AVG(A.price) AS avgPrice ONE ROW PER MATCH AFTER MATCH SKIP TO FIRST B PATTERN (A+ B) DEFINE A AS AVG(A.price) &lt; 15 ) MR;Given the inputs shown in the doc, it should be: symbol start_tstamp end_tstamp avgPrice========= ================== ================== ============ACME 01-APR-11 10:00:00 01-APR-11 10:00:03 14.5instead of: symbol start_tstamp end_tstamp avgPrice========= ================== ================== ============ACME 01-APR-11 10:00:00 01-APR-11 10:00:03 14.5ACME 01-APR-11 10:00:04 01-APR-11 10:00:09 13.5</description>
+      <version>1.8.2,1.9.1</version>
+      <fixedVersion>1.8.3,1.9.2,1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.streaming.match.recognize.md</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-11-30 01:00:00" id="14301" opendate="2019-9-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add documentation for functions categories and new function resolution orders</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.functions.udfs.zh.md</file>
+      <file type="M">docs.dev.table.functions.udfs.md</file>
+      <file type="M">docs.dev.table.functions.builtinFunctions.zh.md</file>
+      <file type="M">docs.dev.table.functions.builtinFunctions.md</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-10-16 01:00:00" id="14413" opendate="2019-10-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Shade-plugin ApacheNoticeResourceTransformer uses platform-dependent encoding</summary>
+      <description>Some NOTICE files contain quotes that, at least on my system, result in some encoding errors when generating the binary licensing. One example can be found here; the closing quotes would be replaced with a question mark.This is due to the ApacheNoticeResourceTransformer using the platform encoding.</description>
+      <version>shaded-8.0,1.8.2,1.9.0,1.10.0</version>
+      <fixedVersion>shaded-9.0,1.8.3,1.9.2,1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-dist.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-16 01:00:00" id="14416" opendate="2019-10-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add Module interface and ModuleManager</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.utils.TableTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.utils.MockTableEnvironment.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.plan.RexProgramExtractorTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.StreamTableEnvironmentTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.sql.AggregateTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.sqlexec.SqlToOperationConverterTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.rules.logical.PushFilterIntoTableSourceScanRule.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.api.scala.internal.BatchTableEnvironmentImpl.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.api.java.internal.BatchTableEnvironmentImpl.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.api.internal.TableEnvImpl.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.api.internal.BatchTableEnvImpl.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.utils.TableTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.plan.utils.RexNodeExtractorTest.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.plan.metadata.SelectivityEstimatorTest.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdHandlerTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.plan.metadata.AggCallSelectivityEstimatorTest.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.java.org.apache.flink.table.sqlexec.SqlToOperationConverterTest.java</file>
+      <file type="M">flink-table.flink-table-api-scala-bridge.src.test.scala.org.apache.flink.table.api.scala.internal.StreamTableEnvironmentImplTest.scala</file>
+      <file type="M">flink-table.flink-table-api-scala-bridge.src.main.scala.org.apache.flink.table.api.scala.internal.StreamTableEnvironmentImpl.scala</file>
+      <file type="M">flink-table.flink-table-api-scala-bridge.src.main.scala.org.apache.flink.table.api.scala.BatchTableEnvironment.scala</file>
+      <file type="M">flink-table.flink-table-api-java.src.test.java.org.apache.flink.table.utils.TableEnvironmentMock.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.test.java.org.apache.flink.table.catalog.FunctionCatalogTest.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.catalog.FunctionCatalog.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.api.TableEnvironment.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.api.internal.TableEnvironmentImpl.java</file>
+      <file type="M">flink-table.flink-table-api-java-bridge.src.test.java.org.apache.flink.table.api.java.internal.StreamTableEnvironmentImplTest.java</file>
+      <file type="M">flink-table.flink-table-api-java-bridge.src.main.java.org.apache.flink.table.api.java.internal.StreamTableEnvironmentImpl.java</file>
+      <file type="M">flink-table.flink-table-api-java-bridge.src.main.java.org.apache.flink.table.api.java.BatchTableEnvironment.java</file>
+      <file type="M">flink-table.flink-sql-client.src.main.java.org.apache.flink.table.client.gateway.local.ExecutionContext.java</file>
+      <file type="M">flink-python.pyflink.table.tests.test.environment.completeness.py</file>
+      <file type="M">flink-python.pyflink.table.table.environment.py</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-16 01:00:00" id="14417" opendate="2019-10-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Develop CoreModule to provide Flink built-in functions</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-api-java.src.test.java.org.apache.flink.table.catalog.FunctionCatalogTest.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.module.ModuleManager.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.catalog.FunctionCatalog.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-11-16 01:00:00" id="14419" opendate="2019-10-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add ModuleFactory, ModuleDescriptor, ModuleValidator for factory discovery service</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-common.src.main.java.org.apache.flink.table.module.ModuleConfig.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.module.ModuleManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-18 01:00:00" id="14445" opendate="2019-10-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Python module build failed when making sdist</summary>
+      <description>From the description of error-log from building python module in travis, it seems invocation failed for sdist-make and then the phase of building python module exited.The instance log: https://api.travis-ci.com/v3/job/246710918/log.txt</description>
+      <version>None</version>
+      <fixedVersion>1.9.2,1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.setup.py</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-2-4 01:00:00" id="1475" opendate="2015-2-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Minimize log output of yarn test cases</summary>
+      <description>The new yarn test cases are quite verbose. Maybe we could increase the log level for these tests.</description>
+      <version>None</version>
+      <fixedVersion>0.9</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn-tests.src.test.resources.log4j-test.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-1-26 01:00:00" id="14954" opendate="2019-11-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Publish OpenAPI specification of REST Monitoring API</summary>
+      <description>Hello,Flink provides a very helpful REST Monitoring API.OpenAPI is convenient standard to generate clients in a variety of language for REST API documented according to their specification. In this case, clients would be helpful to automate management of Flink clusters.Currently, there is no "official" OpenAPI specification of Flink REST Monitoring API. Some have written by users, but their consistency across Flink releases is uncertain.I think it would be beneficial to have an OpenAPI specification provided and maintained by the Flink project. Kind regards, </description>
+      <version>None</version>
+      <fixedVersion>1.15.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.json.SerializedThrowableSerializer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.async.AsynchronousOperationResult.java</file>
+      <file type="M">flink-docs.README.md</file>
+      <file type="M">flink-docs.pom.xml</file>
+      <file type="M">docs.content.docs.ops.rest.api.md</file>
+      <file type="M">docs.content.zh.docs.ops.rest.api.md</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-12-27 01:00:00" id="14978" opendate="2019-11-27 00:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Introduce constraint class hierarchy required for primary keys</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-common.src.test.java.org.apache.flink.table.api.TableSchemaTest.java</file>
+      <file type="M">flink-table.flink-table-common.src.main.java.org.apache.flink.table.api.TableSchema.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-4-20 01:00:00" id="17254" opendate="2020-4-20 00:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>Improve the PyFlink documentation and examples to use SQL DDL for source/sink definition</summary>
+      <description>Currently there are two ways to register a table sink/source in PyFlink table API:1) TableEnvironment.connect2) TableEnvironment.sql_updateI think it's better to provide documentation and examples on how to use 2) in PyFlink.</description>
+      <version>None</version>
+      <fixedVersion>1.9.4,1.10.1,1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.pyflink.table.examples.batch.word.count.py</file>
+      <file type="M">docs.getting-started.walkthroughs.python.table.api.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-5-20 01:00:00" id="17256" opendate="2020-4-20 00:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>Suppport keyword arguments in the PyFlink Descriptor API</summary>
+      <description>Keyword arguments is a very commonly used feature in Python. We should support it in the PyFlink Descriptor API to make the API more user friendly for Python users.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.pyflink.table.tests.test.descriptor.py</file>
+      <file type="M">flink-python.pyflink.table.descriptors.py</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-9-22 01:00:00" id="19333" opendate="2020-9-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Introduce BatchArrowPythonOverWindowAggregateFunctionOperator</summary>
+      <description>Introduce BatchArrowPythonOverWindowAggregateFunctionOperator to support Pandas Batch Over Window Aggregation</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.utils.PassThroughPythonAggregateFunctionRunner.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.operators.python.aggregate.arrow.batch.BatchArrowPythonGroupWindowAggregateFunctionOperatorTest.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.operators.python.aggregate.arrow.batch.BatchArrowPythonGroupAggregateFunctionOperatorTest.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.operators.python.aggregate.arrow.AbstractArrowPythonAggregateFunctionOperator.java</file>
+      <file type="M">flink-python.pyflink.proto.flink-fn-execution.proto</file>
+      <file type="M">flink-python.pyflink.fn.execution.flink.fn.execution.pb2.py</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-6-14 01:00:00" id="5340" opendate="2016-12-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a metric exposing jobs uptimes</summary>
+      <description>I would like the job manager to expose a metric indicating how long each job has been up. This way I can grab this number and measure the health of my job.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0,1.4.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.monitoring.metrics.md</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionGraphBuilder.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-12-15 01:00:00" id="8949" opendate="2018-3-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rest API failure with long URL</summary>
+      <description>When you have jobs with high parallelism, the URL for a REST request can get very long. When the URL is longer than 4096 bytes, the  REST API will return errorFailure: 404 Not Found This can easily be seen in the Web UI, when Flink queries for the watermark using the REST API:GET /jobs/:jobId/vertices/:vertexId/metrics?get=0.currentLowWatermark,1.currentLowWatermark,2.currentLo...The request will fail with more than 170 subtasks and the watermark will not be displayed in the Web UI.</description>
+      <version>1.4.2,1.5.0,1.6.4,1.7.2,1.8.2</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.webmonitor.WebMonitorEndpoint.java</file>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.services.metrics.service.ts</file>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.overview.watermarks.job-overview-drawer-watermarks.component.ts</file>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.overview.job-overview.component.ts</file>
+      <file type="M">flink-runtime-web.src.test.resources.rest.api.v1.snapshot</file>
+      <file type="M">docs..includes.generated.rest.v1.dispatcher.html</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="13917" opendate="2017-9-28 00:00:00" fixdate="2017-4-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COMPACT STORAGE queries on dense static tables accept hidden column1 and value columns</summary>
+      <description>Test for the issue: @Test public void testCompactStorage() throws Throwable { createTable("CREATE TABLE %s (a int PRIMARY KEY, b int, c int) WITH COMPACT STORAGE"); assertInvalid("INSERT INTO %s (a, b, c, column1) VALUES (?, ?, ?, ?)", 1, 1, 1, ByteBufferUtil.bytes('a')); // This one fails with Some clustering keys are missing: column1, which is still wrong assertInvalid("INSERT INTO %s (a, b, c, value) VALUES (?, ?, ?, ?)", 1, 1, 1, ByteBufferUtil.bytes('a')); assertInvalid("INSERT INTO %s (a, b, c, column1, value) VALUES (?, ?, ?, ?, ?)", 1, 1, 1, ByteBufferUtil.bytes('a'), ByteBufferUtil.bytes('b')); assertEmpty(execute("SELECT * FROM %s")); }Gladly, these writes are no-op, even though they succeed.value and column1 should be completely hidden. Fixing this one should be as easy as just adding validations.</description>
+      <version>3.0.21,3.11.7</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.index.internal.CassandraIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RowUpdateBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AbstractReadCommandBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.selection.Selectable.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Relation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ColumnIdentifier.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.PartitionRangeReadTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.UpdateTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.InsertTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.DeleteTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.CreateTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14242" opendate="2018-2-20 00:00:00" fixdate="2018-4-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Indexed static column returns inconsistent results</summary>
+      <description>I am using Cassandra 3.11.2, and the Java driver 3.4.0I have a table that has a static column, where the static column has a secondary index.When querying the table I get incomplete or duplicated results, depending on the fetch size.e.g.CREATE KEYSPACE hack WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};CREATE TABLE hack.stuff (id int, kind text, chunk int static, val1 int, PRIMARY KEY (id, kind));CREATE INDEX stuff_chunk_index ON hack.stuff (chunk);&amp;#8211; repeat with thousands of values for id =&gt;  INSERT INTO hack.stuff (id, chunk, kind, val1 ) VALUES (${id}, 777, 'A', 123);Querying from Java:    final SimpleStatement statement = new SimpleStatement("SELECT id, kind, val1 FROM hack.stuff WHERE chunk = " + chunk);     statement.setFetchSize(fetchSize);    statement.setConsistencyLevel(ConsistencyLevel.ALL);    final ResultSet resultSet = connection.getSession().execute(statement);    for (Row row : resultSet) {        final int id = row.getInt("id");    }The number of results returned depends on the fetch-size.e.g. For 30k values inserted, I get the following:fetch-sizeresult-size4000030000200003000150003000610030303In production, I have a much larger table where the correct result size for a specific chunk is 20019, but some fetch sizes will return significantly fewer results.fetch-sizeresult-size 2500020019 50009999&lt;== this one is has far fewer results500120026 (so far been unable to reproduce this with the simpler test table)Thanks,Ross</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.IndexQueryPagingTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.PartitionRangeQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.MultiPartitionPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14365" opendate="2018-4-5 00:00:00" fixdate="2018-3-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Commit log replay failure for static columns with collections in clustering keys</summary>
+      <description>In the old storage engine, static cells with a collection as part of the clustering key fail to validate because a 0 byte collection (like in the cell name of a static cell) isn't valid.To reproduce:1.CREATE TABLE test.x ( id int, id2 frozen&lt;map&lt;text, text&gt;&gt;, st int static, PRIMARY KEY (id, id2));INSERT INTO test.x (id, st) VALUES (1, 2);2. Kill the cassandra process3. Restart cassandra to replay the commitlogOutcome:ERROR [main] 2018-04-05 04:58:23,741 JVMStabilityInspector.java:99 - Exiting due to error while processing commit log during initialization.org.apache.cassandra.db.commitlog.CommitLogReplayer$CommitLogReplayException: Unexpected error deserializing mutation; saved to /tmp/mutation3825739904516830950dat. This may be caused by replaying a mutation against a table with the same name but incompatible schema. Exception follows: org.apache.cassandra.serializers.MarshalException: Not enough bytes to read a set at org.apache.cassandra.db.commitlog.CommitLogReplayer.handleReplayError(CommitLogReplayer.java:638) [main/:na] at org.apache.cassandra.db.commitlog.CommitLogReplayer.replayMutation(CommitLogReplayer.java:565) [main/:na] at org.apache.cassandra.db.commitlog.CommitLogReplayer.replaySyncSection(CommitLogReplayer.java:517) [main/:na] at org.apache.cassandra.db.commitlog.CommitLogReplayer.recover(CommitLogReplayer.java:397) [main/:na] at org.apache.cassandra.db.commitlog.CommitLogReplayer.recover(CommitLogReplayer.java:143) [main/:na] at org.apache.cassandra.db.commitlog.CommitLog.recover(CommitLog.java:181) [main/:na] at org.apache.cassandra.db.commitlog.CommitLog.recover(CommitLog.java:161) [main/:na] at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:284) [main/:na] at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:533) [main/:na] at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:642) [main/:na]I haven't investigated if there are other more subtle issues caused by these cells failing to validate other places in the code, but I believe the fix for this is to check for 0 byte length collections and accept them as valid as we do with other types.I haven't had a chance for any extensive testing but this naive patch seems to have the desired affect. Patch2.2 PoC</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-alpha4,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.commitlog.CommitLogTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.SetSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.MapSerializer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15501" opendate="2020-1-13 00:00:00" fixdate="2020-4-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Duplicate results with DISTINCT queries in mixed mode 2.1/3.0</summary>
+      <description>When a client switches coordinator from a 2.1 node to a 3.0 node it sends a 2.1 paging state to the 3.0 node. The 2.1 PagingState does not have remainingInPartition so on the 3.0 side we default this to Integer.MAX_VALUE. This value is then used to decide if the lastKey should be included in the result.</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.upgrade.UpgradeTestBase.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.upgrade.MixedModeReadRepairTest.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.UpgradeableCluster.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.Instance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.DelegatingInvokableInstance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.AbstractCluster.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15622" opendate="2020-3-4 00:00:00" fixdate="2020-3-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unit tests throw UnknownHostException trying to use `InetAddress.getLocalHost()` instead of `FBUtilities.getLocalAddress()`</summary>
+      <description>Many of the unit tests in Jenkins fail because of the use of `InetAddress.getLocalHost()` in the test classes.The Jenkins agents need a public ipaddress (and a hostname associated to it) so the Jenkins master can connect to them (agents can be hosted externally, by donating third-parties).The call to `InetAddress.getLocalHost()` can resolve to a hostname that can't be looked up.Not only can it not be listed in `/etc/hosts`, but we don't want it to be either (in case of accidental external port opening if the hostname points to the public ipaddress). (Which is also ASF policy on this infrastructure.)The unit test code needs to replace these code occurrences with the call to `FBUtilities.getLocalAddress()`</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-alpha4,4.0</version>
+      <fixedVersion>Test/unit</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.triggers.TriggersTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.security.SSLFactoryTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.gms.ArrivalWindowTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.ThriftCQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.GuidGenerator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15623" opendate="2020-3-6 00:00:00" fixdate="2020-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When running CQLSH with STDIN input, exit with error status code if script fails</summary>
+      <description>Assuming CASSANDRA-6344 is in place for years and considering that scripts submitted with the `-e` option behave in a similar fashion, it is very surprising that scripts submitted to STDIN (i.e. piped in) always exit with a zero code, regardless of errors. I believe this should be fixed.</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15651" opendate="2020-3-21 00:00:00" fixdate="2020-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Jenkins tests to use testclasslist where possible (like CircleCI)</summary>
+      <description>Following up on CASSANDRA-15639 make all the jenkins test jobs run in the same manner.This standards the approach across test jobs and to CircleCI, and will make it easier to parallelise test runs later on.</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-alpha4,4.0</version>
+      <fixedVersion>Build,CI,Test/unit</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15653" opendate="2020-3-23 00:00:00" fixdate="2020-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disable JMX rebinding</summary>
+      <description>JMX rebinding should be disabled for security reasons. More information provided to the PMC.</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-alpha4,4.0</version>
+      <fixedVersion>Local/Other,Observability/JMX</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15668" opendate="2020-3-27 00:00:00" fixdate="2020-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Jenkins &amp;#39;Cassandra&amp;#39; label applied to the declarative pipeline</summary>
+      <description>On the new ci-cassandra.apache.org infrastructure agents are siloed to projects.The declarative pipeline in the 2.2, 3.0, 3.11, and trunk branches do not restrict the builds to agents with the 'cassandra' label. Because these agents will not run jobs that don't specify this label, the pipeline task only ever runs on unlabelled agents, of which there are very few (and likely shouldn't exist, existing only from for now because of misconfigurations).Example of the failure to run the pipeline tasks is[Pipeline] Start of Pipeline[Pipeline] nodeStill waiting to schedule task'cassandra10' is reserved for jobs with matching label expression; 'cassandra11' is reserved for jobs with matching label expression; 'cassandra12' is reserved for jobs with matching label expression; 'cassandra13' is reserved for jobs with matching label expression; 'cassandra14' is reserved for jobs with matching label expression; 'cassandra15' is reserved for jobs with matching label expression; 'cassandra16' is reserved for jobs with matching label expression; 'cassandra1' is reserved for jobs with matching label expression; 'cassandra2' is reserved for jobs with matching label expression; 'cassandra3' is reserved for jobs with matching label expression; 'cassandra4' is reserved for jobs with matching label expression; 'cassandra5' is reserved for jobs with matching label expression; 'cassandra6' is reserved for jobs with matching label expression; 'cassandra7' is reserved for jobs with matching label expression; 'cassandra8' is reserved for jobs with matching label expression; 'cassandra9' is reserved for jobs with matching label expressionAlong with this change, we can improve the name of the *-test-jvm-dtest-forking stages.</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-alpha4,4.0</version>
+      <fixedVersion>Build,CI,Test/unit</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">.jenkins.Jenkinsfile</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15690" opendate="2020-4-3 00:00:00" fixdate="2020-4-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Single partition queries can mistakenly omit partition deletions and resurrect data</summary>
+      <description>We have logic that allows us to exclude sstables with partition deletions that are older than the minimum collected timestamp in a local request. However, it’s possible that another node could have rows that aren’t known to the local node that are in turn older than the excluded partition deletion. In such a scenario, those will be mistakenly resurrected, which is a correctness issue.</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Consistency/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.test.SimpleReadWriteTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SinglePartitionReadCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15708" opendate="2020-4-8 00:00:00" fixdate="2020-4-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix in-jvm upgrade dtests</summary>
+      <description>In-jvm upgrade dtests were broken by CASSANDRA-15539</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-alpha4,4.0</version>
+      <fixedVersion>Test/dtest/java</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.upgrade.UpgradeTestBase.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.UpgradeableCluster.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.InstanceConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15744" opendate="2020-4-21 00:00:00" fixdate="2020-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>FBUtilitities.testWaitFirstFuture is flaky</summary>
+      <description>The unit test FBUtilitities.testWaitFirstFuture Example failure message: junit.framework.AssertionFailedError: expected:&lt;40&gt; but was:&lt;10&gt;</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Test/unit</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.FBUtilitiesTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15752" opendate="2020-4-22 00:00:00" fixdate="2020-6-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Range read concurrency factor didn&amp;#39;t consider range merger</summary>
+      <description>During range read, coordinator computes concurrency factor which is the number of vnode ranges to contact in parallel for the next batch.But in RangeCommandIterator, vnode ranges are merged by RangeMerger if vnode ranges share enough replicas to satisfy consistency level. eg. vnode range [a,b) has replica n1,n2,n3 and vnode range [b,c) has replica n2,n3,n4, so they can be merged as range [a,c) with replica n2, n3 for Quorum.Currently it counts number of merged ranges towards concurrency factor. Coordinator may fetch more ranges than needed.Another issue is that when executing range read on table with very small amount of data, concurrency factor can be bumped to size of total vnode ranges, eg. 10k, depending on the num of vnodes and cluster size. As a result, coordinator will send large number of concurrent range requests, potentially slowing down the cluster.. We should cap the max concurrency factor..</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.PartitionRangeReadTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15768" opendate="2020-4-28 00:00:00" fixdate="2020-5-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tarball contains duplicate entries</summary>
+      <description>The tarball contains a lot of duplicate entries. One example is cassandra-stress.bat:tar -tvf /home/map/Downloads/apache-cassandra-3.11.6-bin.tar.gz |grep "cassandra-stress.bat"-rw-r--r-- 0/0 1097 2020-02-10 23:57 apache-cassandra-3.11.6/tools/bin/cassandra-stress.bat-rwxr-xr-x 0/0 1097 2020-02-10 23:57 apache-cassandra-3.11.6/tools/bin/cassandra-stress.bat</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Build,Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15778" opendate="2020-5-1 00:00:00" fixdate="2020-6-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CorruptSSTableException after a 2.1 SSTable is upgraded to 3.0, failing reads</summary>
+      <description>Below is the exception with stack trace. This issue is consistently reproduce-able.ERROR [SharedPool-Worker-1] 2020-05-01 14:57:57,661 AbstractLocalAwareExecutorService.java:169 - Uncaught exception on thread Thread[SharedPool-Worker-1,5,main]ERROR [SharedPool-Worker-1] 2020-05-01 14:57:57,661 AbstractLocalAwareExecutorService.java:169 - Uncaught exception on thread Thread[SharedPool-Worker-1,5,main]org.apache.cassandra.io.sstable.CorruptSSTableException: Corrupted: /mnt/data/cassandra/data/&lt;ks&gt;/&lt;cf-fda511301fb311e7bd79fd24f2fcfb0d/md-10151-big-Data.db at org.apache.cassandra.db.columniterator.AbstractSSTableIterator$Reader.hasNext(AbstractSSTableIterator.java:349) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.AbstractSSTableIterator.hasNext(AbstractSSTableIterator.java:220) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.SSTableIterator.hasNext(SSTableIterator.java:33) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.rows.LazilyInitializedUnfilteredRowIterator.computeNext(LazilyInitializedUnfilteredRowIterator.java:95) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.rows.LazilyInitializedUnfilteredRowIterator.computeNext(LazilyInitializedUnfilteredRowIterator.java:32) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.utils.AbstractIterator.hasNext(AbstractIterator.java:47) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.transform.BaseRows.hasNext(BaseRows.java:129) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.rows.LazilyInitializedUnfilteredRowIterator.computeNext(LazilyInitializedUnfilteredRowIterator.java:95) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.rows.LazilyInitializedUnfilteredRowIterator.computeNext(LazilyInitializedUnfilteredRowIterator.java:32) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.utils.AbstractIterator.hasNext(AbstractIterator.java:47) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.transform.BaseRows.hasNext(BaseRows.java:129) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.transform.BaseRows.hasNext(BaseRows.java:129) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer.serialize(UnfilteredRowIteratorSerializer.java:131) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer.serialize(UnfilteredRowIteratorSerializer.java:87) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer.serialize(UnfilteredRowIteratorSerializer.java:77) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.partitions.UnfilteredPartitionIterators$Serializer.serialize(UnfilteredPartitionIterators.java:294) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.ReadResponse$LocalDataResponse.build(ReadResponse.java:187) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.ReadResponse$LocalDataResponse.&lt;init&gt;(ReadResponse.java:180) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.ReadResponse$LocalDataResponse.&lt;init&gt;(ReadResponse.java:176) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.ReadResponse.createDataResponse(ReadResponse.java:76) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.ReadCommand.createResponse(ReadCommand.java:341) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.ReadCommandVerbHandler.doVerb(ReadCommandVerbHandler.java:47) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.net.MessageDeliveryTask.run(MessageDeliveryTask.java:67) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) ~[na:1.8.0_231] at org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService$FutureTask.run(AbstractLocalAwareExecutorService.java:165) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService$LocalSessionFutureTask.run(AbstractLocalAwareExecutorService.java:137) [nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.concurrent.SEPWorker.run(SEPWorker.java:109) [nf-cassandra-3.0.19.8.jar:3.0.19.8] at java.lang.Thread.run(Thread.java:748) [na:1.8.0_231]Caused by: java.lang.ArrayIndexOutOfBoundsException: 121 at org.apache.cassandra.db.ClusteringPrefix$Deserializer.prepare(ClusteringPrefix.java:425) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.UnfilteredDeserializer$CurrentDeserializer.prepareNext(UnfilteredDeserializer.java:170) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.UnfilteredDeserializer$CurrentDeserializer.hasNext(UnfilteredDeserializer.java:151) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.SSTableIterator$ForwardReader.computeNext(SSTableIterator.java:140) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.SSTableIterator$ForwardReader.hasNextInternal(SSTableIterator.java:172) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.AbstractSSTableIterator$Reader.hasNext(AbstractSSTableIterator.java:336) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] ... 27 common frames omittedCaused by: java.lang.ArrayIndexOutOfBoundsException: 121 at org.apache.cassandra.db.ClusteringPrefix$Deserializer.prepare(ClusteringPrefix.java:425) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.UnfilteredDeserializer$CurrentDeserializer.prepareNext(UnfilteredDeserializer.java:170) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.UnfilteredDeserializer$CurrentDeserializer.hasNext(UnfilteredDeserializer.java:151) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.SSTableIterator$ForwardReader.computeNext(SSTableIterator.java:140) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.SSTableIterator$ForwardReader.hasNextInternal(SSTableIterator.java:172) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] at org.apache.cassandra.db.columniterator.AbstractSSTableIterator$Reader.hasNext(AbstractSSTableIterator.java:336) ~[nf-cassandra-3.0.19.8.jar:3.0.19.8] ... 27 common frames omittedColumn family definitionCREATE TABLE &lt;keyspace&gt;."&lt;cf&gt;" ( key text, value text, PRIMARY KEY (key, value) ) WITH COMPACT STORAGE AND CLUSTERING ORDER BY (value ASC) AND bloom_filter_fp_chance = 0.01 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'} AND comment = '' AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'} AND compression = {'enabled': 'false'} AND crc_check_chance = 1.0 AND dclocal_read_repair_chance = 0.1 AND default_time_to_live = 0 AND gc_grace_seconds = 864000 AND max_index_interval = 2048 AND memtable_flush_period_in_ms = 0 AND min_index_interval = 128 AND read_repair_chance = 0.0 AND speculative_retry = '99PERCENTILE';</description>
+      <version>3.0.21</version>
+      <fixedVersion>Local/Compaction,Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.ScrubTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.marshal.EmptyTypeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.EmptySerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaMigrator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AbstractType.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15862" opendate="2020-6-7 00:00:00" fixdate="2020-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use "allow list" or "safe list" instead of the term "whitelist"</summary>
+      <description>Language matters. I'd like to remove all references in Apache Airflow to whitelist or black list, and the Cassandra Python API has some that we can't easily remove.The recent global events have made this even more relevant, but this has been on my radar for a while now. Here is a well written article for why I think it matters https://www.ncsc.gov.uk/blog-post/terminology-its-not-black-and-whiteIt's fairly common to say whitelisting and blacklisting to describe desirable and undesirable things in cyber security.However, there's an issue with the terminology. It only makes sense if you equate white with 'good, permitted, safe' and black with 'bad, dangerous, forbidden'. There are some obvious problems with this. My exposure to is via the Python API where there is the cassandra.pollicies.WhiteListRoundRobinPolicy class. I propose that this be renamed to AllowListRoundRobinPolicy instead. I do not know if there are other references.</description>
+      <version>2.2.17,3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.DirectoriesTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.BlacklistingCompactionsTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.OutOfSpaceBase.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DefaultFSErrorHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.AbstractCompactionStrategy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BlacklistedDirectoriesMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BlacklistedDirectories.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15863" opendate="2020-6-8 00:00:00" fixdate="2020-6-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bootstrap resume and TestReplaceAddress fixes</summary>
+      <description>This has been broken for ages</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Consistency/BootstrapandDecommission,Test/dtest/python</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15890" opendate="2020-6-22 00:00:00" fixdate="2020-6-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add token to tombstone warning and error log message</summary>
+      <description>If Cassandra scans too many tombstones while reading a partition, then it prints log messages with query based on warning/failure thresholds. The token is not printed in the log message. If tombstones are hurting the instance/replica set, then running force compaction for the partition ("nodetool compact" using start and end tokens i.e. token -/+ some delta) is one of the actions taken to recover. In order to find out the token, someone has to manually connect to cluster and run SELECT TOKEN query. Printing token with the log message helps to avoid manual effort and execute force compaction quickly.</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Observability/Logging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.TombstoneOverwhelmingException.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8272" opendate="2014-11-6 00:00:00" fixdate="2014-6-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>2ndary indexes can return stale data</summary>
+      <description>When replica return 2ndary index results, it's possible for a single replica to return a stale result and that result will be sent back to the user, potentially failing the CL contract.For instance, consider 3 replicas A, B and C, and the following situation:CREATE TABLE test (k int PRIMARY KEY, v text);CREATE INDEX ON test(v);INSERT INTO test(k, v) VALUES (0, 'foo');with every replica up to date. Now, suppose that the following queries are done at QUORUM:UPDATE test SET v = 'bar' WHERE k = 0;SELECT * FROM test WHERE v = 'foo';then, if A and B acknowledge the insert but C respond to the read before having applied the insert, then the now stale result will be returned (since C will return it and A or B will return nothing).A potential solution would be that when we read a tombstone in the index (and provided we make the index inherit the gcGrace of it's parent CF), instead of skipping that tombstone, we'd insert in the result a corresponding range tombstone.</description>
+      <version>3.0.21,3.11.7,4.0-beta1,4.0</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.concurrent.AccumulatorTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.concurrent.Accumulator.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DataResolver.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.TableMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SinglePartitionReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.UnfilteredRowIterators.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.partitions.UnfilteredPartitionIterators.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.PartitionRangeReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.RowFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataRange.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,655 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CALCITE">
+  <bug id="1077" opendate="2016-2-4 00:00:00" fixdate="2016-3-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Separate Avatica from "core" Calcite build</summary>
+      <description>Uber-JIRA-issue for tracking the separation of Avatica from the rest of the Calcite build.Long term, Avatica can be a standalone project, but we're not there yet in terms of governance (enough people intimately involved). One thing we can do now is to separate Avatica from Calcite and begin "getting them used to" not being next to one another.DISCUSS thread: https://mail-archives.apache.org/mod_mbox/calcite-dev/201601.mbox/%3C56ABCCFF.3010205%40gmail.com%3E</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0,1.7.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">site..config.yml</file>
+      <file type="M">avatica.site..docs.history.md</file>
+      <file type="M">avatica.site.downloads.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1116" opendate="2016-3-1 00:00:00" fixdate="2016-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Extend simplify for reducing expressions</summary>
+      <description>We would like to cover more cases in expression simplification, such as:x&gt;5 and x is not null =&gt; x&gt;5x&gt;5 and x is null =&gt; not satisfiablex&gt;5 and x&lt;=5 =&gt; not satisfiable</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RexProgramTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.tools.RelBuilder.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlKind.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.ReduceExpressionsRule.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1117" opendate="2016-3-1 00:00:00" fixdate="2016-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use commons httpclient instead of JDK http client</summary>
+      <description>I've been stumbling around, trying to get a better understanding of how HttpURLConnection works (with http/1.1), applying it to some of the knowledge I have with the distributed key-value stores on Hadoop I'm familiar with.Along the way, I found lots of recommendations to move to Apache Commons HttpClient (http://hc.apache.org) with the broad suggestion that "it's just generally better". I mocked this up and was pleasantly surprised to find that this netted about a 20% improvement over the existing http client implementation (with a stubbed-out JDBC driver inside Avatica &amp;#8211; just measuring Avatica itself).Thankfully, we have an interface for the http client, so it should be easy to add a new implementation with a factory to do some client-side configuration.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.remote.Driver.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.ConnectionConfigImpl.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.ConnectionConfig.java</file>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.BuiltInConnectionProperty.java</file>
+      <file type="M">avatica.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1118" opendate="2016-3-1 00:00:00" fixdate="2016-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"noop" JDBC driver for benchmarking/testing Avatica</summary>
+      <description>As I was working on the general effort of improving performance of Avatica (alluded to in CALCITE-1117), I found myself lamenting a view into the performance of Avatica that wasn't bound by the underlying database being written to.I hacked together a really quick/dirty JDBC driver that does nothing whenever you call the methods (sans creating Statements and DatabaseMetaData instances). Turns out this was really useful in testing our just Avatica.I'm sure there are issues with it, but it was sufficient for doing some write-heavy testing. Would be nice to have it included for future testing.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1119" opendate="2016-3-2 00:00:00" fixdate="2016-3-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Additional metrics instrumentation</summary>
+      <description>I've found that instrumenting ExecuteRequest and CommitRequest are really nice to see latencies on the write side.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.src.main.java.org.apache.calcite.avatica.remote.LocalService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1136" opendate="2016-3-9 00:00:00" fixdate="2016-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RAT check failure on Calcite due to avatica directory</summary>
+      <description>Another one that fell through the cracks: the RAT check fails on Calcite because Maven doesn't know about the Avatica directory and thinks it's just garbage.Just need to exclude it; we'll run RAT in avatica. Don't need to worry about it for calcite.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1137" opendate="2016-3-9 00:00:00" fixdate="2016-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Exclude Avatica from calcite src release assembly descriptor</summary>
+      <description>Avatica will probably be picked up automatically by the source-release descriptor. Need to exclude it.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.config.assemblies.source-assembly.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1140" opendate="2016-3-9 00:00:00" fixdate="2016-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update website properly for Avatica 1.7.0</summary>
+      <description>I left a placeholder post in the Avatica site for the 1.7.0 release. Need to create a real one.Also, remove the apostrophe in "from it's previous location".We recently decided in Calcite that the release notes should state which JDK and Guava versions the software has been tested against, and I think Avatica should do the same.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.site..posts.2016-03-03-tbd-release.md</file>
+      <file type="M">avatica.site..posts.2016-03-03-separate-project.md</file>
+      <file type="M">avatica.site..docs.history.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1141" opendate="2016-3-9 00:00:00" fixdate="2016-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update minor.version from 6 to 7</summary>
+      <description>See title.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1143" opendate="2016-3-9 00:00:00" fixdate="2016-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove incorrect NOTICE paragraph in Avatica</summary>
+      <description>This product is based on source code originally developedby DynamoBI Corporation, LucidEra Inc., SQLstream Inc. and othersunder the auspices of the Eigenbase Foundationand released as the LucidDB project.is not applicable to Avatica.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.NOTICE</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1144" opendate="2016-3-9 00:00:00" fixdate="2016-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Avatica LICENSE file</summary>
+      <description>Needs to say "Apache Calcite Avatica Sub Components" not "Apache Calcite Sub Components".Also, placeholder for concern about missing jekyll/sass entries from Julian.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.LICENSE</file>
+      <file type="M">avatica.core.src.main.resources.META-INF.LICENSE</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1150" opendate="2016-3-14 00:00:00" fixdate="2016-5-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Create the a new DynamicRecordType, avoiding star expansion when working with this type</summary>
+      <description>DynamicRecordType can be used to leverage user-provided field implications to avoid schema analysis until execution.</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelTestBase.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelConverterTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MockCatalogReader.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.jdbc.CalciteRemoteDriverTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.OrderByScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.DelegatingScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.SqlTypeName.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlIdentifier.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlItemOperator.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeFieldImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeField.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataType.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.RelOptTableImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1159" opendate="2016-3-16 00:00:00" fixdate="2016-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support Kerberos-authenticated clients using SPNEGO</summary>
+      <description>Given the number of downstream users of Avatica in the Hadoop "ecosystem", and the prevalence of Kerberos for authentication, it makes sense to offer that as an authentication mechanism for Avatica.I have a working unit test already for this, but am working through some implementation details.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.site..data.docs.yml</file>
+      <file type="M">avatica.server.src.test.resources.log4j.properties</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.HttpServer.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.HandlerFactory.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.AvaticaProtobufHandler.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.AvaticaJsonHandler.java</file>
+      <file type="M">avatica.server.pom.xml</file>
+      <file type="M">avatica.pom.xml</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.Service.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.RemoteProtobufService.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.ProtobufTranslationImpl.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.AvaticaHttpClientFactoryImpl.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.AvaticaCommonsHttpClientImpl.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.ConnectionConfigImpl.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.ConnectionConfig.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.BuiltInConnectionProperty.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1167" opendate="2016-3-24 00:00:00" fixdate="2016-7-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>OVERLAPS should swap operands if second is earlier than first</summary>
+      <description>If second date in interval is earlier than first OVERLAPS doesn't swap them.Example:select 1 from "TEST"."tdt" where (date '1999-12-01' , date '2001-12-31' ) overlaps ( date '2001-01-01' , date '2002-11-11' );+------------+| EXPR$0 |+------------+| 1 || 1 || 1 || 1 |+------------+select 1 from "TEST"."tdt" where ( date '2001-12-31', date '1999-12-01' ) overlaps ( date '2001-01-01' , date '2002-11-11' );+------------+| EXPR$0 |+------------+</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.sql.misc.iq</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1168" opendate="2016-3-24 00:00:00" fixdate="2016-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add DESCRIBE SCHEMA/DATABASE/TABLE/query</summary>
+      <description>Add DESCRIBE statement so it can support the following:DESCRIBE [SCHEMA | DATABASE] name;DESCRIBE table_name;Example, usage in MySql</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlDescribeTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlDescribeSchema.java</file>
+      <file type="M">site..docs.reference.md</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlParserTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlKind.java</file>
+      <file type="M">core.src.main.codegen.templates.Parser.jj</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1173" opendate="2016-3-28 00:00:00" fixdate="2016-4-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Basic and Digest authentication</summary>
+      <description>Started working on a prototype over the weekend (building on top of the SPNEGO auth work) which supports HTTP Basic and Digest authentication.Basic is the "dirt-simple" approach, but insecure (unless TLS is introduced). Digest is similarly simple (compared to Kerberos, anyways), but doesn't require wire encryption to protect against malicious third-parties.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.src.main.config.checkstyle.suppressions.xml</file>
+      <file type="M">avatica.site..docs.security.md</file>
+      <file type="M">avatica.site..docs.client.reference.md</file>
+      <file type="M">avatica.server.src.test.java.org.apache.calcite.avatica.server.AbstractAvaticaHandlerTest.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.HttpServer.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.AvaticaServerConfiguration.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.AuthenticationType.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.AbstractAvaticaHandler.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.Service.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.AvaticaHttpClientFactoryImpl.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.remote.AvaticaCommonsHttpClientImpl.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.ConnectionConfigImpl.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.ConnectionConfig.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.BuiltInConnectionProperty.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1188" opendate="2016-4-5 00:00:00" fixdate="2016-1-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NullPointerException in EXTRACT with WHERE ... IN clause if field has null value</summary>
+      <description>if there was a timestamp or date field F1, the queries below will throw nullpointer exception if F1 has null valueselect extract(year from F1) from T where extract(year from F1) in (2004, 2005)select extract(year from F1) , count(0) from T where extract(year from F1) in (2004, 2005) group by extract(year from F1)the number of items in WHERE-IN clause must be equal or more than two</description>
+      <version>1.7.0</version>
+      <fixedVersion>1.16.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">piglet.src.main.java.org.apache.calcite.piglet.Ast.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1190" opendate="2016-4-5 00:00:00" fixdate="2016-5-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cross-Version Compatibility Test Harness</summary>
+      <description>One thing that the Protobuf serialization aimed to provide was a library which provides us the tools to make Avatica compatible across versions. However, Protobuf is just a tool and the developers can still misuse protobuf in such a way that breaks compatibility across versions. Not to mention, compatibility isn't even remotely certain without any tests.Because of Avatica's position as a library less than a product, we have to defer some logic to the concrete product being tested (e.g. Phoenix or Drill). I'm thinking something like the following:The user provides pairs of client and server "definitions" for a given version of compatibility. This would include some version of Avatica and some backing database. For example, Avatica-1.7.1 and Phoenix-4.7.0 or Avatica-1.8.0-SNAPSHOT and HSQLDB-2.3.1.The client half would be some template for the appropriate JDBC url to use (sans the URL to the Avatica server) and a JAR file containing the necessary classes to run the j.s.Driver. The server half would just be a URL to the Avatica server instance.The test harness itself can provide the logic to test the remote driver against the other servers, enumerating the possible combinations of client-server communication. Starting the server for each version to test is likely too difficult to automate well given the unknown of what the server will be, so that will be left as a prerequisite.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.site..data.docs.yml</file>
+      <file type="M">avatica.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1208" opendate="2016-4-20 00:00:00" fixdate="2016-9-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve two-level column structure handling</summary>
+      <description>Calcite now has support for nested column structure in parsing and validation, by representing the inner-level columns as a RexFieldAccess based on a RexInputRef. Meanwhile it does not flatten the inner level structure in wildcard expansion, which would then cause an UnsupportedOperationException in Avatica.The idea is to take into account this nested structure in column resolving, but to flatten the structure when translating to RelNode/RexNode.For example, if the table structure is defined asVARCHAR K0,VARCHAR C1,RecordType(INTEGER C0, INTEGER C1) F0,RecordType(INTEGER C0, INTEGER C2) F1, it should be viewed as a flat type likeVARCHAR K0,VARCHAR C1,INTEGER F0.C0,INTEGER F0.C1,INTEGER F1.C0,INTEGER F1.C2, so that:1) Column reference "K0" is translated as $02) Column reference "F0.C1" is translated as $33) Wildcard "*" is translated as: $0, $1, $2, $3, $4, $54) Complex-column wildcard "F1.*", which is translated as $2, $3And we would like to resolve columns based on the following rules (here we only consider the "suffix" part of the qualified names, which means the table resolving is already done by this time):a) A two-part column name is matched with its first-level column name and its second-level column name. For example, "F1.C0" corresponds to $4; "F1,X" will throw a column not found error.b) A single-part column name is matched against non-nested columns first, and if no matches, it is then matched against those second-level column names. For example, "C1" will be matched as "$1" instead of "$3", since non-nested columns have a higher priority; "C2" will be matched as "$5"; "C0" will lead to an ambiguous column error, since it exists under both "F0" and "F1".c) We would also like to have a way for defining "default first-level column" so that it has a precedence in column resolving over other first-level columns. For example, if "F0" is defined as default, "C0" will not cause an ambiguous column error, but instead be matched as "$2".d) Reference to first-level column only without wildcard is not allowed, e.g., "F1".</description>
+      <version>1.7.0</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">splunk.src.main.java.org.apache.calcite.adapter.splunk.SplunkPushDownRule.java</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelConverterTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MockCatalogReader.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlAdvisorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlParserTest.java</file>
+      <file type="M">core.src.main.resources.org.apache.calcite.runtime.CalciteResource.properties</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.Pair.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.ImmutableIntList.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.WithScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorCatalogReader.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlQualified.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.ParameterScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.ListScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.EmptyScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.DelegatingScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.CatalogScope.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlIdentifier.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.SqlToRelConverter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.FlatLists.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.CalciteResource.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelRecordType.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeHolder.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeFactoryImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataTypeFactory.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.RelDataType.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.type.DynamicRecordTypeImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalciteCatalogReader.java</file>
+      <file type="M">core.src.main.codegen.templates.Parser.jj</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1210" opendate="2016-4-21 00:00:00" fixdate="2016-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra uuid filtering does not work</summary>
+      <description>It looks like the syntax for sending a uuid to cassandra is something like thisselect key from timetest where key=7daecb80-29b0-11e3-92ec-e291eb9d325eWhich is a bare identifier, unquoted. So any filtering based on uuid's doesn't work. You get something like this:Caused by: com.datastax.driver.core.exceptions.InvalidQueryException: Invalid STRING constant (a594f989-8e73-4145-b9fb-83bd565f9995) for "tweet_id" of type uuid`...</description>
+      <version>1.7.0</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">cassandra.src.test.java.org.apache.calcite.test.CassandraAdapterIT.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraSchema.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraFilter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1220" opendate="2016-4-28 00:00:00" fixdate="2016-8-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Further extend simplify for reducing expressions</summary>
+      <description>We would extend expression simplification, e.g.: add walker to perform recursive simplification of expressions for Filter operators, and extends simplification for CASE expressions to cover more cases e.g. if all return values are equal (including ELSE), CASE can be removed</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RexProgramTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MaterializationTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.ReduceExpressionsRule.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rex.RexUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1222" opendate="2016-4-29 00:00:00" fixdate="2016-5-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DatabaseMetaData.getColumnLabel returns null when query has ORDER BY</summary>
+      <description>Background from the thread here: http://mail-archives.apache.org/mod_mbox/calcite-dev/201604.mbox/%3CCAJU9nmgxyR%2BCXPXXjYkSKRL4%3DUvbN4nD1JMCtiFzAofRrT1Pug%40mail.gmail.com%3Erisdenk wrote:I've been integrating Calcite/Avatica into Solr and ran into a case whereadding an order by or a limit changes the output ofDatabaseMetaData.getColumnName and getColumnLabel.An example is below:Behavior 1 (which I think is correct from reading the JDBC DatabaseMetaDataspec): select e."name" as full_name from "hr"."emps" as e; getColumnName(1) -&gt; name getColumnLabel(1) -&gt; FULL_NAMEBehavior 2: select e."name" as full_name from "hr"."emps" as e limit 10; getColumnName(1) -&gt; FULL_NAME getColumnLabel(1) -&gt; FULL_NAMEI was able to reproduce the behavior with the JdbcExample.java file in themaster branch of Calcite since I wasn't sure if it was my adapteroriginally.I started looking at the SqlParserTest and added this test case whichdoesn't error out./** "LIMIT ... OFFSET ..." is the postgres equivalent of SQL:2008 "OFFSET ... FETCH". It all maps down to a parse tree that looks like SQL:2008. */@Test public void testColumnAliasWithAsWithLimit() { check( "select a as abc from foo order by b, c limit 2 offset 1", "SELECT `A` AS `ABC`\n" + "FROM `FOO`\n" + "ORDER BY `B`, `C`\n" + "OFFSET 1 ROWS\n" + "FETCH NEXT 2 ROWS ONLY"); check( "select a as abc from foo order by b, c limit 2", "SELECT `A` AS `ABC`\n" + "FROM `FOO`\n" + "ORDER BY `B`, `C`\n" + "FETCH NEXT 2 ROWS ONLY"); check( "select a as abc from foo order by b, c offset 1", "SELECT `A` AS `ABC`\n" + "FROM `FOO`\n" + "ORDER BY `B`, `C`\n" + "OFFSET 1 ROWS");I'm not sure where to look next to try to find this to submit a patch. Letme know if you need more information.I think this potentially causes some problems down the line when theoriginal name or alias is used for ordering and having, but I haven't beenable to verify this for sure.</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1224" opendate="2016-5-2 00:00:00" fixdate="2016-10-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Provide non-shaded and shaded variants of Avatica artifacts</summary>
+      <description>Kevin Risden started a discussion about problems he using Avatica in certain environments because of the shaded classes.https://mail-archives.apache.org/mod_mbox/calcite-dev/201605.mbox/%3CCAJU9nmgcPU9XnFh7RtR%3D4eDZ1Qg25qO0j6xudd_%3Ds89VZ3P1Ag%40mail.gmail.com%3EAfter talking it out, we can to the conclusion that providing three things for Avatica clients should be sufficient for users: Provide an avatica client artifact with all dependencies shaded (relocated, when possible) Provide an avatica client artifact with no dependencies shaded Provide an example project (e.g. documentatino) users can modify to construct their own Avatica client artifact with just the dependencies they desire.We can't reasonably enumerate all permutations of what might be desired by users WRT dependency versions, but we can provide them the tools to create the artifacts they need for their unique environment/deployment.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.9.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.site..data.docs.yml</file>
+      <file type="M">avatica.site.downloads.index.md</file>
+      <file type="M">avatica.pom.xml</file>
+      <file type="M">avatica.core.src.main.resources.META-INF.LICENSE</file>
+      <file type="M">avatica.core.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1230" opendate="2016-5-6 00:00:00" fixdate="2016-5-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add SQLSTATE reference data as enum SqlState</summary>
+      <description>The SQL standard defines error codes for the standard things that can go wrong while processing SQL. If client applications are written to expect those error codes they can make their behavior uniform across databases.Avatica can help by defining the standard codes in a new enum org.apache.calcite.avatica.SqlState.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlStateCodes.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1235" opendate="2016-5-13 00:00:00" fixdate="2016-5-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Push down LIMIT in unfiltered Cassandra queries</summary>
+      <description></description>
+      <version>1.7.0</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">cassandra.src.test.java.org.apache.calcite.test.CassandraAdapterIT.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraToEnumerableConverter.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraTable.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraSort.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraRules.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraRel.java</file>
+      <file type="M">cassandra.src.main.java.org.apache.calcite.adapter.cassandra.CassandraMethod.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1236" opendate="2016-5-13 00:00:00" fixdate="2016-5-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Log exceptions sent back to client in server log</summary>
+      <description>In Phoenix Query Server, for example, if the client sends a SQL query with wrong syntax, the server will return a 500 response with the exception stack traces. But there is no error messages in PQS logs indicating this.It would be good to log these exceptions into Phoenix Query Server logs, so the user can monitoring and analyze the logs later.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.AvaticaProtobufHandler.java</file>
+      <file type="M">avatica.server.src.main.java.org.apache.calcite.avatica.server.AvaticaJsonHandler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1238" opendate="2016-5-15 00:00:00" fixdate="2016-5-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unparsing LIMIT without ORDER BY generates invalid SQL after validation</summary>
+      <description>The context of the problem is the validation of queries with a LIMIT clause but no ORDER BY, e.g. "SELECT c FROM t LIMIT 2".The problem does not show up at parsing time but when running a validator. The generated AST includes an ORDER BY operand with an empty column list.When building a SQL query out of the validated AST, an ORDER BY clause is inserted before the LIMIT/FETCH clause, e.g "SELECT c FROM t ORDER BY LIMIT 2". This SQL query is not valid.</description>
+      <version>1.7.0</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlParserTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlSelectOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1239" opendate="2016-5-17 00:00:00" fixdate="2016-6-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade to avatica-1.8.0</summary>
+      <description>After Avatica release 1.8.0 and before Calcite release 1.8.0, upgrade Calcite to use the new Avatica.</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.jdbc.CalciteRemoteDriverTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.server.CalciteServer.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.jdbc.CalciteStatement.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.jdbc.CalciteMetaImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.jdbc.CalciteConnectionImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionProperty.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1248" opendate="2016-5-19 00:00:00" fixdate="2016-6-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Release Avatica 1.8</summary>
+      <description>Parent issue to track things to do for this release</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.site..docs.howto.md</file>
+      <file type="M">avatica.tck.pom.xml</file>
+      <file type="M">avatica.server.pom.xml</file>
+      <file type="M">avatica.pom.xml</file>
+      <file type="M">avatica.noop-driver.pom.xml</file>
+      <file type="M">avatica.metrics.pom.xml</file>
+      <file type="M">avatica.metrics-dropwizardmetrics3.pom.xml</file>
+      <file type="M">avatica.core.pom.xml</file>
+      <file type="M">avatica.site..docs.history.md</file>
+      <file type="M">avatica.standalone-server.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1249" opendate="2016-5-19 00:00:00" fixdate="2016-5-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>L&amp;N incorrect for source and non-shaded jars for avatica-standalone-server module</summary>
+      <description>I had added the special L&amp;N files for the shaded jar, but these also got added to the source and "normal" jar (which make them incorrect).Need to make sure that the special L&amp;N files only hit the shaded jar.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.standalone-server.src.main.resources.META-INF.LICENSE</file>
+      <file type="M">avatica.standalone-server.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1250" opendate="2016-5-19 00:00:00" fixdate="2016-5-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>UNNEST should work with MAP data types</summary>
+      <description>Unnest should also work with map data types and emit two columns for key and value of all entries, similar to what drill is doing with kv_gen() and hive with explode()</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.util.BuiltInMethod.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.OperandTypes.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlUnnestOperator.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.SqlFunctions.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.core.Uncollect.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.EnumerableUncollect.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1251" opendate="2016-5-20 00:00:00" fixdate="2016-5-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Write release notes</summary>
+      <description>Forgot that I need to write up release notes before I make an rc0 because the site is also contained in the tag.</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.site..docs.history.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1270" opendate="2016-6-1 00:00:00" fixdate="2016-10-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade Calcite to avatica-1.9</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">splunk.pom.xml</file>
+      <file type="M">pom.xml</file>
+      <file type="M">piglet.pom.xml</file>
+      <file type="M">mongodb.pom.xml</file>
+      <file type="M">example.csv.pom.xml</file>
+      <file type="M">elasticsearch.pom.xml</file>
+      <file type="M">druid.pom.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcTest.java</file>
+      <file type="M">core.src.main.resources.org.apache.calcite.runtime.CalciteResource.properties</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.CalciteResource.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.model.JsonSchema.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.jdbc.CalciteResultSet.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.jdbc.CalciteMetaImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.jdbc.CalciteConnectionImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionProperty.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.config.CalciteConnectionConfigImpl.java</file>
+      <file type="M">core.pom.xml</file>
+      <file type="M">cassandra.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1274" opendate="2016-6-6 00:00:00" fixdate="2016-6-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade Spark adapter to spark-1.6.1</summary>
+      <description>Calcite's Spark adapter uses an old version of Apache Spark, and does not push very many relational operators down to Spark, and the test suite does not pass.</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">spark.src.main.java.org.apache.calcite.adapter.spark.SparkRuntime.java</file>
+      <file type="M">spark.src.main.java.org.apache.calcite.adapter.spark.SparkRules.java</file>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1277" opendate="2016-6-7 00:00:00" fixdate="2016-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rat fails on source distribution due to git.properties</summary>
+      <description>During 1.8 release vote, alangates reported that mvn apache-rat:check fails on source distribution due to git.properties. I confirmed this.git.properties is not a source file &amp;#8211; it is generated during the release. We should add it to rat exclusions.</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1279" opendate="2016-6-8 00:00:00" fixdate="2016-6-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Druid "select" query gives ClassCastException</summary>
+      <description>In the Druid adapter, a query of "select" query type gives ClassCastException. This does not apply to other query types, such as "groupBy", so only SQL queries that have no aggregation (GROUP BY, HAVING) are affected.The cause is that the DRUID_FETCH property recently changed from STRING to NUMBER but we are still accessing it using getString().</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidQuery.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1312" opendate="2016-7-11 00:00:00" fixdate="2016-7-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Return type of TIMESTAMP_ADD applied to a DATE should be TIMESTAMP if unit is smaller than DAY</summary>
+      <description>timestamp_add("MINUTE", 1, date '2016-06-15') returns 2016-06-15 since it returns a date and therefore truncates the minute informtion. timestamp_add should return timestamp instead of date for units less than date.timestamp_diff with date doesn't handle null properly (in type inference), converted type is INTEGER NOT NULL (when it should be null).</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlFunctionsTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlLiteral.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlStdOperatorTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.StandardConvertletTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.SqlFunctions.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexImpTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1313" opendate="2016-7-11 00:00:00" fixdate="2016-7-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Validator should derive type of expression in ORDER BY</summary>
+      <description>SqlValidator.expandOrderExpr() does not validate node type and properly set it. Queries like the following currently fail in SqlToRelConverter because the type in thought to be unknown. Simple fix is to ensure that the type is validated when we expand the expression.java.lang.AssertionError: Parsing failed throwing error: class org.apache.calcite.sql.SqlBasicCall: ROW_NUMBER() OVER (PARTITION BY `employee`.`store_id` ORDER BY `employee`.`department_id` ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) at org.junit.Assert.fail(Assert.java:88) at org.junit.Assert.assertTrue(Assert.java:41) at org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.checkRel2Sql(RelToSqlConverterTest.java:58) at org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.checkRel2Sql(RelToSqlConverterTest.java:63) at org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.testOver(RelToSqlConverterTest.java:391) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50) at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12) at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47) at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17) at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:325) at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:78) at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:57) at org.junit.runners.ParentRunner$3.run(ParentRunner.java:290) at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:71) at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:288) at org.junit.runners.ParentRunner.access$000(ParentRunner.java:58) at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:268) at org.junit.runners.ParentRunner.run(ParentRunner.java:363) at org.junit.runner.JUnitCore.run(JUnitCore.java:137) at com.intellij.junit4.JUnit4IdeaTestRunner.startRunnerWithArgs(JUnit4IdeaTestRunner.java:69) at com.intellij.rt.execution.junit.JUnitStarter.prepareStreamsAndStart(JUnitStarter.java:234) at com.intellij.rt.execution.junit.JUnitStarter.main(JUnitStarter.java:74)</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelConverterTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1321" opendate="2016-7-20 00:00:00" fixdate="2016-7-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>In-list to join optimization should have configurable in-list size</summary>
+      <description>We current have a default in-list size of 20. Instead of the magic number 20, we should make this configurable.select count(*) from table where col in (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1);</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">example.csv.src.test.java.org.apache.calcite.test.CsvTest.java</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelTestBase.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelConverterTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.SqlToRelConverter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.Prepare.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.PlannerImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalcitePrepareImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalciteMaterializer.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

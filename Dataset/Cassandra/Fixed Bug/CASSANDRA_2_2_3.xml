@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10219" opendate="2015-8-28 00:00:00" fixdate="2015-10-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>KeyCache deserialization doesn&amp;#39;t properly read indexed entries</summary>
+      <description>When we write the key cache, we write the RowIndeEntry entirely, as can be seen in CacheService.KeyCacheSerializer.serialize:ByteBufferUtil.writeWithLength(key.key, out);out.writeInt(key.desc.generation);out.writeBoolean(true);key.desc.getFormat().getIndexSerializer(cfm, key.desc.version, SerializationHeader.forKeyCache(cfm)).serialize(entry, out);When we deserialize such entry, we have the case where an entry correspon to a sstable that doesn't exist anymore (presumably, it's been deleted between the last cache saving and the restart that triggers the cache loading), which goes this way:ByteBuffer key = ByteBufferUtil.read(input, keyLength);int generation = input.readInt();SSTableReader reader = findDesc(generation, cfs.getSSTables(SSTableSet.CANONICAL));input.readBoolean(); // backwards compatibility for "promoted indexes" booleanif (reader == null){ RowIndexEntry.Serializer.skipPromotedIndex(input); return null;}But the thing is, RowIndexEntry.Serializer.skipPromotedIndex doesn't skip a full RowIndexEntry, it doesn't skip the position in particular, and so as far as I can tell, that part is buggy. I believe we should call RowIndexEntry.Serializer.skip.I'll note that I just noticed this while reading the code but I haven't reproduced that problem personally. I also haven't pin-pointed the exact source of that problem, but it's been there for a while as far as I can tell. At the same time, the condition to reach that branch is probably pretty uncommon, and failure to load the key cache does not prevent the node from starting and it doesn't even seem that we log an error (we log at DEBUG, maybe we should log at WARN), which would explain nobody reporting this.</description>
+      <version>2.1.11,2.2.3,3.0.0rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.KeyCacheTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10400" opendate="2015-9-25 00:00:00" fixdate="2015-10-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hadoop CF splits should be more polite to custom orderered partitioners</summary>
+      <description>Looks like Philip Thompson just didn't know about preservesOrder() on IPartitioner when he wrote this, no big deal.</description>
+      <version>2.2.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.AbstractColumnFamilyInputFormat.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10412" opendate="2015-9-29 00:00:00" fixdate="2015-10-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Could not initialize class org.apache.cassandra.config.DatabaseDescriptor</summary>
+      <description>We are unable to start version 2.2.1 on our Windows 2012 R2 systems, however we can use the same environment to start version 2.1.2I have attached our Cassandra.yaml and cassandra-env.ps1 file for reference. I have also attached the system.log file displaying the error.I have also included an excerpt of the log file showing the stack trace of the error.ERROR &amp;#91;ScheduledTasks:1&amp;#93; 2015-09-29 07:03:47,482 DebuggableThreadPoolExecutor.java:242 - Error in ThreadPoolExecutorjava.lang.NoClassDefFoundError: Could not initialize class org.apache.cassandra.config.DatabaseDescriptor at org.apache.cassandra.utils.JVMStabilityInspector.inspectThrowable(JVMStabilityInspector.java:57) ~&amp;#91;apache-cassandra-2.2.1.jar:2.2.1&amp;#93; at org.apache.cassandra.concurrent.DebuggableScheduledThreadPoolExecutor$UncomplainingRunnable.run(DebuggableScheduledThreadPoolExecutor.java:122) ~&amp;#91;apache-cassandra-2.2.1.jar:2.2.1&amp;#93; at java.util.concurrent.Executors$RunnableAdapter.call(Unknown Source) ~&amp;#91;na:1.8.0_51&amp;#93; at java.util.concurrent.FutureTask.runAndReset(Unknown Source) ~&amp;#91;na:1.8.0_51&amp;#93; at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(Unknown Source) ~&amp;#91;na:1.8.0_51&amp;#93; at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(Unknown Source) ~&amp;#91;na:1.8.0_51&amp;#93; at java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source) &amp;#91;na:1.8.0_51&amp;#93; at java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source) &amp;#91;na:1.8.0_51&amp;#93; at java.lang.Thread.run(Unknown Source) &amp;#91;na:1.8.0_51&amp;#93;</description>
+      <version>2.2.3,3.0.0rc2</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneVerifier.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneUpgrader.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneSplitter.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneScrubber.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableRepairedAtSetter.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableOfflineRelevel.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableMetadataViewer.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableLevelResetter.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableImport.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExpiredBlockers.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10478" opendate="2015-10-8 00:00:00" fixdate="2015-10-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Seek position is not within mmap segment</summary>
+      <description>After upgrading to 2.2.2 we started seeing timeouts accompanied by the following error in the log. Disabling mmap (by using "disk_access_mode: standard") completely solves the problem.We did not experience this problem in 2.2.1.The change to src/java/org/apache/cassandra/io/util/ByteBufferDataInput.java in the following commit seems interesting as it changes the calculation of the mmap boundaries (and moves from &lt;= to &lt;) https://github.com/apache/cassandra/commit/25de92e321604626d6c098233082904832c07814 WARN [SharedPool-Worker-1] 2015-10-07 03:40:39,771 AbstractTracingAwareExecutorService.java:169 - Uncaught exception on thread Thread[SharedPool-Worker-1,5,main]: {}java.lang.RuntimeException: org.apache.cassandra.io.sstable.CorruptSSTableException: java.io.IOException: Seek position 717680 is not within mmap segment (seg offs: 0, length: 717680) at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:2187) ~[apache-cassandra-2.2.2.jar:2.2.2] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) ~[na:1.8.0_60] at org.apache.cassandra.concurrent.AbstractTracingAwareExecutorService$FutureTask.run(AbstractTracingAwareExecutorService.java:164) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.concurrent.SEPWorker.run(SEPWorker.java:105) [apache-cassandra-2.2.2.jar:2.2.2] at java.lang.Thread.run(Thread.java:745) [na:1.8.0_60]Caused by: org.apache.cassandra.io.sstable.CorruptSSTableException: java.io.IOException: Seek position 717680 is not within mmap segment (seg offs: 0, length: 717680) at org.apache.cassandra.io.sstable.format.big.BigTableReader.getPosition(BigTableReader.java:250) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.io.sstable.format.SSTableReader.getPosition(SSTableReader.java:1558) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.io.sstable.format.big.SSTableSliceIterator.&lt;init&gt;(SSTableSliceIterator.java:42) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.io.sstable.format.big.BigTableReader.iterator(BigTableReader.java:75) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.filter.SliceQueryFilter.getSSTableColumnIterator(SliceQueryFilter.java:246) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.filter.QueryFilter.getSSTableColumnIterator(QueryFilter.java:62) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.CollationController.collectAllData(CollationController.java:270) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.CollationController.getTopLevelColumns(CollationController.java:64) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.ColumnFamilyStore.getTopLevelColumns(ColumnFamilyStore.java:2004) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.ColumnFamilyStore.getColumnFamily(ColumnFamilyStore.java:1808) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.Keyspace.getRow(Keyspace.java:360) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.SliceFromReadCommand.getRow(SliceFromReadCommand.java:85) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.service.StorageProxy$LocalReadRunnable.runMayThrow(StorageProxy.java:1537) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:2183) ~[apache-cassandra-2.2.2.jar:2.2.2] ... 4 common frames omittedCaused by: java.io.IOException: Seek position 717680 is not within mmap segment (seg offs: 0, length: 717680) at org.apache.cassandra.io.util.ByteBufferDataInput.seek(ByteBufferDataInput.java:47) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.io.util.AbstractDataInput.skipBytes(AbstractDataInput.java:33) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.io.util.FileUtils.skipBytesFully(FileUtils.java:405) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.RowIndexEntry$Serializer.skipPromotedIndex(RowIndexEntry.java:164) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.db.RowIndexEntry$Serializer.skip(RowIndexEntry.java:155) ~[apache-cassandra-2.2.2.jar:2.2.2] at org.apache.cassandra.io.sstable.format.big.BigTableReader.getPosition(BigTableReader.java:244) ~[apache-cassandra-2.2.2.jar:2.2.2] ... 17 common frames omitted</description>
+      <version>2.1.11,2.2.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.MappedFileDataInput.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10484" opendate="2015-10-8 00:00:00" fixdate="2015-10-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh pg-style-strings broken</summary>
+      <description>Support for multiline pg-style strings in cqlsh is broken.cqlsh:foo&gt; insert into texttab (a) values ($$Invalid syntax at line 1, char 33 insert into texttab (a) values ($$ ^cqlsh:foo&gt; Will tackle that and also add a test for it.</description>
+      <version>2.2.3,3.0.0rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.test.cql.parsing.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10487" opendate="2015-10-8 00:00:00" fixdate="2015-10-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression in select count with limit</summary>
+      <description>After CASSANDRA-4914 the LIMIT clause should limit only the number of rows returned to the user not the number of rows used by the aggregates.That functionality is currently broken in 2.2.</description>
+      <version>2.2.3</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10507" opendate="2015-10-13 00:00:00" fixdate="2015-10-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update cqlsh copy for new internal driver serialization interface (2.1 and 2.2)</summary>
+      <description>We need the same fix as in CASSANDRA-10318 to support an API change in the driver, see for example:http://cassci.datastax.com/job/cassandra-2.2_dtest/lastCompletedBuild/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_reading_use_header/</description>
+      <version>2.1.11,2.2.3</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="18081" opendate="2017-5-19 00:00:00" fixdate="2017-5-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The way we process connection preamble in SimpleRpcServer is broken</summary>
+      <description>Though very rare, but if the preamble is not sent at once, the logic will be broken.</description>
+      <version>1.4.0,1.3.1,1.2.5,1.1.10,2.0.0</version>
+      <fixedVersion>1.4.0,1.2.6,1.3.2,1.1.11,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.SimpleServerRpcConnection.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18122" opendate="2017-5-26 00:00:00" fixdate="2017-5-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Scanner id should include ServerName of region server</summary>
+      <description>Now the scanner id is a long number from 1 to max in a region server. Each new scanner will have a scanner id.If a client has a scanner whose id is x, when the RS restart and the scanner id is also incremented to x or a little larger, there will be a scanner id collision.So the scanner id should now be same during each time the RS restart. We can add the start timestamp as the highest several bits in scanner id uint64.And because HBASE-18121 is not easy to fix and there are many clients with old version. We can also encode server host:port into the scanner id.So we can use ServerName.</description>
+      <version>1.4.0,1.3.1,1.1.10,1.2.6,2.0.0</version>
+      <fixedVersion>1.4.0,1.3.2,1.1.11,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncRpcRetryingCallerFactory.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18132" opendate="2017-5-30 00:00:00" fixdate="2017-6-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Low replication should be checked in period in case of datanode rolling upgrade</summary>
+      <description>For now, we just check low replication of WALs when there is a sync operation (HBASE-2234), rolling the log if the replica of the WAL is less than configured. But if the WAL has very little writes or no writes at all, low replication will not be detected and thus no log will be rolled. That is a problem when rolling updating datanode, all replica of the WAL with no writes will be restarted and lead to the WAL file end up with a abnormal state. Later operation of opening this file will be always failed.I bring up a patch to check low replication of WALs at a configured period. When rolling updating datanodes, we just make sure the restart interval time between two nodes is bigger than the low replication check time, the WAL will be closed and rolled normally. A UT in the patch will show everything.</description>
+      <version>1.4.0,1.1.10</version>
+      <fixedVersion>1.4.0,1.3.2,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.FSHLog.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.LogRoller.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18133" opendate="2017-5-30 00:00:00" fixdate="2017-2-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Low-latency space quota size reports</summary>
+      <description>Presently space quota enforcement relies on RegionServers sending reports to the master about each Region that they host. This is done by periodically, reading the cached size of each HFile in each Region (which was ultimately computed from HDFS).This means that the Master is unaware of Region size growth until the the next time this chore in a RegionServer fires which is a fair amount of latency (a few minutes, by default). Operations like flushes, compactions, and bulk-loads are delayed even though the RegionServer is running those operations locally.Instead, we can create an API which these operations could invoke that would automatically update the size of the Region being operated on. For example, a successful flush can report that the size of a Region increased by the size of the flush. A compaction can subtract the size of the input files of the compaction and add in the size of the resulting file.This de-couples the computation of a Region's size from sending the Region sizes to the Master, allowing us to send reports more frequently, increasing the responsiveness of the cluster to size changes.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestRegionServerRegionSpaceUseReport.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestHStore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestSpaceQuotas.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaObserverChoreRegionReports.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestFileSystemUtilizationChore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.SpaceQuotaHelperForTests.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.policies.TestBulkLoadCheckingViolationPolicyEnforcement.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.MockRegionServerServices.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.MockRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionServerServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.MetricsRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.SpaceViolationPolicyEnforcement.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.RegionServerSpaceQuotaManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.policies.MissingSnapshotViolationPolicyEnforcement.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.policies.DefaultViolationPolicyEnforcement.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.policies.AbstractViolationPolicyEnforcement.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.FileSystemUtilizationChore.java</file>
+      <file type="M">hbase-hadoop-compat.src.main.java.org.apache.hadoop.hbase.regionserver.MetricsRegionServerQuotaSource.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

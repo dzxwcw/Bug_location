@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="ARIES">
+  <bug id="1404" opendate="2015-9-15 00:00:00" fixdate="2015-10-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Restart of the osgi container does not restart subsystem core because of an error related to missing resource org.apache.aries.subsystem.resource.synthesized</summary>
+      <description>Restart of the osgi container does not restart subsystem core because of an error related to missing resource org.apache.aries.subsystem.resource.synthesizedThe deployment manifest contains the entry below in the provision-resource header:org.apache.aries.subsystem.resource.synthesized;resourceId=-1;deployed-version=0.0.0;type=org.apache.aries.subsystem.resource.synthesizedOn restart it tries to load the resource because it is in the deployment manifest and can't find the resource in the osgi framework. It seems the 'synthesized' type is related to something which looks like a missing capability/service capability placeholder while installing/resolving. It is not installed because the ResourceInstaller has an if statement returning an installer which does nothing. So I guess it should also not be added to the manifest.I therefore patched the ProvisionResourceHeader to check for this 'synthesized' type and ignore it for the Provision-resource header. I'm not sure if this is the best solution but it does solve the issue we are having.The reason for patching it there is because it would be least affecting the entire process. Just like ignoring it before it is installed in the osgi framework it will not also be ignored before adding it to the manifest.</description>
+      <version>subsystem-2.0.4</version>
+      <fixedVersion>subsystem-core-2.0.4,subsystem-bundle-2.0.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.SubsystemResource.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1425" opendate="2015-10-6 00:00:00" fixdate="2015-10-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support both osgi.bundle and osgi.fragment resource types when given a Subsystem-Content header clause with an unspecified type attribute.</summary>
+      <description>Before ARIES-1368, the Subsystems implementation would not distinguish between bundle and fragment content. This created the following issues as discussed in that bug:(1) Content would not be found when the Subsystem-Content header was computed by the implementation and fragments were provided by a remote repository.(2) Content would not be found when the Subsystem-Content header was specified and contained a resource with type osgi.fragment provided by the local repository.However, it did not cause issues when, for example, fragment content was included as part of the header without specifying the type, and the fragment also existed within the local repository. Unfortunately, the bug lived long enough to become an issue for consumers with a zero migration policy. Consequently, we would like to introduce the following implementation specific behavior without violating the specification.REQUIREMENTS(1) An unspecified type attribute in a Subsystem-Content header clause MAY indicate either a bundle (i.e. osgi.bundle) or a fragment (i.e. osgi.fragment).(2) When the type attribute is not specified, the implementation MUST search for both bundles and fragments according to the rules for discovering content resources in section 134.5.5 of the specification.(3) Bundles MUST be preferred over fragments.</description>
+      <version>subsystem-2.0.4</version>
+      <fixedVersion>subsystem-2.0.6</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-itests.src.test.java.org.apache.aries.subsystem.itests.SubsystemTest.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.SubsystemResource.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.archive.SubsystemContentRequirement.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.archive.SubsystemContentHeader.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1426" opendate="2015-10-6 00:00:00" fixdate="2015-10-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implementation specific subsystem header Application-ImportService should not affect the sharing policy.</summary>
+      <description>The implementation specific subsystem header Application-ImportService provides a means for application providers to tell the implementation that there are bundles with unresolvable service dependencies that will be satisfied at runtime in some unspecified way. Consequently, the implementation will not fail the installation if any of the requirements listed in the header are not present. How the requirements are ultimately satisfied is the responsibility of the provider. The implementation should not allow this header to affect the sharing policy.Currently, the implementation will add these requirements to the sharing policy so that matching services from the parent subsystem are automatically visible. This could result in unanticipated wirings from the provider's point of view.</description>
+      <version>subsystem-2.0.4</version>
+      <fixedVersion>subsystem-2.0.6</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.SubsystemResource.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.RawSubsystemResource.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1428" opendate="2015-10-6 00:00:00" fixdate="2015-10-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>org.osgi.framework.BundleException: Could not resolve module: &lt;module&gt; Bundle was filtered by a resolver hook.</summary>
+      <description>This exception may occur during a small window of time between the registration of the resolver hook and initialization of the root subsystem while the implementation bundle is being activated.ARIES-1392 introduced the need to prevent bundles that are part of a subsystem installation from resolving until the installation is complete. An assumption made was that a check to see if the bundle was referenced by any subsystems was sufficient. This is not the case because during the small window of time mentioned previously, the resolver hook will think that no bundles are associated with any subsystems. If a bundle undergoes a resolution attempt during this period, it will fail.The solution is to ensure that the resolver hook will only prevent bundles not referenced by any subsystems from resolving on the same thread as the subsystem installation.</description>
+      <version>subsystem-2.0.4</version>
+      <fixedVersion>subsystem-2.0.6</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.SubsystemResolverHook.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="143" opendate="2010-2-3 00:00:00" fixdate="2010-2-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Extend AriesTrader sample to include support for JPA Application Managed Persistence</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.1</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ariestrader-sample.modules.ariestrader-derby-ds.src.main.java.org.apache.aries.ariestrader.datasource.derby.DerbyActivator.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-persist-jpa-am.src.main.java.org.apache.aries.samples.daytrader.persist.jpa.TradeJpaAm.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.aries.samples.daytrader.beans.QuoteDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.aries.samples.daytrader.beans.OrderDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.aries.samples.daytrader.beans.HoldingDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.aries.samples.daytrader.beans.AccountProfileDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.aries.samples.daytrader.beans.AccountDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.resources.META-INF.persistence.xml</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-persist-jpa-am.src.main.resources.META-INF.persistence.xml</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-persist-jpa-am.src.main.java.org.apache.geronimo.samples.daytrader.persist.jpa.TradeJpaAm.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.geronimo.samples.daytrader.beans.QuoteDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.geronimo.samples.daytrader.beans.OrderDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.geronimo.samples.daytrader.beans.HoldingDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.geronimo.samples.daytrader.beans.AccountProfileDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.src.main.java.org.apache.geronimo.samples.daytrader.beans.AccountDataBeanImpl.java</file>
+      <file type="M">ariestrader-sample.assemblies.pom.xml</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-openjpa-provider.pom.xml</file>
+      <file type="M">ariestrader-sample.pom.xml</file>
+      <file type="M">ariestrader-sample.modules.pom.xml</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-persist-jpa-am.src.main.resources.OSGI-INF.blueprint.blueprint.xml</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-persist-jpa-am.src.main.java.org.apache.aries.samples.ariestrader.persist.jpa.TradeJpaAm.java</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-persist-jpa-am.pom.xml</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-entities.pom.xml</file>
+      <file type="M">ariestrader-sample.modules.ariestrader-derby-ds.pom.xml</file>
+      <file type="M">ariestrader-sample.assemblies.ariestrader-jdbc-equinox.src.main.resources.configuration.config.ini</file>
+      <file type="M">ariestrader-sample.assemblies.ariestrader-jdbc-equinox.pom.xml</file>
+      <file type="M">ariestrader-sample.assemblies.ariestrader-all-equinox.src.main.resources.configuration.config.ini</file>
+      <file type="M">ariestrader-sample.assemblies.ariestrader-all-equinox.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1435" opendate="2015-10-19 00:00:00" fixdate="2015-10-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Sharing policy updates for dynamic imports, if necessary, should proceed up the subsystem region tree.</summary>
+      <description>Currently, dynamic imports only affect the sharing policy between the region of the woven subsystem and the region containing its parent(s). Sharing policy updates should continue to wind up the region tree until either the dynamic import is satisfied or the root subsystem has been reached.</description>
+      <version>subsystem-2.0.4</version>
+      <fixedVersion>subsystem-2.0.6</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-itests.src.test.java.org.apache.aries.subsystem.itests.defect.Aries1435Test.java</file>
+      <file type="M">subsystem.subsystem-itests.src.test.java.org.apache.aries.subsystem.itests.SubsystemTest.java</file>
+      <file type="M">subsystem.subsystem-itests.src.test.java.org.apache.aries.subsystem.itests.RegionNameTest.java</file>
+      <file type="M">subsystem.subsystem-itests.src.test.java.org.apache.aries.subsystem.itests.defect.Aries1429Test.java</file>
+      <file type="M">subsystem.subsystem-itests.src.test.java.org.apache.aries.subsystem.itests.AriesSubsystemTest.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.WovenClassListener.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.RegionUpdater.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

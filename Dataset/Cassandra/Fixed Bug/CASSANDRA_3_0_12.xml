@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="13071" opendate="2016-12-22 00:00:00" fixdate="2016-3-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh copy-from should error out when csv contains invalid data for collections</summary>
+      <description>If the csv file contains invalid data for collection types, at the moment the data is imported incorrectly, an error would be a better behavior.For example this table:CREATE TABLE test.test (key text, value frozen&lt;set&lt;text&gt;&gt;, PRIMARY KEY (key)); with this data:"key1","{'test1', 'test2'}""Key2","not_a_set"will be imported by COPY test.test FROM 'test.csv'; without errors but will result in the following data:cqlsh&gt; select * from test.test; key | value------+-------------------- key1 | {'test1', 'test2'} Key2 | {'ot_a_se'}(2 rows)The second row should have been rejected. The reason is that the split function assumes that the first and last characters of the string passed in are parentheses, without actually checking it.</description>
+      <version>3.0.12,3.11.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13090" opendate="2017-1-3 00:00:00" fixdate="2017-2-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Coalescing strategy sleeps too much</summary>
+      <description>With the current code maybeSleep is called even if we managed to take maxItems out of the backlog. In this case we should really avoid sleeping because it means that backlog is building up.I'll send a patch shortly.</description>
+      <version>2.2.10,3.0.12,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.CoalescingStrategiesTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.CoalescingStrategies.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.OutboundTcpConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13185" opendate="2017-2-3 00:00:00" fixdate="2017-2-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY doesn&amp;#39;t support dates before 1900 or after 9999</summary>
+      <description>Although we fixed this problem for standard queries in CASSANDRA-10625, it still exists for COPY. In CASSANDRA-10625, we replaced datetimes outside of the supported time range with a simple milliseconds-since-epoch long. We may not want to use the same solution for COPY, because we wouldn't be able to load the same data back in through COPY. Having consistency in the format of values and support for loading exported data seems more important for COPY.</description>
+      <version>3.0.12,3.11.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13294" opendate="2017-3-3 00:00:00" fixdate="2017-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Possible data loss on upgrade 2.1 - 3.0</summary>
+      <description>After finishing a compaction we delete the compacted away files. This is done here which uses this to get the files - we get all files starting with absoluteFilePath. Absolute file path is generated here. For 3.0 version files the filename looks like this: /blabla/keyspace1/standard1-bdb031c0ff7b11e6940fdd0479dd8912/mc-1332-big but for 2.1 version files, they look like this: /blabla/keyspace1/standard1-bdb031c0ff7b11e6940fdd0479dd8912/keyspace1-standard1-ka-2.The problem is then that if we were to finish a compaction including the legacy file, we would actually delete all legacy files having a generation starting with '2'</description>
+      <version>3.0.12,3.11.0</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.lifecycle.LogTransactionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LogRecord.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

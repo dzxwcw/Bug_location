@@ -1,0 +1,602 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="29992" opendate="2022-11-11 00:00:00" fixdate="2022-11-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hive lookupJoin execution plan parsing error</summary>
+      <description>//tableEnv.executeSql(" CREATE CATALOG hive WITH (\n" + " 'type' = 'hive',\n" + " 'default-database' = 'flinkdebug',\n" + " 'hive-conf-dir' = '/programe/hadoop/hive-3.1.2/conf'\n" + " )");tableEnv.executeSql("create table datagen_tbl (\n" + "id STRING\n" + ",name STRING\n" + ",age bigint\n" + ",ts bigint\n" + ",`par` STRING\n" + ",pro_time as PROCTIME()\n" + ") with (\n" + " 'connector'='datagen'\n" + ",'rows-per-second'='10'\n" + " \n" + ")");String dml1 = "select * " + " from datagen_tbl as p " + " join hive.flinkdebug.default_hive_src_tbl " + " FOR SYSTEM_TIME AS OF p.pro_time AS c" + " ON p.id = c.id";// Execution succeeded  System.out.println(tableEnv.explainSql(dml1));String dml2 = "select p.id " + " from datagen_tbl as p " + " join hive.flinkdebug.default_hive_src_tbl " + " FOR SYSTEM_TIME AS OF p.pro_time AS c" + " ON p.id = c.id";// Throw an exception System.out.println(tableEnv.explainSql(dml2)); org.apache.flink.table.api.TableException: Cannot generate a valid execution plan for the given query: FlinkLogicalCalc(select=[id]) +- FlinkLogicalJoin(condition=[=($0, $1)], joinType=[inner])    :- FlinkLogicalCalc(select=[id])    :  +- FlinkLogicalTableSourceScan(table=[[default_catalog, default_database, datagen_tbl]], fields=[id, name, age, ts, par])    +- FlinkLogicalSnapshot(period=[$cor1.pro_time])       +- FlinkLogicalTableSourceScan(table=[[hive, flinkdebug, default_hive_src_tbl, project=[id]]], fields=[id])This exception indicates that the query uses an unsupported SQL feature. Please check the documentation for the set of currently supported SQL features.    at org.apache.flink.table.planner.plan.optimize.program.FlinkVolcanoProgram.optimize(FlinkVolcanoProgram.scala:70)     at org.apache.flink.table.planner.plan.optimize.program.FlinkChainedProgram.$anonfun$optimize$1(FlinkChainedProgram.scala:59)</description>
+      <version>1.16.0,1.17.0,1.14.7,1.15.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.HiveLookupJoinITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.connectors.hive.HiveTableSource.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.connectors.hive.HiveLookupTableSource.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30878" opendate="2023-2-2 00:00:00" fixdate="2023-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>KubernetesHighAvailabilityRecoverFromSavepointITCase fails due to a deadlock</summary>
+      <description>We're seeing a test failure in KubernetesHighAvailabilityRecoverFromSavepointITCase due to a deadlock:2023-02-01T18:53:35.5540322Z "ForkJoinPool-1-worker-1" #14 daemon prio=5 os_prio=0 tid=0x00007f68ecb18000 nid=0x43dd1 waiting on condition [0x00007f68c1711000]2023-02-01T18:53:35.5540900Z java.lang.Thread.State: TIMED_WAITING (parking)2023-02-01T18:53:35.5541272Z at sun.misc.Unsafe.park(Native Method)2023-02-01T18:53:35.5541932Z - parking to wait for &lt;0x00000000d14d7b60&gt; (a java.util.concurrent.CompletableFuture$Signaller)2023-02-01T18:53:35.5542496Z at java.util.concurrent.locks.LockSupport.parkNanos(LockSupport.java:215)2023-02-01T18:53:35.5543088Z at java.util.concurrent.CompletableFuture$Signaller.block(CompletableFuture.java:1709)2023-02-01T18:53:35.5543672Z at java.util.concurrent.ForkJoinPool.managedBlock(ForkJoinPool.java:3313)2023-02-01T18:53:35.5544240Z at java.util.concurrent.CompletableFuture.timedGet(CompletableFuture.java:1788)2023-02-01T18:53:35.5544801Z at java.util.concurrent.CompletableFuture.get(CompletableFuture.java:1928)2023-02-01T18:53:35.5545632Z at org.apache.flink.kubernetes.highavailability.KubernetesHighAvailabilityRecoverFromSavepointITCase.testRecoverFromSavepoint(KubernetesHighAvailabilityRecoverFromSavepointITCase.java:113)2023-02-01T18:53:35.5546409Z at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=45565&amp;view=logs&amp;j=bea52777-eaf8-5663-8482-18fbc3630e81&amp;t=b2642e3a-5b86-574d-4c8a-f7e2842bfb14&amp;l=61916The build failure happens on 1.16. I'm adding 1.17 and 1.15 as fixVersions as well because it might be due to some recent changes which were introduced with FLINK-30462 and/or FLINK-30474</description>
+      <version>1.17.0,1.15.4,1.16.2</version>
+      <fixedVersion>1.17.0,1.15.4,1.16.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.leaderelection.DefaultMultipleComponentLeaderElectionServiceTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.leaderelection.DefaultMultipleComponentLeaderElectionService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="30972" opendate="2023-2-9 00:00:00" fixdate="2023-2-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>E2e tests always fail in phase "Prepare E2E run"</summary>
+      <description>Installing required softwareReading package lists...Building dependency tree...Reading state information...bc is already the newest version (1.07.1-2build1).bc set to manually installed.libapr1 is already the newest version (1.6.5-1ubuntu1).libapr1 set to manually installed.0 upgraded, 0 newly installed, 0 to remove and 13 not upgraded.--2023-02-09 04:38:47-- http://security.ubuntu.com/ubuntu/pool/main/o/openssl1.0/libssl1.0.0_1.0.2n-1ubuntu5.10_amd64.debResolving security.ubuntu.com (security.ubuntu.com)... 91.189.91.39, 185.125.190.36, 185.125.190.39, ...Connecting to security.ubuntu.com (security.ubuntu.com)|91.189.91.39|:80... connected.HTTP request sent, awaiting response... 404 Not Found2023-02-09 04:38:47 ERROR 404: Not Found.WARNING: apt does not have a stable CLI interface. Use with caution in scripts.Reading package lists...E: Unsupported file ./libssl1.0.0_1.0.2n-1ubuntu5.10_amd64.deb given on commandline##[error]Bash exited with code '100'.Finishing: Prepare E2E run</description>
+      <version>1.17.0,1.15.4,1.16.2,1.18.0</version>
+      <fixedVersion>1.17.0,1.15.4,1.16.2,1.18.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.azure-pipelines.e2e-template.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="31743" opendate="2023-4-6 00:00:00" fixdate="2023-5-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid relocating the RocksDB&amp;#39;s log failure when filename exceeds 255 characters</summary>
+      <description>Since FLINK-24785 , the file name of the rocksdb LOG is generated by parsing the db path, when the db path is long and the filename exceeds 255 characters, the creation of the file will fail, so the relevant rocksdb LOG cannot be seen in the flink log dir.</description>
+      <version>1.16.1,1.15.4</version>
+      <fixedVersion>1.16.2,1.18.0,1.17.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.RocksDBStateBackendConfigTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBStateBackend.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBResourceContainer.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBKeyedStateBackendBuilder.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="31744" opendate="2023-4-6 00:00:00" fixdate="2023-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Extend Adaptive Scheduler sparse EG to contain maxParallelism</summary>
+      <description>When a job is WaitingForResources the adpative scheduler returns a sparse execution graph that omits many details that are only know at execution time (like subtasks).We could include all JobVertex-level information though, which would cover things like the vertex id/name and the maxParallelism.</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.utils.TestingJobMasterGatewayBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.utils.TestingJobMasterGateway.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.JobMasterTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.DispatcherTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.JobMasterGateway.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.JobMaster.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.Dispatcher.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ArchivedExecutionGraphTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveScheduler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ArchivedExecutionGraph.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3175" opendate="2015-12-15 00:00:00" fixdate="2015-2-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>KafkaITCase.testOffsetAutocommitTest</summary>
+      <description>https://travis-ci.org/apache/flink/jobs/96981797Tests run: 16, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 126.278 sec &lt;&lt;&lt; FAILURE! - in org.apache.flink.streaming.connectors.kafka.KafkaITCasetestOffsetAutocommitTest(org.apache.flink.streaming.connectors.kafka.KafkaITCase) Time elapsed: 12.735 sec &lt;&lt;&lt; FAILURE!java.lang.AssertionError: Offset of o1=-915623761776 was not in range at org.junit.Assert.fail(Assert.java:88) at org.junit.Assert.assertTrue(Assert.java:41) at org.apache.flink.streaming.connectors.kafka.KafkaConsumerTestBase.runOffsetAutocommitTest(KafkaConsumerTestBase.java:333) at org.apache.flink.streaming.connectors.kafka.KafkaITCase.testOffsetAutocommitTest(KafkaITCase.java:56)Results :Failed tests: KafkaITCase.testOffsetAutocommitTest:56-&gt;KafkaConsumerTestBase.runOffsetAutocommitTest:333 Offset of o1=-915623761776 was not in range</description>
+      <version>None</version>
+      <fixedVersion>1.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-connectors.flink-connector-kafka-0.8.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka08ITCase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="31835" opendate="2023-4-18 00:00:00" fixdate="2023-6-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DataTypeHint don&amp;#39;t support Row&lt;i Array&lt;int&gt;&gt;</summary>
+      <description>Using DataTypeHint("Row&lt;t ARRAY&lt;INT&gt;&gt;") in a UDF gives the following error: Caused by: java.lang.ClassCastException: class [I cannot be cast to class [Ljava.lang.Object; ([I and [Ljava.lang.Object; are in module java.base of loader 'bootstrap')org.apache.flink.table.data.conversion.ArrayObjectArrayConverter.toInternal(ArrayObjectArrayConverter.java:40)org.apache.flink.table.data.conversion.DataStructureConverter.toInternalOrNull(DataStructureConverter.java:61)org.apache.flink.table.data.conversion.RowRowConverter.toInternal(RowRowConverter.java:75)org.apache.flink.table.data.conversion.RowRowConverter.toInternal(RowRowConverter.java:37)org.apache.flink.table.data.conversion.DataStructureConverter.toInternalOrNull(DataStructureConverter.java:61)StreamExecCalc$251.processElement_split9(Unknown Source)StreamExecCalc$251.processElement(Unknown Source)org.apache.flink.streaming.runtime.tasks.CopyingChainingOutput.pushToOperator(CopyingChainingOutput.java:82)  The function is as follows:@DataTypeHint("Row&lt;t ARRAY&lt;INT&gt;&gt;")public Row eval() {int[] i = new int[3];return Row.of(i);}  This error is not reported when testing other simple types, so it is not an environmental problem.</description>
+      <version>1.15.4</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-test-utils.src.test.java.org.apache.flink.table.test.TableAssertionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.test.java.org.apache.flink.table.data.DataStructureConvertersTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.runtime.stream.table.ValuesITCase.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.runtime.stream.sql.FunctionITCase.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.functions.CastFunctionITCase.java</file>
+      <file type="M">flink-table.flink-table-common.src.test.java.org.apache.flink.table.types.DataTypeTest.java</file>
+      <file type="M">flink-table.flink-table-common.src.main.java.org.apache.flink.table.types.CollectionDataType.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="31963" opendate="2023-4-28 00:00:00" fixdate="2023-5-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>java.lang.ArrayIndexOutOfBoundsException when scaling down with unaligned checkpoints</summary>
+      <description>I'm testing Autoscaler through Kubernetes Operator and I'm facing the following issue.As you know, when a job is scaled down through the autoscaler, the job manager and task manager go down and then back up again.When this happens, an index out of bounds exception is thrown and the state is not restored from a checkpoint.gyfora told me via the Flink Slack troubleshooting channel that this is likely an issue with Unaligned Checkpoint and not an issue with the autoscaler, but I'm opening a ticket with Gyula for more clarification.Please see the attached JM and TM error logs.Thank you.</description>
+      <version>1.17.0,1.16.1,1.15.4,1.18.0</version>
+      <fixedVersion>1.16.2,1.18.0,1.17.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UnalignedCheckpointTestBase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UnalignedCheckpointRescaleITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UnalignedCheckpointITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.StateAssignmentOperationTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.TaskStateAssignment.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.StateAssignmentOperation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="32032" opendate="2023-5-8 00:00:00" fixdate="2023-6-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade to flink-shaded 17.0</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.NFAITCase.java</file>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-yarn.src.test.java.org.apache.flink.yarn.YarnResourceManagerDriverTest.java</file>
+      <file type="M">flink-yarn.src.test.java.org.apache.flink.yarn.YarnFileStageTest.java</file>
+      <file type="M">flink-yarn.src.test.java.org.apache.flink.yarn.FlinkYarnSessionCliTest.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.YARNSessionFIFOSecuredITCase.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.YARNSessionCapacitySchedulerITCase.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.YARNHighAvailabilityITCase.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.testjob.YarnTestCacheJob.java</file>
+      <file type="M">flink-yarn-tests.src.test.java.org.apache.flink.yarn.testjob.YarnTestArchiveJob.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.streaming.runtime.IntervalJoinITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.recovery.TaskManagerRunnerITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.recovery.ClusterEntrypointITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.plugin.DefaultPluginManagerTest.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.utils.CancellingIntegerSource.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UnalignedCheckpointTestBase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UnalignedCheckpointStressITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UnalignedCheckpointITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.UdfStreamOperatorCheckpointingITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.checkpointing.ChangelogRecoveryITCaseBase.java</file>
+      <file type="M">flink-test-utils-parent.flink-connector-test-utils.src.main.java.org.apache.flink.connector.testframe.utils.UnorderedCollectIteratorAssert.java</file>
+      <file type="M">flink-test-utils-parent.flink-connector-test-utils.src.main.java.org.apache.flink.connector.testframe.container.FlinkContainers.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.test.java.org.apache.flink.table.runtime.operators.window.slicing.SliceAssignerTestBase.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.rank.UpdatableTopNFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.rank.FastTop1Function.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.rank.AppendOnlyTopNFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.generated.CompileUtils.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.functions.table.lookup.fullcache.CacheLoader.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.functions.JsonPathCache.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.formats.raw.RawFormatFactory.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.plan.nodes.exec.serde.AggregateCallSerdeTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.catalog.CatalogConstraintTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.schema.LegacyTableSourceTable.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.utils.Expander.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.utils.RelDescriptionWriterImpl.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.schema.FlinkPreparingTableBase.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.rules.logical.FlinkSemiAntiJoinFilterTransposeRule.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.rules.logical.FlinkAggregateJoinTransposeRule.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecWindowJoin.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecJoin.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecIntervalJoin.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.serde.JsonPlanGraph.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.hint.LookupJoinHintOptions.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.hint.FlinkHintStrategies.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.sql.SqlWindowTableFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.sql.SqlTumbleTableFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.sql.SqlListAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.sql.SqlHopTableFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.sql.SqlFirstLastValueAggFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.functions.sql.SqlCumulateTableFunction.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.calcite.FlinkRexBuilder.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.calcite.FlinkRelBuilder.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.analyze.FlinkStreamPlanAnalyzers.java</file>
+      <file type="M">flink-table.flink-table-common.src.test.java.org.apache.flink.table.connector.source.TestManagedIterableSourceSplit.java</file>
+      <file type="M">flink-table.flink-table-common.src.main.java.org.apache.flink.table.connector.source.lookup.cache.DefaultLookupCache.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.resource.ResourceManager.java</file>
+      <file type="M">flink-table.flink-table-api-java-bridge.src.main.java.org.apache.flink.connector.datagen.table.SequenceGeneratorVisitor.java</file>
+      <file type="M">flink-table.flink-sql-gateway.src.main.java.org.apache.flink.table.gateway.service.operation.OperationManager.java</file>
+      <file type="M">flink-table.flink-sql-gateway.src.main.java.org.apache.flink.table.gateway.rest.header.util.UrlPrefixDecorator.java</file>
+      <file type="M">flink-table.flink-sql-client.src.test.java.org.apache.flink.table.client.cli.CliClientMultiStatementITTest.java</file>
+      <file type="M">flink-table.flink-sql-client.src.test.java.org.apache.flink.table.client.cli.CliClientITCase.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.util.TestHarnessUtil.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.SubtaskCheckpointCoordinatorTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.SourceStreamTaskTestBase.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.WindowOperatorTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.ProcessingTimeTriggerTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.ProcessingTimeSessionWindowsTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.MergingWindowSetTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.EventTimeTriggerTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.EventTimeSessionWindowsTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.DynamicProcessingTimeSessionWindowsTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.DynamicEventTimeSessionWindowsTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.CountTriggerTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.ContinuousEventTimeTriggerTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.sink.committables.CommittableCollectorSerializerTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.io.recovery.DemultiplexingRecordDeserializerTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.io.checkpointing.CheckpointedInputGateTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.operators.co.IntervalJoinOperatorTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.operators.async.AsyncWaitOperatorTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.graph.StreamingJobGraphGeneratorTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.AggregationFunctionTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.OperatorChain.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.operators.windowing.EvictingWindowOperator.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.operators.sink.StatefulSinkWriterStateHandler.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.io.recovery.RescalingStreamTaskNetworkInput.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.io.recovery.DemultiplexingRecordDeserializer.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.windowing.evictors.DeltaEvictor.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.UnionTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.TwoInputTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.TimestampsAndWatermarksTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.SinkTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.SideOutputTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.ReduceTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.PartitionTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.OneInputTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.LegacySinkTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.FeedbackTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.CoFeedbackTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.transformations.CacheTransformation.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.StreamOperatorStateHandler.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.OperatorSnapshotFutures.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.graph.StreamGraphHasherV2.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBStateDownloader.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBCachingPriorityQueueSet.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-common.src.test.java.org.apache.flink.state.common.PeriodicMaterializationManagerTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogKeyedStateBackend.java</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.typeutils.TraversableSerializer.scala</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.zookeeper.ZooKeeperStateHandleStoreTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.webmonitor.threadinfo.VertexThreadInfoTrackerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.webmonitor.threadinfo.ThreadInfoRequestCoordinatorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.ZooKeeperUtilsTreeCacheTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.RunnablesTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.ResourceCounterTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.ManualTicker.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.testutils.ZooKeeperTestUtils.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskManagerRunnerStartupTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskManagerRunnerConfigurationTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TaskExecutorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.slot.TaskSlotTableImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.slot.FileSlotAllocationSnapshotPersistenceServiceTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.ttl.TtlMapStateAllEntriesTestContext.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.TaskExecutorLocalStateStoresManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.StateBackendTestBase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.InternalPriorityQueueTestBase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.shuffle.NettyShuffleUtilsTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.security.SecurityUtilsTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.ExecutionGraphInfoTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.exceptionhistory.RootExceptionHistoryEntryTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.exceptionhistory.FailureHandlingResultSnapshotTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.DefaultSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.AvailableInputsLocationsRetrieverTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptivebatch.SpeculativeSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptivebatch.DefaultVertexParallelismAndInputInfosDeciderTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptivebatch.AdaptiveBatchSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adapter.DefaultSchedulingPipelinedRegionTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adapter.DefaultExecutionTopologyTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.LeastUtilizationSlotMatchingStrategyTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.DeclarativeSlotManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.active.ActiveResourceManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.RightOuterJoinTaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.LeftOuterJoinTaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.hash.InPlaceMutableHashTableTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.coordination.CoordinatorEventsExactlyOnceITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.AbstractOuterJoinTaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.metrics.util.MetricUtilsTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.metrics.MetricRegistryImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.metrics.groups.FrontMetricGroupTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.leaderelection.ZooKeeperMultipleComponentLeaderElectionDriverTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.slotpool.SimpleRequestSlotMatchingStrategyTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.slotpool.DefaultDeclarativeSlotPoolTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.slotpool.DefaultAllocatedSlotPoolTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.slotpool.DeclarativeSlotPoolServiceTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.slotpool.BlocklistDeclarativeSlotPoolTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.DefaultJobMasterServiceProcessTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobgraph.topology.DefaultLogicalTopologyTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.util.TestPooledBufferProvider.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.TaskExecutorPartitionTrackerImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.JobMasterPartitionTrackerImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.consumer.SingleInputGateTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannelTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.consumer.LocalInputChannelTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.filecache.FileCacheReadsFromBlobTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.utils.TestFailoverStrategyFactory.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.DefaultExecutionGraphConstructionTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.MemoryExecutionGraphInfoStoreTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.JobMasterTester.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.FileExecutionGraphInfoStoreTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.ExecutionGraphInfoStoreTestUtils.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.DispatcherTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.ZooKeeperCompletedCheckpointStoreITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.InflightDataRescalingDescriptorUtil.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.CheckpointCoordinatorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.CheckpointCoordinatorRestoringTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.SequentialChannelStateReaderImplTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.channel.RecordingChannelStateWriter.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.webmonitor.threadinfo.VertexThreadInfoTrackerBuilder.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.webmonitor.threadinfo.VertexThreadInfoTracker.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.webmonitor.threadinfo.ThreadInfoRequestCoordinator.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.webmonitor.stats.TaskStatsRequestCoordinator.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.util.config.memory.ManagedMemoryUtils.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskExecutorMemoryConfiguration.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskExecutor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.StateUtil.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.changelog.StateChangelogStorageLoader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.source.coordinator.SourceCoordinatorContext.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.JobGraphJobInformation.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.taskmanager.AbstractTaskManagerFileHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.job.checkpoints.CheckpointStatsCache.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.async.CompletedOperationCache.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.AbstractHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.metrics.ReporterSetup.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.PipelinedSubpartition.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.hybrid.tiered.storage.TieredStorageMemoryManagerImpl.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.hybrid.HsSpillingStrategyUtils.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.hybrid.HsMemoryDataSpiller.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.hybrid.HsFileDataIndexCache.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.consumer.UnionInputGate.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannel.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.NettyServer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.TaskEventHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.entrypoint.SessionClusterEntrypoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.MemoryExecutionGraphInfoStore.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.JobDispatcherFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.FileExecutionGraphInfoStore.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.ConfigurationNotAllowedMessage.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.clusterframework.BootstrapTools.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.clusterframework.ApplicationStatus.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.TaskStateSnapshot.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.blob.FileSystemBlobStore.java</file>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.handlers.utils.JarHandlerUtils.java</file>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.handlers.JarRunHandler.java</file>
+      <file type="M">flink-queryable-state.flink-queryable-state-client-java.src.main.java.org.apache.flink.queryablestate.network.Client.java</file>
+      <file type="M">flink-queryable-state.flink-queryable-state-client-java.src.main.java.org.apache.flink.queryablestate.network.AbstractServerBase.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.arrow.sources.ArrowSourceFunctionTestBase.java</file>
+      <file type="M">flink-python.src.test.java.org.apache.flink.table.runtime.arrow.ArrowUtilsTest.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.table.runtime.arrow.ArrowUtils.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.utils.PythonTypeUtils.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.python.util.PythonConfigUtil.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.python.env.AbstractPythonEnvironmentManager.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.python.chain.PythonOperatorChainingOptimizer.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.client.python.PythonFunctionFactory.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.client.python.PythonEnvUtils.java</file>
+      <file type="M">flink-python.pom.xml</file>
+      <file type="M">flink-optimizer.src.main.java.org.apache.flink.optimizer.dag.TwoInputNode.java</file>
+      <file type="M">flink-optimizer.src.main.java.org.apache.flink.optimizer.dag.SingleInputNode.java</file>
+      <file type="M">flink-libraries.flink-state-processing-api.src.main.java.org.apache.flink.state.api.runtime.OperatorIDGenerator.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.operator.CEPOperatorTest.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.UntilConditionITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.TimesRangeITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.TimesOrMoreITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.SameElementITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.NotPatternITCase.java</file>
+      <file type="M">flink-architecture-tests.flink-architecture-tests-production.archunit-violations.f7a4e6fa-e7de-48c9-a61e-c13e83f0c72e</file>
+      <file type="M">flink-clients.src.main.java.org.apache.flink.client.program.StreamContextEnvironment.java</file>
+      <file type="M">flink-clients.src.test.java.org.apache.flink.client.deployment.application.JarManifestParserTest.java</file>
+      <file type="M">flink-clients.src.test.java.org.apache.flink.client.program.PerJobMiniClusterFactoryTest.java</file>
+      <file type="M">flink-clients.src.test.java.org.apache.flink.client.testjar.ForbidConfigurationJob.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.HBaseConnectorITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.source.HBaseRowDataAsyncLookupFunctionTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.util.HBaseTableSchema.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.planner.delegation.hive.HiveParserCalcitePlanner.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.FlinkEmbeddedHiveRunner.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.FlinkStandaloneHiveRunner.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.HiveTableSinkITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.table.catalog.hive.HiveCatalogITCase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.io.OutputFormatBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.io.ratelimiting.GuavaFlinkConnectorRateLimiter.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.connector.source.util.ratelimit.GuavaRateLimiter.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.CleanupOptions.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.CoreOptions.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.description.TextElement.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.classloading.ComponentClassLoader.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.fs.AutoCloseableRegistry.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.fs.CloseableRegistry.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.fs.FileSystem.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.plugin.DefaultPluginManager.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.util.FileUtils.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.util.NetUtils.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.configuration.ConfigOptionTest.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.core.io.SimpleVersionedSerializationTest.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.core.plugin.PluginConfigTest.java</file>
+      <file type="M">flink-dist.src.test.java.org.apache.flink.dist.BashJavaUtilsITCase.java</file>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.main.java.org.apache.flink.changelog.fs.AbstractStateChangeFsUploader.java</file>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.test.java.org.apache.flink.changelog.fs.FsStateChangelogWriterTest.java</file>
+      <file type="M">flink-end-to-end-tests.flink-confluent-schema-registry.pom.xml</file>
+      <file type="M">flink-end-to-end-tests.flink-queryable-state-test.src.main.java.org.apache.flink.streaming.tests.queryablestate.QsStateProducer.java</file>
+      <file type="M">flink-filesystems.flink-gs-fs-hadoop.src.main.java.org.apache.flink.fs.gs.utils.ChecksumUtils.java</file>
+      <file type="M">flink-filesystems.flink-gs-fs-hadoop.src.main.java.org.apache.flink.fs.gs.writer.GSChecksumWriteChannel.java</file>
+      <file type="M">flink-filesystems.flink-gs-fs-hadoop.src.test.java.org.apache.flink.fs.gs.utils.ConfigUtilsHadoopTest.java</file>
+      <file type="M">flink-filesystems.flink-s3-fs-base.src.test.java.org.apache.flink.fs.s3.common.HAJobRunOnMinioS3StoreITCase.java</file>
+      <file type="M">flink-formats.flink-protobuf.src.main.java.org.apache.flink.formats.protobuf.util.PbCodegenAppender.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.kubeclient.decorators.FlinkConfMountDecorator.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.kubeclient.decorators.KerberosMountDecorator.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.kubeclient.decorators.PodTemplateMountDecorator.java</file>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.kubeclient.resources.KubernetesSharedInformerITCase.java</file>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.KubernetesTestUtils.java</file>
+      <file type="M">flink-libraries.flink-cep.src.main.java.org.apache.flink.cep.nfa.sharedbuffer.SharedBuffer.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.AfterMatchSkipITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.compiler.NFACompilerTest.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.GreedyITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.GroupITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.IterativeConditionsITCase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3207" opendate="2016-1-6 00:00:00" fixdate="2016-3-6 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Add a Pregel iteration abstraction to Gelly</summary>
+      <description>This issue proposes to add a Pregel/Giraph-like iteration abstraction to Gelly that will only expose one UDF to the user, compute(). compute() will have access to both the vertex state and the incoming messages, and will be able to produce messages and update the vertex value.</description>
+      <version>None</version>
+      <fixedVersion>1.1.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.apis.batch.libs.fig.gelly-vc-sssp1.png</file>
+      <file type="M">docs.apis.batch.libs.fig.gelly-gsa-sssp1.png</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.spargel.MessagingFunction.java</file>
+      <file type="M">flink-libraries.flink-gelly-examples.src.main.java.org.apache.flink.graph.examples.GSASingleSourceShortestPaths.java</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.pregel.VertexCentricIteration.java</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.pregel.VertexCentricConfiguration.java</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.pregel.MessageIterator.java</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.pregel.MessageCombiner.java</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.pregel.ComputeFunction.java</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.Graph.java</file>
+      <file type="M">flink-libraries.flink-gelly.src.main.java.org.apache.flink.graph.example.PregelSSSP.java</file>
+      <file type="M">flink-libraries.flink-gelly-scala.src.main.scala.org.apache.flink.graph.scala.Graph.scala</file>
+      <file type="M">flink-libraries.flink-gelly-examples.src.test.java.org.apache.flink.graph.test.examples.SingleSourceShortestPathsITCase.java</file>
+      <file type="M">docs.libs.gelly.guide.md</file>
+      <file type="M">docs.libs.fig.vertex-centric supersteps.png</file>
+      <file type="M">docs.apis.batch.libs.gelly.md</file>
+      <file type="M">docs.apis.batch.libs.fig.LICENSE.txt</file>
+      <file type="M">docs.apis.batch.libs.fig.gelly-vc-sssp2.png</file>
+      <file type="M">docs.apis.batch.libs.fig.gelly-gsa-sssp2.png</file>
+      <file type="M">docs.apis.batch.libs.fig.gelly-gsa-sssp-result.png</file>
+    </fixedFiles>
+  </bug>
+  <bug id="32379" opendate="2023-6-19 00:00:00" fixdate="2023-6-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Skip archunit tests in java1X-target profiles</summary>
+      <description>When compiling to Java 11/17 byte code archunit fails; not sure why. Maybe it finds more/less stuff or signatures are represented differently.In any case let's use the Java 8 bytecode version as the "canonical" version and skip archunit otherwise.</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-architecture-tests.flink-architecture-tests-production.src.main.java.org.apache.flink.architecture.rules.ConnectorRules.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="32457" opendate="2023-6-28 00:00:00" fixdate="2023-7-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>update current documentation of JSON_OBJECTAGG/JSON_ARRAYAGG to clarify the limitation</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.18.0,1.17.2</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.data.sql.functions.zh.yml</file>
+      <file type="M">docs.data.sql.functions.yml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.WrapJsonAggFunctionArgumentsRuleTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.plan.rules.logical.WrapJsonAggFunctionArgumentsRuleTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="32592" opendate="2023-7-14 00:00:00" fixdate="2023-7-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>(Stream)ExEnv#initializeContextEnvironment isn&amp;#39;t thread-safe</summary>
+      <description>ContextWe are using the flink-k8s-operator to deploy multiple jobs (up to 32) to a single session cluster. The job submissions done by the operator happen concurrently, basically at the same time.Operator version: 1.5.0Flink version:  1.15.4, 1.7.1, 1.18 (master@f37d41cf)ProblemRarely (~once every 50 deployments) one of the jobs will not be executed. In the following incident 4 jobs are deployed at the same time: gorner-task-staging-e5730831 gorner-facility-staging-e5730831 gorner-aepp-staging-e5730831 gorner-session-staging-e5730831 The operator submits the job, they all get a reasonable jobID:2023-07-14 10:25:35,295 o.a.f.k.o.s.AbstractFlinkService [INFO ][aelps-staging/gorner-task-staging-e5730831] Submitting job: 4968b186061e44390000000000000002 to session cluster.2023-07-14 10:25:35,297 o.a.f.k.o.s.AbstractFlinkService [INFO ][aelps-staging/gorner-facility-staging-e5730831] Submitting job: 91a5260d916c4dff0000000000000002 to session cluster.2023-07-14 10:25:35,301 o.a.f.k.o.s.AbstractFlinkService [INFO ][aelps-staging/gorner-aepp-staging-e5730831] Submitting job: 103c0446e14749a10000000000000002 to session cluster.2023-07-14 10:25:35,302 o.a.f.k.o.s.AbstractFlinkService [INFO ][aelps-staging/gorner-session-staging-e5730831] Submitting job: de59304d370b4b8e0000000000000002 to session cluster.In the cluster the JarRunHandler's handleRequest() method will get the request, all 4 jobIDs are present (also all args, etc are correct):2023-07-14 10:25:35,320 WARN org.apache.flink.runtime.webmonitor.handlers.JarRunHandler [] - handleRequest - requestBody.jobId: 4968b186061e443900000000000000022023-07-14 10:25:35,321 WARN org.apache.flink.runtime.webmonitor.handlers.JarRunHandler [] - handleRequest - requestBody.jobId: de59304d370b4b8e00000000000000022023-07-14 10:25:35,321 WARN org.apache.flink.runtime.webmonitor.handlers.JarRunHandler [] - handleRequest - requestBody.jobId: 91a5260d916c4dff00000000000000022023-07-14 10:25:35,321 WARN org.apache.flink.runtime.webmonitor.handlers.JarRunHandler [] - handleRequest - requestBody.jobId: 103c0446e14749a10000000000000002But once the EmbeddedExecutor's submitAndGetJobClientFuture() method is called instead of getting 1 call per jobID we have 4 calls but one of the jobIDs twice:2023-07-14 10:25:35,616 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - optJobId: Optional[4968b186061e44390000000000000002]2023-07-14 10:25:35,616 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - optJobId: Optional[103c0446e14749a10000000000000002]2023-07-14 10:25:35,616 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - optJobId: Optional[de59304d370b4b8e0000000000000002]2023-07-14 10:25:35,721 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - optJobId: Optional[de59304d370b4b8e0000000000000002]If this is important: the jobGraph obtained does not match the jobID. We get 2 times de59304d370b4b8e0000000000000002 but the jobgraph for this jobID is never returned by getJobGraph() in EmbeddedExecutor.submitAndGetJobClientFuture().This will then lead to the job already existing:2023-07-14 10:25:35,616 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - submittedJobIds: []2023-07-14 10:25:35,616 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - submittedJobIds: []2023-07-14 10:25:35,616 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - submittedJobIds: []2023-07-14 10:25:35,721 WARN org.apache.flink.client.deployment.application.executors.EmbeddedExecutor [] - execute - submittedJobIds: [de59304d370b4b8e0000000000000002]But since the jobs are completely different the execution will fail. Depending on the timing with one of the following exceptions: RestHandlerException: No jobs included in application ClassNotFoundException: io.dectris.aelps.pipelines.gorner.facility.FacilityEventProcessor </description>
+      <version>1.15.4,1.18.0,1.17.1</version>
+      <fixedVersion>1.18.0,1.16.3,1.17.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.StreamExecutionEnvironmentTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.ExecutionEnvironment.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="32999" opendate="2023-8-30 00:00:00" fixdate="2023-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove HBase connector from master branch</summary>
+      <description>The connector was externalized at FLINK-30061Once it is released it would make sense to remove it from master branch</description>
+      <version>None</version>
+      <fixedVersion>1.18.0,1.19.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.resources.org.apache.flink.connector.hbase2.HBaseTablePlanTest.xml</file>
+      <file type="M">tools.ci.stage.sh</file>
+      <file type="M">tools.ci.flink-ci-tools.src.main.resources.modules-defining-excess-dependencies.modulelist</file>
+      <file type="M">flink-end-to-end-tests.pom.xml</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.src.test.resources.log4j2-test.properties</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.src.test.resources.hbase.e2e.sql</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.src.test.java.org.apache.flink.tests.util.hbase.SQLClientHBaseITCase.java</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.src.main.java.org.apache.flink.tests.util.hbase.LocalStandaloneHBaseResourceFactory.java</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.src.main.java.org.apache.flink.tests.util.hbase.LocalStandaloneHBaseResource.java</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.src.main.java.org.apache.flink.tests.util.hbase.HBaseResourceFactory.java</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.src.main.java.org.apache.flink.tests.util.hbase.HBaseResource.java</file>
+      <file type="M">flink-end-to-end-tests.flink-end-to-end-tests-hbase.pom.xml</file>
+      <file type="M">flink-connectors.pom.xml</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-2.2.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-2.2.src.main.resources.META-INF.licenses.LICENSE.protobuf</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-2.2.src.main.resources.hbase-default.xml</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-2.2.pom.xml</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-1.4.src.main.resources.META-INF.NOTICE</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-1.4.src.main.resources.META-INF.licenses.LICENSE.protobuf</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-1.4.src.main.resources.hbase-default.xml</file>
+      <file type="M">flink-connectors.flink-sql-connector-hbase-1.4.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.resources.META-INF.services.org.junit.jupiter.api.extension.Extension</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.resources.log4j2-test.properties</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.resources.hbase-site.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.resources.archunit.properties</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.java.org.apache.flink.connector.hbase.util.HBaseStronglyIncreasingTsGeneratorTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.java.org.apache.flink.connector.hbase.util.HBaseSerdeTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.java.org.apache.flink.connector.hbase.util.HBaseConfigLoadingTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.test.java.org.apache.flink.architecture.TestCodeArchitectureTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.util.HBaseTypeUtils.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.util.HBaseTableSchema.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.util.HBaseStronglyIncreasingTsGenerator.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.util.HBaseSerde.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.util.HBaseConfigurationUtil.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.table.HBaseConnectorOptionsUtil.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.table.HBaseConnectorOptions.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.source.TableInputSplit.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.source.HBaseRowDataLookupFunction.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.source.AbstractHBaseDynamicTableSource.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.sink.RowDataToMutationConverter.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.sink.HBaseSinkFunction.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.sink.HBaseMutationConverter.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.src.main.java.org.apache.flink.connector.hbase.options.HBaseWriteOptions.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.archunit-violations.stored.rules</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.archunit-violations.fd028eab-0e49-4e91-9c40-477a55f378f2</file>
+      <file type="M">flink-connectors.flink-connector-hbase-base.archunit-violations.f8f77b71-7087-4b3f-88c5-29588fadcc52</file>
+      <file type="M">docs.content.zh.docs.connectors.table.hbase.md</file>
+      <file type="M">docs.content.docs.connectors.table.hbase.md</file>
+      <file type="M">docs.setup.docs.sh</file>
+      <file type="M">flink-architecture-tests.flink-architecture-tests-production.archunit-violations.e5126cae-f3fe-48aa-b6fb-60ae6cc3fcd5</file>
+      <file type="M">flink-architecture-tests.flink-architecture-tests-production.archunit-violations.f7a4e6fa-e7de-48c9-a61e-c13e83f0c72e</file>
+      <file type="M">flink-architecture-tests.flink-architecture-tests-production.pom.xml</file>
+      <file type="M">flink-architecture-tests.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.archunit-violations.3ba92d3a-6609-4295-92ed-f2fe207ee2b3</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.archunit-violations.ffbddcc3-857a-4af7-a6b5-fcf71e2cc191</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.archunit-violations.stored.rules</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.main.java.org.apache.flink.connector.hbase1.HBase1DynamicTableFactory.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.main.java.org.apache.flink.connector.hbase1.sink.HBaseDynamicTableSink.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.main.java.org.apache.flink.connector.hbase1.source.AbstractTableInputFormat.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.main.java.org.apache.flink.connector.hbase1.source.HBaseDynamicTableSource.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.main.java.org.apache.flink.connector.hbase1.source.HBaseRowDataInputFormat.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.main.resources.META-INF.services.org.apache.flink.table.factories.Factory</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.apache.flink.architecture.TestCodeArchitectureTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.apache.flink.connector.hbase1.HBaseConnectorITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.apache.flink.connector.hbase1.HBaseDynamicTableFactoryTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.apache.flink.connector.hbase1.HBaseTablePlanTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.apache.flink.connector.hbase1.util.HBaseTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.apache.flink.connector.hbase1.util.HBaseTestingClusterAutoStarter.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.java.org.slf4j.impl.Log4jLoggerAdapter.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.resources.archunit.properties</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.resources.hbase-site.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.resources.log4j2-test.properties</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.src.test.resources.org.apache.flink.connector.hbase1.HBaseTablePlanTest.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.archunit-violations.346fff47-b126-4f8c-ba73-799d99856912</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.archunit-violations.ac3990d6-8d39-4299-8765-3ae2f91d76af</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.archunit-violations.stored.rules</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.main.java.org.apache.flink.connector.hbase2.HBase2DynamicTableFactory.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.main.java.org.apache.flink.connector.hbase2.sink.HBaseDynamicTableSink.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.main.java.org.apache.flink.connector.hbase2.source.AbstractTableInputFormat.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.main.java.org.apache.flink.connector.hbase2.source.HBaseDynamicTableSource.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.main.java.org.apache.flink.connector.hbase2.source.HBaseRowDataAsyncLookupFunction.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.main.java.org.apache.flink.connector.hbase2.source.HBaseRowDataInputFormat.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.main.resources.META-INF.services.org.apache.flink.table.factories.Factory</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.architecture.TestCodeArchitectureTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.HBaseConnectorITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.HBaseDynamicTableFactoryTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.HBaseTablePlanTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.source.HBaseRowDataAsyncLookupFunctionTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.util.HBaseTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.apache.flink.connector.hbase2.util.HBaseTestingClusterAutoStarter.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.java.org.slf4j.impl.Log4jLoggerAdapter.java</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.resources.archunit.properties</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.resources.hbase-site.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-2.2.src.test.resources.log4j2-test.properties</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

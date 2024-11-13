@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  
+  
+  <bug fixdate="2011-10-14 01:00:00" id="3444" opendate="2011-1-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Test to prove Bytes.toBytesBinary and Bytes.toStringBinary() is reversible</summary>
+      <description>Bytes.toStringBinary() doesn't escape \.Otherwise the transformation isn't reversiblebyte[] a = {'\', 'x' , '0', '0'}Bytes.toBytesBinary(Bytes.toStringBinary(a)) won't be equal to a</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-common.src.test.java.org.apache.hadoop.hbase.util.TestBytes.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2011-8-29 01:00:00" id="4269" opendate="2011-8-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add tests and restore semantics to TableInputFormat/TableRecordReader</summary>
+      <description>HBASE-4196 Modified the semantics of failures in TableImportFormat/TableRecordReader, and had no tests cases. This patch restores semantics to rethrow when a DoNotRetryIOException is triggered and adds test cases.</description>
+      <version>0.90.5,0.92.0</version>
+      <fixedVersion>0.90.5</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.java.org.apache.hadoop.hbase.mapred.TableRecordReaderImpl.java</file>
+      <file type="M">src.main.java.org.apache.hadoop.hbase.mapreduce.TableRecordReaderImpl.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2011-11-2 01:00:00" id="4734" opendate="2011-11-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[bulk load] Warn if bulk load directory contained no files</summary>
+      <description>Bulk load exits if no files are found in the specified directory. This can happen if a directory has been bulk loaded already (bulk load renames/moves files). It would be good to provide some sort of warning when this happens.</description>
+      <version>0.90.5,0.92.0,0.94.0</version>
+      <fixedVersion>0.92.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.java.org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2012-1-23 01:00:00" id="5259" opendate="2012-1-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Normalize the RegionLocation in TableInputFormat by the reverse DNS lookup.</summary>
+      <description>Assuming the HBase and MapReduce running in the same cluster, the TableInputFormat is to override the split function which divides all the regions from one particular table into a series of mapper tasks. So each mapper task can process a region or one part of a region. Ideally, the mapper task should run on the same machine on which the region server hosts the corresponding region. That's the motivation that the TableInputFormat sets the RegionLocation so that the MapReduce framework can respect the node locality. The code simply set the host name of the region server as the HRegionLocation. However, the host name of the region server may have different format with the host name of the task tracker (Mapper task). The task tracker always gets its hostname by the reverse DNS lookup. And the DNS service may return different host name format. For example, the host name of the region server is correctly set as a.b.c.d while the reverse DNS lookup may return a.b.c.d. (With an additional doc in the end).So the solution is to set the RegionLocation by the reverse DNS lookup as well. No matter what host name format the DNS system is using, the TableInputFormat has the responsibility to keep the consistent host name format with the MapReduce framework.</description>
+      <version>None</version>
+      <fixedVersion>0.94.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.java.org.apache.hadoop.hbase.mapreduce.TableInputFormatBase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-1-25 01:00:00" id="5278" opendate="2012-1-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HBase shell script refers to removed "migrate" functionality</summary>
+      <description>$ hbase migrateException in thread "main" java.lang.NoClassDefFoundError: org/apache/hadoop/hbase/util/MigrateCaused by: java.lang.ClassNotFoundException: org.apache.hadoop.hbase.util.Migrateat java.net.URLClassLoader$1.run(URLClassLoader.java:202)at java.security.AccessController.doPrivileged(Native Method)at java.net.URLClassLoader.findClass(URLClassLoader.java:190)at java.lang.ClassLoader.loadClass(ClassLoader.java:306)at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:301)at java.lang.ClassLoader.loadClass(ClassLoader.java:247)Could not find the main class: org.apache.hadoop.hbase.util.Migrate. Program will exit.The 'hbase' shell script has docs referring to a 'migrate' command which no longer exists.</description>
+      <version>0.90.5,0.92.0,0.94.0</version>
+      <fixedVersion>0.92.1,0.94.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.hbase</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2012-2-13 01:00:00" id="5393" opendate="2012-2-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Consider splitting after flushing</summary>
+      <description>Spawning this from HBASE-2375, I saw that it was much more efficient compaction-wise to check if we can split right after flushing. Much like the ideas that Jon spelled out in the description of that jira, the window is smaller because you don't have to compact and then split right away to only compact again when the daughters open.Another thing it improves is while we're normally waiting for the compaction to happen, data that's still coming in will make us go way past the MAX_FILESIZE to a point where for the first region I was seeing a store size 3-4x bigger before it was able to split.I targeted this for 0.94, but I'd like to get this into 0.92.1 or .2 too.</description>
+      <version>0.90.5</version>
+      <fixedVersion>0.92.1,0.94.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.java.org.apache.hadoop.hbase.regionserver.MemStoreFlusher.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+</bugrepository>

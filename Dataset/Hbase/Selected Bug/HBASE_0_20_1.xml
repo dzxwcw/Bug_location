@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  <bug fixdate="2009-5-3 01:00:00" id="1236" opendate="2009-3-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve readability of table descriptions in the UI</summary>
+      <description>The current ruby hash style dump displayed in the UI makes it hard for a human to quickly understand the details of a given table. Improve the print out to have more layout. Due to the fact that there could be many tables and even more column families, probably use a light Javascript based open and collapse layout. I would look for example at how the webdeveloper toolbar in Firefox does that for the Javascript tab it opens.</description>
+      <version>0.20.0,0.20.1,0.90.0</version>
+      <fixedVersion>0.20.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.webapps.master.master.jsp</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-11-28 01:00:00" id="12362" opendate="2014-10-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Interim documentation of important master and regionserver metrics</summary>
+      <description>Currently we have a section of the manual titled "Most Important RegionServer Metrics" but all it says is:Previously, this section contained a list of the most important RegionServer metrics. However, the list was extremely out of date. In some cases, the name of a given metric has changed. In other cases, the metric seems to no longer be exposed. An effort is underway to create automatic documentation for each metric based upon information pulled from its implementationIn the meantime, let's continue to maintain a list of operationally useful metrics.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.docbkx.ops.mgt.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-11-28 01:00:00" id="12363" opendate="2014-10-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve how KEEP_DELETED_CELLS works with MIN_VERSIONS</summary>
+      <description>Brainstorming...This morning in the train (of all places) I realized a fundamental issue in how KEEP_DELETED_CELLS is implemented.The problem is around knowing when it is safe to remove a delete marker (we cannot remove it unless all cells affected by it are remove otherwise).This was particularly hard for family marker, since they sort before all cells of a row, and hence scanning forward through an HFile you cannot know whether the family markers are still needed until at least the entire row is scanned.My solution was to keep the TS of the oldest put in any given HFile, and only remove delete markers older than that TS.That sounds good on the face of it... But now imagine you wrote a version of ROW 1 and then never update it again. Then later you write a billion other rows and delete them all. Since the TS of the cells in ROW 1 is older than all the delete markers for the other billion rows, these will never be collected... At least for the region that hosts ROW 1 after a major compaction.Note, in a sense that is what HBase is supposed to do when keeping deleted cells: Keep them until they would be removed by some other means (for example TTL, or MAX_VERSION when new versions are inserted).The specific problem here is that even as all KVs affected by a delete marker are expired this way the marker would not be removed if there just one older KV in the HStore.I don't see a good way out of this. In parent I outlined these four solutions:So there are three options I think: Only allow the new flag set on CFs with TTL set. MIN_VERSIONS would not apply to deleted rows or delete marker rows (wouldn't know how long to keep family deletes in that case). (MAX)VERSIONS would still be enforced on all rows types except for family delete markers. Translate family delete markers to column delete marker at (major) compaction time. Change HFileWriterV* to keep track of the earliest put TS in a store and write it to the file metadata. Use that use expire delete marker that are older and hence can't affect any puts in the file. Have Store.java keep track of the earliest put in internalFlushCache and compactStore and then append it to the file metadata. That way HFileWriterV* would not need to know about KVs.And I implemented #4.I'd love to get input on ideas.</description>
+      <version>None</version>
+      <fixedVersion>0.98.8,0.99.2</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-shell.src.main.ruby.hbase.admin.rb</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestStoreScanner.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestReversibleScanners.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestQueryMatcher.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestMinVersions.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestKeepDeletes.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestDefaultMemStore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.HBaseTestingUtility.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.HBaseTestCase.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.ScanQueryMatcher.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.ScanInfo.java</file>
+      <file type="M">hbase-client.src.test.java.org.apache.hadoop.hbase.TestHColumnDescriptor.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.HColumnDescriptor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-9-12 01:00:00" id="18801" opendate="2017-9-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bulk load cleanup may falsely deem file deletion successful</summary>
+      <description>Toward the cleanupBulkLoad() method: fs.delete(new Path(request.getBulkToken()), true);The return value from delete() call is ignore, potentially leading to file lying around after the cleanup.This applies to all branches.Discovered when investigating bulk load test failure.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,2.0.0-alpha-3,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.SecureBulkLoadManager.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-1-24 01:00:00" id="19083" opendate="2017-10-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Introduce a new log writer which can write to two HDFSes</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.TestProtobufLog.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.TestAsyncProtobufLog.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.AbstractTestProtobufLog.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.AsyncFSWAL.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-3-30 01:00:00" id="19128" opendate="2017-10-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Purge Distributed Log Replay from codebase, configurations, text; mark the feature as unsupported, broken.</summary>
+      <description>Kill it. It keeps coming up and over again. Needs proper burial.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-1,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestHRegion.java</file>
+      <file type="M">src.main.asciidoc..chapters.upgrading.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.hbase-default.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.architecture.adoc</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.wal.TestWALSplit.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.wal.TestWALReaderOnSecureWAL.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.TestSerialization.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.TestIOFencing.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.visibility.TestVisibilityWithCheckAuths.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.visibility.TestVisibilityLabelsWithDeletes.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.visibility.TestVisibilityLabelsWithDefaultVisLabelService.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.visibility.TestVisibilityLabelsWithCustomVisLabService.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.visibility.TestVisibilityLabelsReplication.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.visibility.TestVisibilityLabels.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.visibility.TestVisibilityLabelReplicationWithExpAsString.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.regionserver.TestRegionReplicaReplicationEndpointNoMaster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.AbstractTestWALReplay.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestSplitWalDataLoss.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestSplitLogWorker.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestRegionServerNoMaster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestRegionReplicaFailover.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestPerColumnFamilyFlush.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.exceptions.RegionInRecoveryException.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.executor.EventType.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.shaded.protobuf.RequestConverter.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKUtil.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZNodePaths.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher.java</file>
+      <file type="M">hbase-client.src.test.java.org.apache.hadoop.hbase.zookeeper.TestZooKeeperWatcher.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.HConstants.java</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+      <file type="M">hbase-hadoop-compat.src.main.java.org.apache.hadoop.hbase.regionserver.wal.MetricsEditsReplaySource.java</file>
+      <file type="M">hbase-hadoop2-compat.src.main.java.org.apache.hadoop.hbase.regionserver.wal.MetricsEditsReplaySourceImpl.java</file>
+      <file type="M">hbase-hadoop2-compat.src.main.resources.META-INF.services.org.apache.hadoop.hbase.regionserver.wal.MetricsEditsReplaySource</file>
+      <file type="M">hbase-protocol-shaded.src.main.protobuf.Admin.proto</file>
+      <file type="M">hbase-protocol-shaded.src.main.protobuf.MasterProcedure.proto</file>
+      <file type="M">hbase-protocol-shaded.src.main.protobuf.ZooKeeper.proto</file>
+      <file type="M">hbase-protocol.src.main.protobuf.Admin.proto</file>
+      <file type="M">hbase-protocol.src.main.protobuf.ZooKeeper.proto</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coordination.SplitLogManagerCoordination.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coordination.SplitLogWorkerCoordination.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coordination.ZKSplitLogManagerCoordination.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coordination.ZkSplitLogWorkerCoordination.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coprocessor.RegionObserver.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.MasterWalManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.procedure.RSProcedureDispatcher.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.SplitLogManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.handler.FinishRegionRecoveringHandler.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.handler.WALSplitterHandler.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.Region.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionServerServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.SplitLogWorker.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.MetricsWALEditsReplay.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.WALEditsReplaySink.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.RegionReplicaReplicationEndpoint.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.security.access.AccessController.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.security.visibility.VisibilityController.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.SplitLogTask.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.wal.WALSplitter.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.zookeeper.RecoveringRegionWatcher.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKSplitLog.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestReplicasClient.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.MockRegionServer.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestDistributedLogSplitting.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestMasterWalManager.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestSplitLogManager.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.MockRegionServerServices.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-10-31 01:00:00" id="19130" opendate="2017-10-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Typo in HStore.initializeRegionInternals for replaying wal</summary>
+      <description>} finally { // update the stores that we are done replaying stores.forEach(HStore::startReplayingFromWAL); }Should be stopReplayingFromWAL. Found this when implementing HBASE-19095.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-alpha-4,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-11-31 01:00:00" id="19137" opendate="2017-10-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nightly test should make junit reports optional rather than attempt archive after reporting.</summary>
+      <description>HBASE-19030 "nightly runs should attempt to log tests results after archiving" was reopened because its fix was causing failures (reported by our @busbey). This issue is about fixing the new failures (originally to be done against reopened HBASE-19030 but time passed).</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.3.2,2.0.0-beta-1,1.1.13,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2009-10-16 01:00:00" id="1914" opendate="2009-10-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>hlog should be able to set replication level for the log indendently from any other files</summary>
+      <description>as per short</description>
+      <version>None</version>
+      <fixedVersion>0.90.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HLog.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2009-10-20 01:00:00" id="1921" opendate="2009-10-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When the Master&amp;#39;s session times out and there&amp;#39;s only one, cluster is wedged</summary>
+      <description>On IRC, some fella had a session expiration on his Master and had only one. Maybe in this case the Master should first try to re-get the znode?</description>
+      <version>0.20.1</version>
+      <fixedVersion>0.20.2,0.90.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.org.apache.hadoop.hbase.TestZooKeeper.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.master.ZKMasterAddressWatcher.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.master.RegionManager.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-11-15 01:00:00" id="19271" opendate="2017-11-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update ref guide about the async client to reflect the change in HBASE-19251</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.architecture.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-12-8 01:00:00" id="19463" opendate="2017-12-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make CPEnv#getConnection return a facade that throws Unsupported if CP calls #close</summary>
+      <description>Follows from HBASE-19301, a suggestion by zghaobac.To prevent a CP accidentally closing the connection returned by CpEnv#getConnection &amp;#8211; which returns the hosting Servers Connection &amp;#8211; we should throw UnsupportedException if the CP calls #close.... Do it.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-2,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.coprocessor.TestCoprocessorShortCircuitRPC.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionServerCoprocessorHost.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.MasterCoprocessorHost.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coprocessor.MasterCoprocessorEnvironment.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-12-10 01:00:00" id="19480" opendate="2017-12-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enable Checkstyle in hbase-annotations</summary>
+      <description>After all Checkstyle errors are now resolved in the hbase-annotations module, Checkstyle can now be configured to fail on violations.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-1,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-annotations.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-12-10 01:00:00" id="19481" opendate="2017-12-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enable Checkstyle in hbase-error-prone</summary>
+      <description>hbase-error-prone doesn't contain any Checkstyle errors. With that Checkstyle can now be configured to fail on violations.</description>
+      <version>None</version>
+      <fixedVersion>1.4.1,2.0.0-beta-1,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-build-support.hbase-error-prone.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2009-11-30 01:00:00" id="1949" opendate="2009-10-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>KeyValue expiration by Time-to-Live during major compaction is broken</summary>
+      <description>During a major compaction on a region in a column family with a configured TTL, it looks like all KeyValues in a row after the first expired KeyValue are skipping and thrown out of the newly written file (regardless of whether the would have been expired or not).The StoreScanner is skipping to the next row, even when other columns with a non-expirable timestamp exists. Unless I'm misunderstanding it, it seems like it should just seek to the next column instead. I discovered this when altering a table to lower the TTL for a column family and force the expiration of some data which led to the entire row being expired in some instances.</description>
+      <version>0.20.1</version>
+      <fixedVersion>0.20.2,0.90.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.org.apache.hadoop.hbase.regionserver.TestStoreScanner.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.regionserver.TestQueryMatcher.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.ScanQueryMatcher.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.QueryMatcher.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2009-11-3 01:00:00" id="1954" opendate="2009-11-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Transactional scans do not see newest put.</summary>
+      <description>In a transaction, if I do a put, then a put, then a scan. I will not see the latest put.The fix is to set the timestamp at put time.</description>
+      <version>0.20.1</version>
+      <fixedVersion>0.20.2,0.90.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.contrib.transactional.src.test.org.apache.hadoop.hbase.client.transactional.TestTransactions.java</file>
+      <file type="M">src.contrib.transactional.src.java.org.apache.hadoop.hbase.regionserver.transactional.TransactionState.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-12-17 01:00:00" id="19540" opendate="2017-12-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce number of unnecessary semicolons</summary>
+      <description>Some modules contain unnecessary semicolons, which should be removed.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-thrift.src.test.java.org.apache.hadoop.hbase.thrift.TestThriftServer.java</file>
+      <file type="M">hbase-rsgroup.src.main.java.org.apache.hadoop.hbase.rsgroup.RSGroupBasedLoadBalancer.java</file>
+      <file type="M">hbase-rest.src.main.java.org.apache.hadoop.hbase.rest.model.ScannerModel.java</file>
+      <file type="M">hbase-procedure.src.test.java.org.apache.hadoop.hbase.procedure2.TestStateMachineProcedure.java</file>
+      <file type="M">hbase-procedure.src.test.java.org.apache.hadoop.hbase.procedure2.TestProcedureToString.java</file>
+      <file type="M">hbase-procedure.src.main.java.org.apache.hadoop.hbase.procedure2.store.wal.WALProcedureStore.java</file>
+      <file type="M">hbase-procedure.src.main.java.org.apache.hadoop.hbase.procedure2.RemoteProcedureDispatcher.java</file>
+      <file type="M">hbase-mapreduce.src.test.java.org.apache.hadoop.hbase.PerformanceEvaluation.java</file>
+      <file type="M">hbase-mapreduce.src.test.java.org.apache.hadoop.hbase.mapreduce.TestImportExport.java</file>
+      <file type="M">hbase-mapreduce.src.test.java.org.apache.hadoop.hbase.mapreduce.TestCopyTable.java</file>
+      <file type="M">hbase-mapreduce.src.main.java.org.apache.hadoop.hbase.mapreduce.SyncTable.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.test.IntegrationTestWithCellVisibilityLoadAndVerify.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.StripeCompactionsPerformanceEvaluation.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.IntegrationTestIngestWithMOB.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.IntegrationTestBackupRestore.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.chaos.actions.RollingBatchRestartRsExceptMetaAction.java</file>
+      <file type="M">hbase-hadoop2-compat.src.main.java.org.apache.hadoop.hbase.io.MetricsIOSourceImpl.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2017-12-28 01:00:00" id="19660" opendate="2017-12-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Up default retries from 10 to 15 and blocking store files limit from 10 to 16</summary>
+      <description>Upping defaults because helps our ITBLL runs on cluster go further.HBASE-19359 changed the client retries. It made them 10 rather than 35. 10 doesn't seem to be enough to make it across a server crash when there are 40-odd WALs to split. Upping it until we do more work on MTTR.When we hit the blocking store file limit we stop all writes for 90 seconds. Can happen a few times back-to-back. Kills the running ITBLL. This pause for 90 seconds needs reexamination. It was put in place a long time ago when things were very different.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-1,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.HConstants.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-10-29 01:00:00" id="19663" opendate="2017-12-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>javadoc creation needs jsr305</summary>
+      <description>Cryptic failure trying to build beta-1 RC. Fails like this:[INFO] BUILD FAILURE[INFO] ------------------------------------------------------------------------[INFO] Total time: 03:54 min[INFO] Finished at: 2017-12-29T01:13:15-08:00[INFO] Final Memory: 381M/9165M[INFO] ------------------------------------------------------------------------[ERROR] Failed to execute goal org.apache.maven.plugins:maven-site-plugin:3.4:site (default-site) on project hbase: Error generating maven-javadoc-plugin:2.10.3:aggregate:[ERROR] Exit code: 1 - warning: unknown enum constant When.ALWAYS[ERROR] reason: class file for javax.annotation.meta.When not found[ERROR] warning: unknown enum constant When.UNKNOWN[ERROR] warning: unknown enum constant When.MAYBE[ERROR] /home/stack/hbase.git/hbase-common/src/main/java/org/apache/hadoop/hbase/CellUtil.java:762: warning - Tag @link: malformed: "#matchingRows(Cell, byte[]))"[ERROR] /home/stack/hbase.git/hbase-common/src/main/java/org/apache/hadoop/hbase/CellUtil.java:762: warning - Tag @link: reference not found: #matchingRows(Cell, byte[]))[ERROR] /home/stack/hbase.git/hbase-common/src/main/java/org/apache/hadoop/hbase/CellUtil.java:762: warning - Tag @link: reference not found: #matchingRows(Cell, byte[]))[ERROR] javadoc: warning - Class javax.annotation.Nonnull not found.[ERROR] javadoc: error - class file for javax.annotation.meta.TypeQualifierNickname not found[ERROR][ERROR] Command line was: /home/stack/bin/jdk1.8.0_151/jre/../bin/javadoc -J-Xmx2G @options @packages[ERROR][ERROR] Refer to the generated Javadoc files in '/home/stack/hbase.git/target/site/apidocs' dir.[ERROR] -&gt; [Help 1][ERROR][ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.[ERROR] Re-run Maven using the -X switch to enable full debug logging.[ERROR][ERROR] For more information about the errors and possible solutions, please read the following articles:[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionExceptionjavax.annotation.meta.TypeQualifierNickname is out of jsr305 but we don't include this anywhere according to mvn dependency.Happens building the User API both test and main.Excluding these lines gets us passing again: 3511 &lt;doclet&gt; 3512 org.apache.yetus.audience.tools.IncludePublicAnnotationsStandardDoclet 3513 &lt;/doclet&gt; 3514 &lt;docletArtifact&gt; 3515 &lt;groupId&gt;org.apache.yetus&lt;/groupId&gt; 3516 &lt;artifactId&gt;audience-annotations&lt;/artifactId&gt; 3517 &lt;version&gt;${audience-annotations.version}&lt;/version&gt; 3518 &lt;/docletArtifact&gt;+ 3519 &lt;useStandardDocletOptions&gt;true&lt;/useStandardDocletOptions&gt;Tried upgrading to newer mvn site (ours is three years old) but that a different set of problems.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0,1.4.11</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2009-12-10 01:00:00" id="1967" opendate="2009-11-10 00:00:00" resolution="Invalid">
+    <buginformation>
+      <summary>[Transactional] client.TestTransactions.testPutPutScan fails sometimes</summary>
+      <description>Testcase: testPutPutScan took 15.822 sec FAILEDexpected:&lt;299&gt; but was:&lt;199&gt;Not sure exactly how the test is supposed to work but it seems that sometimes the two Put are on the same timestamp so the value returned is 199. I will commit a temporary fix to branch in order to release 0.20.2</description>
+      <version>0.20.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.contrib.ec2.bin.hbase-ec2-env.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-1-2 01:00:00" id="19691" opendate="2018-1-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Do not require ADMIN permission for obtaining ClusterStatus</summary>
+      <description>Appears to be a regression introduced by HBASE-19131. Operations that attempt to obtain the `status` from the HMaster now fail if the requesting user doesn't have global ADMIN permission.Discussion: https://lists.apache.org/thread.html/f1cd2a50e5c460879c97043790b33aa375cd6b217455d611c3417e3d@%3Cdev.hbase.apache.org%3EThanks to Romil for letting us know about this one.FYI stack chia7712.</description>
+      <version>None</version>
+      <fixedVersion>1.4.1,2.0.0-beta-2,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.appendix.acl.matrix.adoc</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.access.TestAccessController.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.security.access.AccessController.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2009-11-11 01:00:00" id="1971" opendate="2009-11-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unit test the full WAL replay cycle</summary>
+      <description>Currently we test log splitting (master's current role) but we never try it with Store.runReconstructionLog(). Now is a good time to unit test the whole cycle.</description>
+      <version>0.20.1</version>
+      <fixedVersion>0.90.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.org.apache.hadoop.hbase.TestZooKeeper.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.HBaseTestingUtility.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-1-5 01:00:00" id="19711" opendate="2018-1-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TestReplicationAdmin.testConcurrentPeerOperations hangs</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.1.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.procedure.MasterProcedureScheduler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-1-5 01:00:00" id="19714" opendate="2018-1-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>`status &amp;#39;detailed&amp;#39;` invokes nonexistent "getRegionsInTransition" method on ClusterStatus</summary>
+      <description>hbase(main):003:0&gt; status 'detailed'version 2.0.0-beta-1ERROR: undefined method `getRegionsInTransition' for #&lt;Java::OrgApacheHadoopHbase::ClusterStatus:0x3041beb3&gt;Did you mean? get_region_states_in_transition getRegionStatesInTransitionShow cluster status. Can be 'summary', 'simple', 'detailed', or 'replication'. Thedefault is 'summary'. Examples: hbase&gt; status hbase&gt; status 'simple' hbase&gt; status 'summary' hbase&gt; status 'detailed' hbase&gt; status 'replication' hbase&gt; status 'replication', 'source' hbase&gt; status 'replication', 'sink'Took 0.1814 secondsLooks like the method is now getRegionStatesInTransition instead of getRegionsInTransition.FYI stack.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-1,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-shell.src.test.ruby.hbase.admin.test.rb</file>
+      <file type="M">hbase-shell.src.main.ruby.hbase.admin.rb</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2018-1-25 01:00:00" id="19861" opendate="2018-1-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid using RPCs when querying table infos for master status pages</summary>
+      <description>When querying table information for master status pages, currently method is using admin interfaces. For example, when list user tables, codes are as follows.Connection connection = master.getConnection();Admin admin = connection.getAdmin();try { tables = admin.listTables();} finally { admin.close();}But actually, we can get all user tables from master's memory.Using admin interfaces means using RPCs, which has a low efficiency. </description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-2,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.resources.hbase-webapps.master.tablesDetailed.jsp</file>
+      <file type="M">hbase-server.src.main.jamon.org.apache.hadoop.hbase.tmpl.master.MasterStatusTmpl.jamon</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-4-30 01:00:00" id="19890" opendate="2018-1-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Canary usage should document hbase.canary.sink.class config</summary>
+      <description>Canary#main uses config hbase.canary.sink.class to instantiate Sink class.The Sink instance affects creation of Monitor.In the refguide for Canary, hbase.canary.sink.class was not mentioned. We should document this config.Additionally, we need to document that using the default sink is not compatible with table parameters as input so the user must change it.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.ops.mgt.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-1-30 01:00:00" id="19891" opendate="2018-1-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Up nightly test run timeout from 6 hours to 8</summary>
+      <description>Yesterday, a nightly run for hbase2 passed all unit tests against hadoop2. Hadoop3 tests got cut off at the 6 hour mark, our maximum total run time. This is crazy but for now, just up the max time from 6 to 8 hours to see if we can get a good build in. Can work on breaking this down in subsequent issues. To be clear, the nightly 2.0 runs full test suite against hadoop2 and then hadoop3... this is why it takes a while.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-2,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-1-30 01:00:00" id="19892" opendate="2018-1-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Checking &amp;#39;patch attach&amp;#39; and yetus 0.7.0 and move to Yetus 0.7.0</summary>
+      <description>Yetus-0.7.0 has a fix for the changed Jira behavior that made it so we weren't picking up the latest attached patch. Check it works and if it does move over to yetus 0.7.0</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-2,1.4.2,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-1-30 01:00:00" id="19899" opendate="2018-1-30 00:00:00" resolution="Won&amp;#39;t Do">
+    <buginformation>
+      <summary>Dump ulimit -a, fd count, and free output at end of build into system dir</summary>
+      <description>We're OOME'ing unable to create threads. I added ulimit -l, free -h, and count of open fds to hadoopqa just now. Add them to the script used by JenkinsFile too.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-2,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.gather.machine.environment.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-6-21 01:00:00" id="20040" opendate="2018-2-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Master UI should include "Cluster Key" needed to use the cluster as a replication sink</summary>
+      <description>The ref guide defines a "Cluster Key" needed to add an hbase cluster as a replication peerCLUSTER_KEY: composed using the following template, with appropriate place-holders: hbase.zookeeper.quorum:hbase.zookeeper.property.clientPort:zookeeper.znode.parentthe Master UI has all of the pieces displayed currently, but it should include a single field that operators can copy/paste.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.1.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.jamon.org.apache.hadoop.hbase.tmpl.master.MasterStatusTmpl.jamon</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-2-21 01:00:00" id="20041" opendate="2018-2-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cannot start mini mapreduce cluster for ITs</summary>
+      <description>We killed a lot of the jersey yarn dependencies, so now we can't start the hadoop3 mini MR cluster. This make ITs sad.Need to fix it.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-2,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">hbase-rest.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-3-24 01:00:00" id="22100" opendate="2019-3-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>False positive for error prone warnings in pre commit job</summary>
+      <description>https://builds.apache.org/job/PreCommit-HBASE-Build/16516/artifact/patchprocess/branch-compile-javac-hbase-client.txt[WARNING] /testptch/hbase/hbase-client/src/main/java/org/apache/hadoop/hbase/client/AsyncRpcRetryingCaller.java:[125,69] [UnusedVariable] The parameter 'updateCachedLocation' is never read.[WARNING] /testptch/hbase/hbase-client/src/main/java/org/apache/hadoop/hbase/client/AsyncRpcRetryingCaller.java:[125,42] [UnusedVariable] The parameter 'error' is never read.https://builds.apache.org/job/PreCommit-HBASE-Build/16516/artifact/patchprocess/patch-compile-javac-hbase-client.txt[WARNING] /testptch/hbase/hbase-client/src/main/java/org/apache/hadoop/hbase/client/AsyncRpcRetryingCaller.java:[125,42] [UnusedVariable] The parameter 'error' is never read.[WARNING] /testptch/hbase/hbase-client/src/main/java/org/apache/hadoop/hbase/client/AsyncRpcRetryingCaller.java:[125,69] [UnusedVariable] The parameter 'updateCachedLocation' is never read.And the output is 1 new and 1 fixed, the new one is[WARNING] /testptch/hbase/hbase-client/src/main/java/org/apache/hadoop/hbase/client/AsyncRpcRetryingCaller.java:[125,69] [UnusedVariable] The parameter 'updateCachedLocation' is never read.I think here we should report nothing, as it is just an order change...</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0,2.0.6,2.1.5</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-3-25 01:00:00" id="22101" opendate="2019-3-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AsyncAdmin.isTableAvailable should not throw TableNotFoundException</summary>
+      <description>Should return false instead.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0,2.1.5</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestAsyncTableAdminApi.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.RawAsyncHBaseAdmin.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-4-9 01:00:00" id="24160" opendate="2020-4-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>create-release fails to process x.y.0 version info correctly</summary>
+      <description>Trying out create-release/do-release-docker.sh, is has trouble parsing the 2.3.0-SNAPSHOT version. It also builds an invalid tag name for the API check.Current branch VERSION is 2.3.0-SNAPSHOT.RELEASE_VERSION [2.3.-1]: 2.3.0NEXT_VERSION [2.3.0-SNAPSHOT]: 2.3.1-SNAPSHOTRC_COUNT [0]:GIT_REF [2.3.0RC0]:api_diff_tag, [rel/2.2.0)]:</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.create-release.release-util.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2010-6-2 01:00:00" id="2654" opendate="2010-6-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Several tests failing after bulk output commit</summary>
+      <description>Several tests are failing on Hudson after the commit of HBASE-1923 - see http://hudson.zones.apache.org/hudson/job/HBase-TRUNK/1282/testReport/These tests passed on local build, something seems to be different about the hudson environment.</description>
+      <version>None</version>
+      <fixedVersion>0.90.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2010-5-16 01:00:00" id="3117" opendate="2010-10-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update Thrift to 0.5 version</summary>
+      <description>Thrift 0.5 has been released already and we want to upgrade to at least 0.3 but 0.5 has a lot of improvements so that would be the best.Unfortunately the Java lib has changed so that we'll have to regenerate the current Thrift interface and fix the implementation (byte[] -&gt; ByteBuffer).They also have problems getting Thrift into a Maven repository so we'll need to do our current workaround again unfortunately and upload it to a repository. That would be Ryan's I think?I'll upload an updated thrift jar and a patch for the old Thrift code.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

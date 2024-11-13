@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CALCITE">
+  <bug id="1174" opendate="2016-3-29 00:00:00" fixdate="2016-11-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When generating SQL, translate SUM0(x) to COALESCE(SUM(x), 0)</summary>
+      <description>JDBC adapter wrongly pushes SUM0 down to PostgreSQL.select "rnum", "c1", avg("c1") over (partition by "rnum") from "public"."stdpop";This query in calcite throws exception:0: jdbc:calcite:model=postgres.json&gt; select "rnum", "c1", avg("c1") over (partition by "rnum") from "public"."stdpop";Error: Error while executing SQL "select "rnum", "c1", avg("c1") over (partition by "rnum") from "public"."stdpop"": while executing SQL [SELECT "rnum", "c1", CAST(CASE WHEN COUNT("c1") &gt; 0 THEN CAST($SUM0("c1") AS INTEGER) ELSE NULL END / COUNT("c1") AS INTEGER)FROM "stdpop"] (state=,code=0)java.sql.SQLException: Error while executing SQL "select "rnum", "c1", avg("c1") over (partition by "rnum") from "public"."stdpop"": while executing SQL [SELECT "rnum", "c1", CAST(CASE WHEN COUNT("c1") &gt; 0 THEN CAST($SUM0("c1") AS INTEGER) ELSE NULL END / COUNT("c1") AS INTEGER)FROM "stdpop"] at org.apache.calcite.avatica.Helper.createException(Helper.java:56) at org.apache.calcite.avatica.Helper.createException(Helper.java:41) at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:143) at org.apache.calcite.avatica.AvaticaStatement.execute(AvaticaStatement.java:177) at sqlline.Commands.execute(Commands.java:822) at sqlline.Commands.sql(Commands.java:732) at sqlline.SqlLine.dispatch(SqlLine.java:807) at sqlline.SqlLine.begin(SqlLine.java:681) at sqlline.SqlLine.start(SqlLine.java:398) at sqlline.SqlLine.main(SqlLine.java:292)Caused by: java.lang.RuntimeException: while executing SQL [SELECT "rnum", "c1", CAST(CASE WHEN COUNT("c1") &gt; 0 THEN CAST($SUM0("c1") AS INTEGER) ELSE NULL END / COUNT("c1") AS INTEGER)FROM "stdpop"] at org.apache.calcite.runtime.ResultSetEnumerable.enumerator(ResultSetEnumerable.java:148) at org.apache.calcite.linq4j.AbstractEnumerable.iterator(AbstractEnumerable.java:33) at org.apache.calcite.avatica.MetaImpl.createCursor(MetaImpl.java:85) at org.apache.calcite.avatica.AvaticaResultSet.execute(AvaticaResultSet.java:190) at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:65) at org.apache.calcite.jdbc.CalciteResultSet.execute(CalciteResultSet.java:44) at org.apache.calcite.avatica.AvaticaConnection$1.execute(AvaticaConnection.java:576) at org.apache.calcite.jdbc.CalciteMetaImpl.prepareAndExecute(CalciteMetaImpl.java:578) at org.apache.calcite.avatica.AvaticaConnection.prepareAndExecuteInternal(AvaticaConnection.java:581) at org.apache.calcite.avatica.AvaticaStatement.executeInternal(AvaticaStatement.java:135) ... 7 moreCaused by: org.postgresql.util.PSQLException: ERROR: syntax error at or near "$" Position: 63 at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse(QueryExecutorImpl.java:2198) at org.postgresql.core.v3.QueryExecutorImpl.processResults(QueryExecutorImpl.java:1927) at org.postgresql.core.v3.QueryExecutorImpl.execute(QueryExecutorImpl.java:255) at org.postgresql.jdbc2.AbstractJdbc2Statement.execute(AbstractJdbc2Statement.java:561) at org.postgresql.jdbc2.AbstractJdbc2Statement.executeWithFlags(AbstractJdbc2Statement.java:405) at org.postgresql.jdbc2.AbstractJdbc2Statement.executeQuery(AbstractJdbc2Statement.java:285) at org.apache.commons.dbcp.DelegatingStatement.executeQuery(DelegatingStatement.java:208) at org.apache.commons.dbcp.DelegatingStatement.executeQuery(DelegatingStatement.java:208) at org.apache.calcite.runtime.ResultSetEnumerable.enumerator(ResultSetEnumerable.java:143) ... 16 moreAnd what the same query returns in PostgreSQL: rnum | c1 | avg ------+----+-------------------- 1 | 1 | 2.0000000000000000 1 | 2 | 2.0000000000000000 1 | 3 | 2.0000000000000000 2 | 4 | 5.0000000000000000 2 | 5 | 5.0000000000000000 2 | 6 | 5.0000000000000000Preconditions:create table stdpop( rnum int, c1 int);insert into stdpop values(1,1);insert into stdpop values(1,2);insert into stdpop values(1,3);insert into stdpop values(2,4);insert into stdpop values(2,5);insert into stdpop values(2,6);</description>
+      <version>1.8.0</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.pretty.SqlPrettyWriter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rel2sql.SqlImplementor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1177" opendate="2016-3-30 00:00:00" fixdate="2016-6-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support more time units in EXTRACT function</summary>
+      <description>Currently extract function support following units YEAR, MONTH, DAY, HOUR, MINUTE, SECOND. Add support for more units: CENTURY, DECADE, DOW, DOY, EPOCH, MILLENNIUM, QUARTER, WEEK.Definitions of these units is similar to Postgres: http://www.postgresql.org/docs/9.1/static/functions-datetime.html#FUNCTIONS-DATETIME-EXTRACT</description>
+      <version>None</version>
+      <fixedVersion>1.8.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.reference.md</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlParserTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.StandardConvertletTable.java</file>
+      <file type="M">core.src.main.codegen.templates.Parser.jj</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1178" opendate="2016-3-30 00:00:00" fixdate="2016-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow SqlBetweenOperator to compare DATE and TIMESTAMP</summary>
+      <description>An expression such as date '1999-03-02' between date '1999-03-01' and timestamp '1999-03-03 00:00:00.0'will incur SqlValidatorException since SqlBetweenOperator does not allow DATE and TIMESTAMP comparison. In terms of usability, it would be great if this type of comparison is allowed in Calcite.</description>
+      <version>None</version>
+      <fixedVersion>1.22.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.sql.misc.iq</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.TypeCoercionConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.TypeCoercionTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.TypeCoercionConverterTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.implicit.TypeCoercionImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.implicit.TypeCoercion.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.implicit.AbstractTypeCoercion.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.type.ComparableOperandTypeChecker.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1180" opendate="2016-3-31 00:00:00" fixdate="2016-4-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support clearBatch() in remote driver</summary>
+      <description>CALCITE-1128 added support for addBatch() and executeBatch() APIs, there is also a clearBatch() API that is yet unsupported and needs to be implemented</description>
+      <version>None</version>
+      <fixedVersion>avatica-1.8.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">avatica.server.src.test.java.org.apache.calcite.avatica.RemoteDriverTest.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.AvaticaStatement.java</file>
+      <file type="M">avatica.core.src.main.java.org.apache.calcite.avatica.AvaticaPreparedStatement.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1292" opendate="2016-6-15 00:00:00" fixdate="2016-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Druid metadata query is very slow</summary>
+      <description>Steps to reproduce:sqlline&gt; !connect jdbc:calcite:schemaFactory=org.apache.calcite.adapter.druid.DruidSchemaFactory;schema.url=http://localhost:8082;schema.coordinatorUrl=http://localhost:8081sqlline&gt; !tablesThis query runs for very long time if data source contains a lot of data.</description>
+      <version>1.8.0</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidQuery.java</file>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidConnectionImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1293" opendate="2016-6-15 00:00:00" fixdate="2016-5-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bad code generated when argument to COUNT(DISTINCT) is a GROUP BY column</summary>
+      <description>There is a code generation error when argument to COUNT(DISTINCT ...) is a column in the GROUP BY clause. For example,select count(distinct deptno) as cdd, count(*) as cfrom empgroup by deptnogenerates code that is invalid (! operator applied to a long value): public Object current() { final Object[] current = (Object[]) inputEnumerator.current(); return new Object[] { current[0], current[1], !org.apache.calcite.runtime.SqlFunctions.toLong(current[1])}; }</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.sql.agg.iq</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1312" opendate="2016-7-11 00:00:00" fixdate="2016-7-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Return type of TIMESTAMP_ADD applied to a DATE should be TIMESTAMP if unit is smaller than DAY</summary>
+      <description>timestamp_add("MINUTE", 1, date '2016-06-15') returns 2016-06-15 since it returns a date and therefore truncates the minute informtion. timestamp_add should return timestamp instead of date for units less than date.timestamp_diff with date doesn't handle null properly (in type inference), converted type is INTEGER NOT NULL (when it should be null).</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlFunctionsTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlLiteral.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlStdOperatorTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.StandardConvertletTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.SqlFunctions.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.enumerable.RexImpTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1313" opendate="2016-7-11 00:00:00" fixdate="2016-7-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Validator should derive type of expression in ORDER BY</summary>
+      <description>SqlValidator.expandOrderExpr() does not validate node type and properly set it. Queries like the following currently fail in SqlToRelConverter because the type in thought to be unknown. Simple fix is to ensure that the type is validated when we expand the expression.java.lang.AssertionError: Parsing failed throwing error: class org.apache.calcite.sql.SqlBasicCall: ROW_NUMBER() OVER (PARTITION BY `employee`.`store_id` ORDER BY `employee`.`department_id` ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) at org.junit.Assert.fail(Assert.java:88) at org.junit.Assert.assertTrue(Assert.java:41) at org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.checkRel2Sql(RelToSqlConverterTest.java:58) at org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.checkRel2Sql(RelToSqlConverterTest.java:63) at org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.testOver(RelToSqlConverterTest.java:391) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50) at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12) at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47) at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17) at org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:325) at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:78) at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:57) at org.junit.runners.ParentRunner$3.run(ParentRunner.java:290) at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:71) at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:288) at org.junit.runners.ParentRunner.access$000(ParentRunner.java:58) at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:268) at org.junit.runners.ParentRunner.run(ParentRunner.java:363) at org.junit.runner.JUnitCore.run(JUnitCore.java:137) at com.intellij.junit4.JUnit4IdeaTestRunner.startRunnerWithArgs(JUnit4IdeaTestRunner.java:69) at com.intellij.rt.execution.junit.JUnitStarter.prepareStreamsAndStart(JUnitStarter.java:234) at com.intellij.rt.execution.junit.JUnitStarter.main(JUnitStarter.java:74)</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelConverterTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1321" opendate="2016-7-20 00:00:00" fixdate="2016-7-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>In-list to join optimization should have configurable in-list size</summary>
+      <description>We current have a default in-list size of 20. Instead of the magic number 20, we should make this configurable.select count(*) from table where col in (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1);</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">example.csv.src.test.java.org.apache.calcite.test.CsvTest.java</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.SqlToRelConverterTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelTestBase.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlToRelConverterTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.SqlToRelConverter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.Prepare.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.PlannerImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalcitePrepareImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalciteMaterializer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1327" opendate="2016-7-21 00:00:00" fixdate="2016-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nested aggregate windowed query fails</summary>
+      <description>Regression from CALCITE-750 Allow nested window aggregates. Calcite allows illegal queries instead of raising an appropriate error. When executing the following query calcite does not raise the following error.select avg(sum(b)) over (partition by b) from t1;ERROR: Expression 'b' is not being grouped</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.AggFinder.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.AggChecker.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlOperator.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlAggFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql2rel.SqlToRelConverter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1329" opendate="2016-7-23 00:00:00" fixdate="2016-9-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>As part of release, generate a file containing multiple digests</summary>
+      <description>Currently as part of the release we generate .md5 and .sha1 digests (as well as the pgp .asc file) and the download page http://calcite.apache.org/downloads/ references the md5 and pgp but not the sha1.Per http://www.apache.org/dev/release-signing.html#md5-security md5 is no longer secure, and sha512 is preferred over sha256. The best approach seems to be to generate multiple digests, and generate new ones as best practices change. I think we should generate checksum file with a .mds suffix as follows:$ gpg --print-mds apache-calcite-1.8.0-src.tar.gz | tee apache-calcite-1.8.0-src.tar.gz.mdsapache-calcite-1.8.0-src.tar.gz: MD5 = B2 5D 0C 14 8B FE 20 0C 16 47 13 96 D9 2E C4 6Dapache-calcite-1.8.0-src.tar.gz: SHA1 = 4246 C20C BAA0 6534 B628 ADCB 1D5E 3AF1 4DE4 A864apache-calcite-1.8.0-src.tar.gz: RMD160 = ED29 BD56 D430 AD30 EB17 67CB 34C6 FCB0 47DB 58C5apache-calcite-1.8.0-src.tar.gz: SHA224 = 40333911 B0852673 08009F4B 747C88AD B9996629 EE9BC16E 4492F367apache-calcite-1.8.0-src.tar.gz: SHA256 = E5C1DD83 14146A58 3AD44BAF 40F19F4C D39A95FC E438231D 186F335B C86D6551apache-calcite-1.8.0-src.tar.gz: SHA384 = B2619FD2 E17C1CFB 199AE44B D15E79CA DFAC6AFF D2F00D28 851D2DA2 F07B210E F7349BED 44524A16 4990B79D A36D2B29apache-calcite-1.8.0-src.tar.gz: SHA512 = 18CFCA89 53874D31 80C60C6C 8D89652D 36AA1DAC 4007E113 02BCCDC3 E7465182 78B86071 431195D6 940773A7 F5314B09 5749791B 55F82E25 60C89735 29B4B468Apache Ranger already does this; see http://ranger.apache.org/download.html.We would no longer generate .md5 and .sha1 files, but would continue to generate the .asc file.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.howto.md</file>
+      <file type="M">site.downloads.index.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1330" opendate="2016-7-25 00:00:00" fixdate="2016-7-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DB2 does not support character sets in data type</summary>
+      <description>I have a very small db2 database, and it does not support "varchar(100) CHARACTER SET `ISO-8859-1`". db2 =&gt; select TS, cast(TS as varchar(100)) from mydb.mytimestampTS 2-------------------------- ----------------------------------------------------------------------------------------------------2016-07-18-01.02.03.000000 2016-07-18-01.02.03.0000001 record(s) selected.db2 =&gt; select TS, cast(TS as varchar(100) CHARACTER SET "ISO-8859-1") from mydb.mytimestampSQL0104N An unexpected token "CHARACTER SET "ISO-8859-1"" was found following"t(TS as varchar(100)". Expected tokens may include: "&lt;space&gt;".SQLSTATE=42601</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlDialect.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1332" opendate="2016-7-27 00:00:00" fixdate="2016-7-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JDBC adapter for DB2 should always use aliases for tables: x.y.z AS z</summary>
+      <description>I tried joining tables in DB2 and it looks like DB2 dialect requires the fully qualified (with db name, table name, and column name) in the join condition. Also, if quoted, the identifiers need to be separated, e.g. "MYDB.MYTABLE" will not work, but "MYDB"."MYTABLE" will.db2 =&gt; select * from mydb.mytable inner join mydb.mytable2 on mytable.id = mytable2.idSQL0206N "MYTABLE.ID" is not valid in the context where it is used. db2 =&gt; select * from mydb.mytable inner join mydb.mytable2 on "mydb.mytable".id = "mydb.mytable2".idSQL0206N "mydb.mytable.ID" is not valid in the context where it is used. SQLSTATE=42703db2 =&gt; select name from mydb.mytable inner join mydb.mytable2 on mydb.mytable.id = mydb.mytable2.idNAME --------------------------------------------------Steven db2 =&gt; select * from "MYDB"."MYTABLE" inner join "MYDB"."MYTABLE2" on "MYTABLE"."ID" = "MYTABLE2"."ID"SQL0206N "MYTABLE.ID" is not valid in the context where it is used. SQLSTATE=42703db2 =&gt; select * from "MYDB"."MYTABLE" inner join "MYDB"."MYTABLE2" on "MYDB.MYTABLE"."ID" = "MYDB.MYTABLE2"."ID"SQL0206N "MYDB.MYTABLE.ID" is not valid in the context where it is used. SQLSTATE=42703db2 =&gt; select * from "MYDB"."MYTABLE" inner join "MYDB"."MYTABLE2" on "MYDB"."MYTABLE"."ID" = "MYDB"."MYTABLE2"."ID"ID NAME FN LN ID ----------- -------------------------------------------------- ---------------------------------------------------------------------------------------------------- ---------------------------------------------------------------------------------------------------- ----------- 100 Steven steven even 100 1 record(s) selected.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlDialect.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rel2sql.SqlImplementor.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rel2sql.RelToSqlConverter.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.jdbc.JdbcTableScan.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.jdbc.JdbcImplementor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1333" opendate="2016-7-28 00:00:00" fixdate="2016-8-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AggFunctions supported by JdbcAggregate should depend on SqlKind, instead of operator instance</summary>
+      <description>In JdbcAggregate, there is a list of functions that can be implemented and therefore pushed into the underlying database. The list of functions uses operator instance, but it would be better to use SqlKind. This is particularly relevant in case a user creates his own operators (e.g. Drill wraps some of calcite's operators), so comparing instances will not work.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.java.org.apache.calcite.adapter.jdbc.JdbcRules.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1334" opendate="2016-7-28 00:00:00" fixdate="2016-3-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Convert predicates on EXTRACT function calls into date ranges</summary>
+      <description>We would like to convert predicates on date dimension columns into date ranges. This is particularly useful for Druid, which has a single timestamp column.Consider the case of a materialized viewSELECT sales.*, product.*, time_by_day.*FROM salesJOIN product USING (product_id)JOIN time_by_day USING (time_id)that corresponds to a Druid tablesales_product_time( product_id int not null, time_id int not null, units int not null, the_year int not null, the_quarter int not null, the_month int not null, the_timestamp timestamp not null, product_name varchar(20) not null)And suppose we have the following check constraints: CHECK the_year = EXTRACT(YEAR FROM the_timestamp) CHECK the_month = EXTRACT(MONTH FROM the_timestamp)Given a querySELECT product_id, count(*)FROM salesJOIN product USING (product_id)JOIN time_by_day USING (time_id)WHERE the_year = 2016AND the_month IN (4, 5, 6)we would like to transform it into the following query to be run against Druid:SELECT product_id, count(*)FROM sales_product_timeWHERE the_timestamp BETWEEN '2016-04-01' AND '2016-06-30'Druid can handle timestamp ranges (or disjoint sets of ranges) very efficiently.I believe we can write a rule that knows the check constraints and also knows the properties of the EXTRACT function:1. Apply check constraints to convert WHERE year = ... to WHERE EXTRACT(YEAR FROM the_timestamp) = ..., etc.2. EXTRACT(YEAR FROM ...) is monotonic, therefore we can deduce the range of the_timestamp values such that EXTRACT(YEAR FROM the_timestamp) returns 2016.3. Then we need to use the fact that EXTRACT(MONTH FROM the_timestamp) is monotonic if the_timestamp is bounded within a particular year.4. And we need to merge month ranges somehow.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">druid.src.test.resources.druid-foodmart-model.json</file>
+      <file type="M">druid.src.test.java.org.apache.calcite.test.DruidAdapterIT.java</file>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidTableFactory.java</file>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidQuery.java</file>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidConnectionImpl.java</file>
+      <file type="M">core.src.test.resources.org.apache.calcite.test.RelOptRulesTest.xml</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RexImplicationCheckerTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptTestBase.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.RelOptRulesTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.MockCatalogReader.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.test.CalciteSuite.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlAdvisorTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.SqlKind.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlStdOperatorTable.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.fun.SqlExtractFunction.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.plan.RelOptUtil.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rules.DateRangeRules.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1346" opendate="2016-8-5 00:00:00" fixdate="2016-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Invalid nested window aggregate query with alias</summary>
+      <description>The following query should fail but does not!SELECT max(sum(sal)) OVER (partition by deptno) AS maxSalFROM empWHERE deptno &gt; 10;</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.SqlValidatorTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1348" opendate="2016-8-5 00:00:00" fixdate="2016-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>In Druid adapter, adjust how SegmentMetadataQuery is used to detect types</summary>
+      <description>In Druid adapter, adjust how SegmentMetadataQuery is used to detect types: Use "columns" for fields, use "aggregators" for metricNames. Ask Druid for lenient aggregator merging.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidQuery.java</file>
+      <file type="M">druid.src.main.java.org.apache.calcite.adapter.druid.DruidConnectionImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1372" opendate="2016-9-12 00:00:00" fixdate="2016-9-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Calcite generate wrong field names in JDBC adapter</summary>
+      <description>For example, this query: SELECT v1272.`QUESTN_LBL` `Label (Question Metrics)`,v1274.`LBL` `Label (Question)`,v1272.`CLICKTHRU_CNT` `Click Thru Count (Question Metrics)`,v1272.`CLICKTHRU_RATIO` `Click Thru Ratio (Question Metrics)`,v1272.`DATE` `Date (Question Metrics)`,v1272.`HAS_RESPONSES` `Has Responses (Question Metrics)`,v1272.`LOCALE_KEY` `Locale (Question Metrics)`,v1272.`QUESTN_CNT` `Question Count (Question Metrics)`,v1272.`QUESTN_KEY` `NAVIGATION_8_QUESTION` FROM DW_REPORTING.QUESTION v1272 LEFT JOIN DW_REPORTING.METRICS v1274 ON v1272.`QUESTN_KEY` = v1274.`QUESTN_KEY` WHERE UPPER(CAST(v1274.`LBL` AS VARCHAR(1000))) LIKE UPPER('% den %') Generates the following SQL query: SELECT "QUESTN_LBL" "Label (Question Metrics)", "LBL" "Label (Question)", "CLICKTHRU_CNT" "Click Thru Count (Question Met", "CLICKTHRU_RATIO" "Click Thru Ratio (Question Met", "DATE" "Date (Question Metrics)", "HAS_RESPONSES" "Has Responses (Question Metric", "LOCALE_KEY" "Locale (Question Metrics)", "QUESTN_CNT" "Question Count (Question Metri", "QUESTN_KEY" "NAVIGATION_8_QUESTION", "ID", "QUESTN_KEY0" "QUESTN_KEY"FROM (SELECT "ID", "QUESTN_KEY", "LOCALE_KEY", "QUESTN_LBL", "DATE", "QUESTN_CNT", "CLICKTHRU_CNT", "CLICKTHRU_RATIO", "HAS_RESPONSES"FROM "DW_REPORTING"."QUESTION") "t"LEFT JOIN (SELECT "QUESTN_KEY", "LBL"FROM "DW_REPORTING"."METRICS") "t0" ON "t"."QUESTN_KEY" = "t0"."QUESTN_KEY"WHERE UPPER("t0"."LBL") LIKE UPPER('% den %')The problem here is with the "QUESTN_KEY0" doesn't exist, Both "t" and "t0" have the "QUESTN_KEY" field and after the JdbcFilter, the table alias "t" and "t0" seems to disappear.This is the generated plan:[TABLE, #ID {PLAN=JdbcToEnumerableConverter JdbcProject(Label (Question Metrics)=[$3], Label (Question)=[$10], Click Thru Count (Question Metrics)=[$6], Click Thru Ratio (Question Metrics)=[$7], Date (Question Metrics)=[$4], Has Responses (Question Metrics)=[$8], Locale (Question Metrics)=[$2], Question Count (Question Metrics)=[$5], NAVIGATION_8_QUESTION=[$1], ID=[$0], QUESTN_KEY=[$9]) JdbcFilter(condition=[LIKE(UPPER(CAST($10):VARCHAR(1000) CHARACTER SET "ISO-8859-1" COLLATE "ISO-8859-1$en_US$primary"), UPPER('% den %'))]) JdbcJoin(condition=[=($1, $9)], joinType=[left]) JdbcProject(ID=[$0], QUESTN_KEY=[$1], LOCALE_KEY=[$2], QUESTN_LBL=[$3], DATE=[$4], QUESTN_CNT=[$5], CLICKTHRU_CNT=[$6], CLICKTHRU_RATIO=[$8], HAS_RESPONSES=[$9]) JdbcTableScan(table=[[DW_REPORTING, QUESTION]]) JdbcProject(QUESTN_KEY=[$0], LBL=[$1]) JdbcTableScan(table=[[DW_REPORTING, METRICS]]), }]</description>
+      <version>1.8.0</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.test.java.org.apache.calcite.test.JdbcAdapterTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.rel.rel2sql.RelToSqlConverterTest.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.rel.rel2sql.SqlImplementor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1374" opendate="2016-9-13 00:00:00" fixdate="2016-9-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support operator "!=" as an alternative to "&lt;&gt;"</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">site..docs.reference.md</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlOperatorBaseTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.SqlAdvisorTest.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.test.DefaultSqlTestFactory.java</file>
+      <file type="M">core.src.test.java.org.apache.calcite.sql.parser.SqlParserTest.java</file>
+      <file type="M">core.src.main.resources.org.apache.calcite.runtime.CalciteResource.properties</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.validate.SqlConformance.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.parser.SqlParser.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.sql.parser.SqlAbstractParserImpl.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.runtime.CalciteResource.java</file>
+      <file type="M">core.src.main.java.org.apache.calcite.prepare.CalcitePrepareImpl.java</file>
+      <file type="M">core.src.main.codegen.templates.Parser.jj</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

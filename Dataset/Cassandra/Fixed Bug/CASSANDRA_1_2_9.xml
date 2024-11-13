@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="4551" opendate="2012-8-16 00:00:00" fixdate="2012-8-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool getendpoints keys do not work with spaces, key_validation=ascii value of key =&gt; "a test" no delimiter</summary>
+      <description>Nodetool getendpoints keys do not work with embedded spaces, key_validation=ascii value of key =&gt; "a test" no delimiter tried to escape key =&gt; "a test" with double and single quotes. It doesn't work. It just reiterates the format of the tool's command: getendpoints requires ks, cf and key args</description>
+      <version>1.2.9</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.nodetool</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4766" opendate="2012-10-4 00:00:00" fixdate="2012-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ReverseCompaction</summary>
+      <description>Sometimes you run into a situation where your sized tiered SSTables get to be a funky size. Maybe a repair starts this or you were forced into a compaction. In any case we should be able to anti-compact a table, since anti-compact is a bad word lets call this reverse compact. This could be done online or offline. Closely related is SSTables cound have a max size. Leveled is not right for everyone.</description>
+      <version>1.2.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">debian.cassandra.install</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5670" opendate="2013-6-20 00:00:00" fixdate="2013-7-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>running compact on an index did not compact two index files into one</summary>
+      <description>With a data directory containing secondary index files ending in -1 and -2, I expected that when I ran compact against the index that they would compact down to a set of -3 files. This column family uses SizeTieredCompactionStrategy.Using our standard CQL example, the compact command used was: $ ./nodetool compact test1 test1-playlists.playlists_artist_idxPlease note: reproducing this test on 1.1.12 (using a single primary key), you will see that running compact on the keyspace also does not compact the index file. There is no option to compact the index, so I could not compare that.CREATE KEYSPACE test1 WITH replication = {'class':'SimpleStrategy', 'replication_factor':1};use test1;CREATE TABLE playlists ( id uuid, song_order int, song_id uuid, title text, album text, artist text, PRIMARY KEY (id, song_order ) );INSERT INTO playlists (id, song_order, song_id, title, artist, album) VALUES (62c36092-82a1-3a00-93d1-46196ee77204, 1, a3e64f8f-bd44-4f28-b8d9-6938726e34d4, 'La Grange', 'ZZ Top', 'Tres Hombres');select * from playlists;=====================================./nodetool flush test1$ ls /var/lib/cassandra/data/test1/playliststest1-playlists-ic-1-CompressionInfo.db test1-playlists-ic-1-Data.db test1-playlists-ic-1-Filter.db test1-playlists-ic-1-Index.db test1-playlists-ic-1-Statistics.db test1-playlists-ic-1-Summary.db test1-playlists-ic-1-TOC.txt =====================================CREATE INDEX ON playlists(artist );select * from playlists;select * from playlists where artist = 'ZZ Top';=====================================$ ./nodetool flush test1$ ls /var/lib/cassandra/data/test1/playliststest1-playlists-ic-1-CompressionInfo.db test1-playlists-ic-1-Data.db test1-playlists-ic-1-Filter.db test1-playlists-ic-1-Index.db test1-playlists-ic-1-Statistics.db test1-playlists-ic-1-Summary.db test1-playlists-ic-1-TOC.txt test1-playlists.playlists_artist_idx-ic-1-CompressionInfo.dbtest1-playlists.playlists_artist_idx-ic-1-Data.dbtest1-playlists.playlists_artist_idx-ic-1-Filter.dbtest1-playlists.playlists_artist_idx-ic-1-Index.dbtest1-playlists.playlists_artist_idx-ic-1-Statistics.dbtest1-playlists.playlists_artist_idx-ic-1-Summary.dbtest1-playlists.playlists_artist_idx-ic-1-TOC.txt=====================================delete artist from playlists where id = 62c36092-82a1-3a00-93d1-46196ee77204 and song_order = 1;select * from playlists;select * from playlists where artist = 'ZZ Top';=====================================$ ./nodetool flush test1$ ls /var/lib/cassandra/data/test1/playliststest1-playlists-ic-1-CompressionInfo.db test1-playlists-ic-1-Data.db test1-playlists-ic-1-Filter.db test1-playlists-ic-1-Index.db test1-playlists-ic-1-Statistics.db test1-playlists-ic-1-Summary.db test1-playlists-ic-1-TOC.txt test1-playlists-ic-2-CompressionInfo.db test1-playlists-ic-2-Data.db test1-playlists-ic-2-Filter.db test1-playlists-ic-2-Index.db test1-playlists-ic-2-Statistics.db test1-playlists-ic-2-Summary.db test1-playlists-ic-2-TOC.txt test1-playlists.playlists_artist_idx-ic-1-CompressionInfo.dbtest1-playlists.playlists_artist_idx-ic-1-Data.dbtest1-playlists.playlists_artist_idx-ic-1-Filter.dbtest1-playlists.playlists_artist_idx-ic-1-Index.dbtest1-playlists.playlists_artist_idx-ic-1-Statistics.dbtest1-playlists.playlists_artist_idx-ic-1-Summary.dbtest1-playlists.playlists_artist_idx-ic-1-TOC.txttest1-playlists.playlists_artist_idx-ic-2-CompressionInfo.dbtest1-playlists.playlists_artist_idx-ic-2-Data.dbtest1-playlists.playlists_artist_idx-ic-2-Filter.dbtest1-playlists.playlists_artist_idx-ic-2-Index.dbtest1-playlists.playlists_artist_idx-ic-2-Statistics.dbtest1-playlists.playlists_artist_idx-ic-2-Summary.dbtest1-playlists.playlists_artist_idx-ic-2-TOC.txt=====================================./nodetool compact test1$ ls /var/lib/cassandra/data/test1/playliststest1-playlists-ic-3-CompressionInfo.dbtest1-playlists-ic-3-Data.dbtest1-playlists-ic-3-Filter.dbtest1-playlists-ic-3-Index.dbtest1-playlists-ic-3-Statistics.dbtest1-playlists-ic-3-Summary.dbtest1-playlists-ic-3-TOC.txttest1-playlists.playlists_artist_idx-ic-1-CompressionInfo.dbtest1-playlists.playlists_artist_idx-ic-1-Data.dbtest1-playlists.playlists_artist_idx-ic-1-Filter.dbtest1-playlists.playlists_artist_idx-ic-1-Index.dbtest1-playlists.playlists_artist_idx-ic-1-Statistics.dbtest1-playlists.playlists_artist_idx-ic-1-Summary.dbtest1-playlists.playlists_artist_idx-ic-1-TOC.txttest1-playlists.playlists_artist_idx-ic-2-CompressionInfo.dbtest1-playlists.playlists_artist_idx-ic-2-Data.dbtest1-playlists.playlists_artist_idx-ic-2-Filter.dbtest1-playlists.playlists_artist_idx-ic-2-Index.dbtest1-playlists.playlists_artist_idx-ic-2-Statistics.dbtest1-playlists.playlists_artist_idx-ic-2-Summary.dbtest1-playlists.playlists_artist_idx-ic-2-TOC.txt=====================================$ ./nodetool compact test1 test1-playlists.playlists_artist_idx$ ls /var/lib/cassandra/data/test1/playliststest1-playlists-ic-3-CompressionInfo.dbtest1-playlists-ic-3-Data.dbtest1-playlists-ic-3-Filter.dbtest1-playlists-ic-3-Index.dbtest1-playlists-ic-3-Statistics.dbtest1-playlists-ic-3-Summary.dbtest1-playlists-ic-3-TOC.txttest1-playlists.playlists_artist_idx-ic-1-CompressionInfo.dbtest1-playlists.playlists_artist_idx-ic-1-Data.dbtest1-playlists.playlists_artist_idx-ic-1-Filter.dbtest1-playlists.playlists_artist_idx-ic-1-Index.dbtest1-playlists.playlists_artist_idx-ic-1-Statistics.dbtest1-playlists.playlists_artist_idx-ic-1-Summary.dbtest1-playlists.playlists_artist_idx-ic-1-TOC.txttest1-playlists.playlists_artist_idx-ic-2-CompressionInfo.dbtest1-playlists.playlists_artist_idx-ic-2-Data.dbtest1-playlists.playlists_artist_idx-ic-2-Filter.dbtest1-playlists.playlists_artist_idx-ic-2-Index.dbtest1-playlists.playlists_artist_idx-ic-2-Statistics.dbtest1-playlists.playlists_artist_idx-ic-2-Summary.dbtest1-playlists.playlists_artist_idx-ic-2-TOC.txt=====================================cqlsh:test1&gt; describe keyspace test1;CREATE KEYSPACE test1 WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': '1'};USE test1;CREATE TABLE playlists ( id uuid, song_order int, album text, artist text, song_id uuid, title text, PRIMARY KEY (id, song_order)) WITH bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};CREATE INDEX playlists_artist_idx ON playlists (artist);</description>
+      <version>1.2.9,2.0rc1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5718" opendate="2013-7-2 00:00:00" fixdate="2013-8-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cql3 reader returns duplicate rows if the cluster column is reversed</summary>
+      <description>To reproduce it,cqlsh:test&gt; select * from wordfreq; title | occurances | word------------------------ alex123 | 4 | liu3 alex1 | 23456 | liu2 alex10 | 10 | liu10 alex12 | 34 | liu3 alex | 123456 | liu1 alex | 1000 | liuCREATE TABLE wordfreq ( title text, word text, occurances int, PRIMARY KEY (title,occurances)) WITH CLUSTERING ORDER by (occurances DESC);The hadoop job returns 7 rows instead of 6 rows. I will post a patch soon.</description>
+      <version>1.2.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlPagingRecordReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5727" opendate="2013-7-7 00:00:00" fixdate="2013-7-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Evaluate default LCS sstable size</summary>
+      <description>What we're not sure about is the effect on compaction efficiency &amp;#8211;larger files mean that each level contains more data, so reads willhave to touch less sstables, but we're also compacting less unchangeddata when we merge forward.So the question is, how big can we make the sstables to get the benefits of thefirst effect, before the second effect starts to dominate?</description>
+      <version>1.2.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">NEWS.txt</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledCompactionStrategy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5798" opendate="2013-7-24 00:00:00" fixdate="2013-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cqlsh should support multiline comments</summary>
+      <description>Right now cqlsh doesn't support multiline comments that are available in the CQL grammar:MULTILINE_COMMENT : '/*' .* '*/' { $channel = HIDDEN; } ;These should be supported both in file and interactive mode (where copy pasting large chunks of CQL scripts containing such comments might be convenient).</description>
+      <version>1.2.9</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5800" opendate="2013-7-24 00:00:00" fixdate="2013-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support pre-1.2 release CQL3 tables in CqlPagingRecordReader</summary>
+      <description>Pre-1.2 release CQL3 table stores the key in system.schema_columnfamilies key_alias column which is different from 1.2 release. We should support it in CqlPagingRecordReader as well.</description>
+      <version>1.2.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5823" opendate="2013-7-29 00:00:00" fixdate="2013-7-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool history logging</summary>
+      <description>Capture the commands and time executed from nodetool into a log file, similar to the cli.</description>
+      <version>1.2.9,2.0rc1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.FBUtilities.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliMain.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5831" opendate="2013-7-30 00:00:00" fixdate="2013-8-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Running sstableupgrade on C* 1.0 data dir, before starting C* 1.2 for the first time breaks stuff</summary>
+      <description>If you try to upgrade from C* 1.0.X to 1.2.X and run offline sstableupgrade to try and migrate the sstables before starting 1.2.X for the first time, it messes up the system folder, because it doesn't migrate it right, and then C* 1.2 can't start.sstableupgrade should either refuse to run against a C* 1.0 data folder, or migrate stuff the right way.</description>
+      <version>1.2.9</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneUpgrader.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneScrubber.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5845" opendate="2013-8-3 00:00:00" fixdate="2013-8-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t pull schema from higher major nodes; don&amp;#39;t push schema to lower major nodes</summary>
+      <description>Don't pull schema from higher major nodes; don't push schema to lower major nodes</description>
+      <version>1.2.9,2.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5856" opendate="2013-8-7 00:00:00" fixdate="2013-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AE in ArrayBackedSortedColumns</summary>
+      <description>ERROR [ReadStage:3] 2013-08-07 06:58:21,485 CassandraDaemon.java (line 192) Exception in thread Thread[ReadStage:3,5,main]java.lang.AssertionError: Added column does not sort as the last column at org.apache.cassandra.db.ArrayBackedSortedColumns.addColumn(ArrayBackedSortedColumns.java:131) at org.apache.cassandra.db.AbstractColumnContainer.addColumn(AbstractColumnContainer.java:119) at org.apache.cassandra.db.AbstractColumnContainer.addColumn(AbstractColumnContainer.java:114) at org.apache.cassandra.db.filter.SliceQueryFilter.collectReducedColumns(SliceQueryFilter.java:171) at org.apache.cassandra.db.filter.QueryFilter.collateColumns(QueryFilter.java:136) at org.apache.cassandra.db.filter.QueryFilter.collateOnDiskAtom(QueryFilter.java:84) at org.apache.cassandra.db.CollationController.collectAllData(CollationController.java:291) at org.apache.cassandra.db.CollationController.getTopLevelColumns(CollationController.java:65) at org.apache.cassandra.db.ColumnFamilyStore.getTopLevelColumns(ColumnFamilyStore.java:1390) at org.apache.cassandra.db.ColumnFamilyStore.getColumnFamily(ColumnFamilyStore.java:1213) at org.apache.cassandra.db.ColumnFamilyStore.getColumnFamily(ColumnFamilyStore.java:1125) at org.apache.cassandra.db.Table.getRow(Table.java:347) at org.apache.cassandra.db.SliceFromReadCommand.getRow(SliceFromReadCommand.java:70) at org.apache.cassandra.service.StorageProxy$LocalReadRunnable.runMayThrow(StorageProxy.java:1047) at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:1593) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) at java.lang.Thread.run(Thread.java:722)test_column_index_stress in wide_rows_test will reproduce this within ~20 runs and bisect strongly points to a regression in CASSANDRA-5762</description>
+      <version>1.2.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5868" opendate="2013-8-9 00:00:00" fixdate="2013-8-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add key cache hit rate to CFMBean</summary>
+      <description></description>
+      <version>1.2.9</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CacheService.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.ColumnFamilyMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5882" opendate="2013-8-13 00:00:00" fixdate="2013-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Changing column type from int to bigint or vice versa causes decoding errors.</summary>
+      <description>cqlsh:dbsite&gt; create table testint (id uuid, bestof bigint, primary key (id) );cqlsh:dbsite&gt; insert into testint (id, bestof ) values (49d30f84-a409-4433-ad60-eb9c1a06b7bb, 1376399966);cqlsh:dbsite&gt; insert into testint (id, bestof ) values (6cab4798-ad29-4419-bd59-308f9ec3bc44, 1376389800);cqlsh:dbsite&gt; insert into testint (id, bestof ) values (685bb9ff-a4fe-4e47-95eb-f6a353d9e179, 1376390400);cqlsh:dbsite&gt; insert into testint (id, bestof ) values (a848f832-5ded-4ef7-bf4b-7db561564c57, 1376391000);cqlsh:dbsite&gt; select * from testint ; id | bestof-------------------------------------+----------- a848f832-5ded-4ef7-bf4b-7db561564c57 | 1376391000 49d30f84-a409-4433-ad60-eb9c1a06b7bb | 1376399966 6cab4798-ad29-4419-bd59-308f9ec3bc44 | 1376389800 685bb9ff-a4fe-4e47-95eb-f6a353d9e179 | 1376390400cqlsh:dbsite&gt; alter table testint alter bestof TYPE int;cqlsh:dbsite&gt; select * from testint ; id | bestof-------------------------------------+---------------------------- a848f832-5ded-4ef7-bf4b-7db561564c57 | '\x00\x00\x00\x00R\n\x0fX' 49d30f84-a409-4433-ad60-eb9c1a06b7bb | '\x00\x00\x00\x00R\n2^' 6cab4798-ad29-4419-bd59-308f9ec3bc44 | '\x00\x00\x00\x00R\n\n\xa8' 685bb9ff-a4fe-4e47-95eb-f6a353d9e179 | '\x00\x00\x00\x00R\n\r\x00'Failed to decode value '\x00\x00\x00\x00R\n\x0fX' (for column 'bestof') as int: unpack requires a string argument of length 4Failed to decode value '\x00\x00\x00\x00R\n2^' (for column 'bestof') as int: unpack requires a string argument of length 42 more decoding errors suppressed.I realize that going from BIGINT to INT would cause overflow if a column contained a number larger than 2^31-1, it is at least technically possible to go in the other direction. I also understand that rewriting all the data in the correct format would be a very expensive operation on a large column family, but if that's not something we want to allow we should explicitly disallow changing data types if the table has any rows.</description>
+      <version>1.2.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5891" opendate="2013-8-14 00:00:00" fixdate="2013-8-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Scrub disk footprint needs to be reduced</summary>
+      <description>Currently scrub creates a snapshot at the beginning of the scrub. This causes the disk used to be doubled after the scrub. If the disk utilization is more than 50%, scrub wont work. It would be nice to have an overriding option to disable snapshot. Something like --no-snapshot.</description>
+      <version>1.2.9</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5926" opendate="2013-8-23 00:00:00" fixdate="2013-8-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The native protocol server can deadlock</summary>
+      <description>Until CASSANDRA-5239 (i.e. since StorageProxy is blocking), the native protocol server needs to use a thread per request being processed. For that, it currently use a DebuggableThreadPoolExecutor, but with a limited queue. The rational being that we don't want to OOM if a client overwhelm the server. Rather, we prefer blocking (which DTPE gives us) on the submission of new request by the netty worker threads when all threads are busy.However, as it happens, when netty sends back a response to a query, there is cases where some events (technically, InterestChanged and WriteComplete events) are send up the pipeline. And those event are submitted on the request executor as other requests. Long story short, a request thread can end blocking on the submission to its own executor, hence deadlocking.The simplest solution is probably to reuse MemoryAwareThreadPoolExecutor from netty rather that our own DTPE as it also allow to block task submission when all threads are busy but knows not to block it's own internal events.</description>
+      <version>1.2.9</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.RequestThreadPoolExecutor.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

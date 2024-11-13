@@ -1,0 +1,491 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="14532" opendate="2015-10-1 00:00:00" fixdate="2015-11-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[book] dfs.client.read.shortcircuit is referenced as hbase-site.xml config and not described in section 7</summary>
+      <description>After trying to figure out whether shortcircuit reads would work on my system, I studied the book and found conflicting information.It's suggested in section 92.2, that dfs.client.read.shortcircuit is an option in hbase-site.xml, but the supposedly complete default configuration in section 7 does not include this setting. This leads to confusion on whether it's sufficient to enable this setting in hdfs-site.xml, or whether it needs to be added to both configurations.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.architecture.adoc</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15187" opendate="2016-1-29 00:00:00" fixdate="2016-4-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Integrate CSRF prevention filter to REST gateway</summary>
+      <description>HADOOP-12691 introduced a filter in Hadoop Common to help REST APIs guard against cross-site request forgery attacks.This issue tracks the integration of that filter into HBase REST gateway.From REST section of refguide:To delete a table, use a DELETE request with the /schema endpoint:http://example.com:8000&lt;table&gt;/schemaSuppose an attacker hosts a malicious web form on a domain under his control. The form uses the DELETE action targeting a REST URL. Through social engineering, the attacker tricks an authenticated user into accessing the form and submitting it.The browser sends the HTTP DELETE request to the REST gateway.At REST gateway, the call is executed and user table is dropped</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-rest.src.test.java.org.apache.hadoop.hbase.rest.TestSchemaResource.java</file>
+      <file type="M">hbase-rest.src.test.java.org.apache.hadoop.hbase.rest.TestMultiRowResource.java</file>
+      <file type="M">hbase-rest.src.test.java.org.apache.hadoop.hbase.rest.HBaseRESTTestingUtility.java</file>
+      <file type="M">hbase-rest.src.main.java.org.apache.hadoop.hbase.rest.RESTServer.java</file>
+      <file type="M">hbase-rest.src.main.java.org.apache.hadoop.hbase.rest.client.Client.java</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15200" opendate="2016-2-1 00:00:00" fixdate="2016-2-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ZooKeeper znode ACL checks should only compare the shortname</summary>
+      <description>After HBASE-13768 we check at startup in secure configurations if our znodes have the correct ACLs. However when checking the ACL we compare the Kerberos fullname, which includes the host component. We should only compare the shortname, the principal. Otherwise in a multimaster configuration we will unnecessarily reset ACLs whenever any master running on a host other than the one that initialized the ACLs makes the check. You can imagine this happening multiple times in a rolling restart scenario.</description>
+      <version>1.2.0,1.0.3,1.1.3,0.98.17,2.0.0</version>
+      <fixedVersion>1.2.0,1.3.0,1.1.4,1.0.4,0.98.18,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15201" opendate="2016-2-1 00:00:00" fixdate="2016-2-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add hbase-spark to hbase assembly</summary>
+      <description>hbase-spark currently is missing from hbase assembly.We should add it.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-spark.pom.xml</file>
+      <file type="M">hbase-assembly.src.main.assembly.hadoop-two-compat.xml</file>
+      <file type="M">hbase-assembly.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15203" opendate="2016-2-2 00:00:00" fixdate="2016-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce garbage created by path.toString() during Checksum verification</summary>
+      <description>When we try to read a block we do checksum verification for which we need the file name in which the block belongs to. So we do Path.toString() every time. This seems to create around 163MB of char[] that is garbage collected in a simple scan run. It is also visible in writes but the impact is lesser. In overall write/read profile the top 2 factors are byte[] and char[]. This toString() can easily be avoided and reduce its share from the total. To make it more precise in 1 min of profiling, among the 1.8G of garbage created by StringBuilder.toString - this path.toString() was contributing around 3.5%. After the patch this is totally not there.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.HFileBlock.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.ChecksumUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15206" opendate="2016-2-2 00:00:00" fixdate="2016-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Flakey testSplitDaughtersNotInMeta test</summary>
+      <description>Run into the following failure with hbase 1.0.0.Stacktracejava.lang.AssertionError: nullat org.junit.Assert.fail(Assert.java:86)at org.junit.Assert.assertTrue(Assert.java:41)at org.junit.Assert.assertNotNull(Assert.java:712)at org.junit.Assert.assertNotNull(Assert.java:722)at org.apache.hadoop.hbase.util.TestHBaseFsck.testSplitDaughtersNotInMeta(TestHBaseFsck.java:1723)From the log, the ntp issue caused clock skew and it woke up CatalogJanitor earlier. The CatalogJanitor cleaned up the parent region. It could happen with master branch as well. The fix is to disable CatalogJanitor to make sure this will not happen.</description>
+      <version>None</version>
+      <fixedVersion>1.2.0,1.3.0,1.1.4,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.TestHBaseFsckOneRS.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15238" opendate="2016-2-9 00:00:00" fixdate="2016-2-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HFileReaderV2 prefetch overreaches; runs off the end of the data</summary>
+      <description>Small bug found while investigating another issue related to prefetch</description>
+      <version>None</version>
+      <fixedVersion>1.2.0,1.3.0,0.98.18,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.io.hfile.TestChecksum.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.HFileReaderImpl.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.HFileBlock.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.FixedFileTrailer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.ChecksumUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15255" opendate="2016-2-11 00:00:00" fixdate="2016-2-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add pointer to linkedin blog on putting jvm logs on fast disk</summary>
+      <description>Add pointer to linked in blog: https://engineering.linkedin.com/blog/2016/02/eliminating-large-jvm-gc-pauses-caused-by-background-io-trafficIIRC, tsdb says to do similar.Also add into perf section note on native crc.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.performance.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15259" opendate="2016-2-12 00:00:00" fixdate="2016-2-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>WALEdits under replay will also be replicated</summary>
+      <description>I need to verify this but seeing the codetry { // We are about to append this edit; update the region-scoped sequence number. Do it // here inside this single appending/writing thread. Events are ordered on the ringbuffer // so region sequenceids will also be in order. regionSequenceId = entry.stampRegionSequenceId(); // Edits are empty, there is nothing to append. Maybe empty when we are looking for a // region sequence id only, a region edit/sequence id that is not associated with an actual // edit. It has to go through all the rigmarole to be sure we have the right ordering. if (entry.getEdit().isEmpty()) { return; } // Coprocessor hook. if (!coprocessorHost.preWALWrite(entry.getHRegionInfo(), entry.getKey(), entry.getEdit())) { if (entry.getEdit().isReplay()) { // Set replication scope null so that this won't be replicated entry.getKey().setScopes(null); } } if (!listeners.isEmpty()) { for (WALActionsListener i: listeners) { // TODO: Why does listener take a table description and CPs take a regioninfo? Fix. i.visitLogEntryBeforeWrite(entry.getHTableDescriptor(), entry.getKey(), entry.getEdit()); } }When a WALEdit is in replay we set the Logkey to null. But in the visitLogEntryBeforeWrite() we again set the LogKey based on the replication scope associated with the cells. So the previous step of setting null does not work here?</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.TestReplicationSmallTests.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.Replication.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1526" opendate="2009-6-15 00:00:00" fixdate="2009-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>mapreduce fixup</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.20.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.HBaseTestCase.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.mapred.DisabledTestTableMapReduce.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.TableSplit.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.TableReduce.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.TableOutputFormat.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.TableMapReduceUtil.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.TableMap.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.TableInputFormatBase.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.TableInputFormat.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.RowCounter.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.LuceneDocumentWrapper.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.IndexTableReduce.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.IndexOutputFormat.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.IndexConfiguration.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.IdentityTableReduce.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.IdentityTableMap.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.HRegionPartitioner.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.GroupingTableMap.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.Driver.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.mapred.BuildTableIndex.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15261" opendate="2016-2-12 00:00:00" fixdate="2016-3-12 01:00:00" resolution="Not A Problem">
+    <buginformation>
+      <summary>Make Throwable t in DaughterOpener volatile</summary>
+      <description>In the region split process, daughter regions are opened in different threads, Throwable t is set in these threads and it is checked in the calling thread. Need to make it volatile so the checking will not miss any exceptions from opening daughter regions.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.SplitTransactionImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1528" opendate="2009-6-15 00:00:00" fixdate="2009-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Ensure scanners work across memcache snapshot</summary>
+      <description>We have hole in scanning where if a snapshot, we'll stop seeing in-memory results.</description>
+      <version>None</version>
+      <fixedVersion>0.20.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.org.apache.hadoop.hbase.regionserver.TestScanner.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.regionserver.TestMemcache.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.MultiRegionTable.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.HBaseTestCase.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.client.TestClient.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.StoreScanner.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.Memcache.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.KeyValue.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15302" opendate="2016-2-22 00:00:00" fixdate="2016-6-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reenable the other tests disabled by HBASE-14678</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.4.0,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.wal.WALSplitter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15325" opendate="2016-2-25 00:00:00" fixdate="2016-3-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ResultScanner allowing partial result will miss the rest of the row if the region is moved between two rpc requests</summary>
+      <description>HBASE-11544 allow scan rpc return partial of a row to reduce memory usage for one rpc request. And client can setAllowPartial or setBatch to get several cells in a row instead of the whole row.However, the status of the scanner is saved on server and we need this to get the next part if there is a partial result before. If we move the region to another RS, client will get a NotServingRegionException and open a new scanner to the new RS which will be regarded as a new scan from the end of this row. So the rest cells of the row of last result will be missing.</description>
+      <version>1.2.0,1.1.3</version>
+      <fixedVersion>1.3.0,1.2.1,1.1.5,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.TestPartialResultsFromClientSide.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.CellComparator.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ClientScanner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15358" opendate="2016-2-29 00:00:00" fixdate="2016-2-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>canEnforceTimeLimitFromScope should use timeScope instead of sizeScope</summary>
+      <description>A small but maybe critical bug</description>
+      <version>1.2.0,1.3.0,1.1.3,1.4.0,2.0.0</version>
+      <fixedVersion>1.3.0,1.2.1,1.1.4,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.ScannerContext.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15485" opendate="2016-3-18 00:00:00" fixdate="2016-4-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Filter.reset() should not be called between batches</summary>
+      <description>As discussed in HBASE-15325, now we will resetFilters if partial result not formed, but we should not reset filters when batch limit reached</description>
+      <version>1.2.0,1.1.3</version>
+      <fixedVersion>1.3.0,1.1.5,1.2.2,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.ScannerContext.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16649" opendate="2016-9-18 00:00:00" fixdate="2016-9-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Truncate table with splits preserved can cause both data loss and truncated data appeared again</summary>
+      <description>Since truncate table with splits preserved will delete hfiles and use the previous regioninfo. It can cause odd behaviors Case 1: Data appeared after truncatereproduce procedure：1. create a table, let's say 'test'2. write data to 'test', make sure memstore of 'test' is not empty3. truncate 'test' with splits preserved4. kill the regionserver hosting the region(s) of 'test'5. start the regionserver, now it is the time to witness the miracle! the truncated data appeared in table 'test' Case 2: Data lossreproduce procedure:1. create a table, let's say 'test'2. write some data to 'test', no matter how many3. truncate 'test' with splits preserved4. restart the regionserver to reset the seqid5. write some data, but less than 2 since we don't want the seqid to run over the one in 26. kill the regionserver hosting the region(s) of 'test'7. restart the regionserver. Congratulations! the data writen in 4 is now all lostWhy?for case 1Since preserve splits in truncate table procedure will not change the regioninfo, when log replay happens, the 'unflushed' data will restore back to the regionfor case 2since the flushedSequenceIdByRegion are stored in Master in a map with the region's encodedName. Although the table is truncated, the region's name is not changed since we chose to preserve the splits. So after truncate the table, the region's sequenceid is reset in the regionserver, but not reset in master. When flush comes and report to master, master will reject the update of sequenceid since the new one is smaller than the old one. The same happens in log replay, all the edits writen in 4 will be skipped since they have a smaller seqid</description>
+      <version>1.1.3</version>
+      <fixedVersion>1.3.0,1.1.7,0.98.23,1.2.4,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestCatalogJanitor.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.procedure.TestTruncateTableProcedure.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.ServerManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.procedure.TruncateTableProcedure.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.procedure.DeleteTableProcedure.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.CatalogJanitor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1665" opendate="2009-7-16 00:00:00" fixdate="2009-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>expose more load information to the client side</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.20.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.Store.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.ipc.HBaseRPCProtocolVersion.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.HServerLoad.java</file>
+      <file type="M">src.contrib.stargate.src.test.org.apache.hadoop.hbase.stargate.model.TestStorageClusterStatusModel.java</file>
+      <file type="M">src.contrib.stargate.src.java.org.apache.hadoop.hbase.stargate.StorageClusterStatusResource.java</file>
+      <file type="M">src.contrib.stargate.src.java.org.apache.hadoop.hbase.stargate.protobuf.StorageClusterStatusMessage.proto</file>
+      <file type="M">src.contrib.stargate.src.java.org.apache.hadoop.hbase.stargate.protobuf.generated.StorageClusterStatusMessage.java</file>
+      <file type="M">src.contrib.stargate.src.java.org.apache.hadoop.hbase.stargate.model.StorageClusterStatusModel.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16996" opendate="2016-11-2 00:00:00" fixdate="2016-12-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement storage/retrieval of filesystem-use quotas into quota table</summary>
+      <description>Provide read/write API for accessing the new filesystem-usage quotas in the existing hbase:quota table.Make sure that both the client can read quotas the quotas in the table as well as the Master can perform the necessary update/delete actions per the quota RPCs.</description>
+      <version>None</version>
+      <fixedVersion>HBASE-16961,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaAdmin.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.MasterQuotaManager.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.quotas.QuotaTableUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16998" opendate="2016-11-2 00:00:00" fixdate="2016-1-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[Master] Analyze table use reports and update quota violations</summary>
+      <description>Given the collected table usage reports from RegionServers, the Master needs to inspect all filesystem-use quotas and determine which need to move into violation and which need to move out of violation.</description>
+      <version>None</version>
+      <fixedVersion>HBASE-16961,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaTableUtil.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.MasterQuotaManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.quotas.QuotaRetriever.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16999" opendate="2016-11-2 00:00:00" fixdate="2016-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[Master] Inform RegionServers on size quota violations</summary>
+      <description>The Master, after computing the total usage across all regionservers, needs to inform the RegionServers about tables that need to change violation policy enforcement (enable or disable enforcement).RPC, ZK, or ProcV2's notification bus are some examples of ways this could be implemented.</description>
+      <version>None</version>
+      <fixedVersion>HBASE-16961,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaThrottle.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaTableUtil.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaObserverChoreWithMiniCluster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.MockRegionServerServices.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.MockRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionServerServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.SpaceQuotaViolationNotifierForTest.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.SpaceQuotaViolationNotifier.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.RegionServerQuotaManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.QuotaObserverChore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.quotas.QuotaTableUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17000" opendate="2016-11-2 00:00:00" fixdate="2016-12-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[RegionServer] Compute region filesystem space use and report to Master</summary>
+      <description>Each RegionServer needs to track how much space a Region takes up and roll this up to the table level.Aggregation of this information in the Master will be covered by HBASE-16997.</description>
+      <version>None</version>
+      <fixedVersion>HBASE-16961,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.MasterQuotaManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.MasterRpcServices.java</file>
+      <file type="M">hbase-protocol-shaded.src.main.protobuf.RegionServerStatus.proto</file>
+      <file type="M">hbase-protocol-shaded.src.main.java.org.apache.hadoop.hbase.shaded.protobuf.generated.RegionServerStatusProtos.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17001" opendate="2016-11-2 00:00:00" fixdate="2016-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[RegionServer] Implement enforcement of quota violation policies</summary>
+      <description>When the master enacts a quota violation policy, the RegionServers need to actually enforce that policy per its definition.</description>
+      <version>None</version>
+      <fixedVersion>HBASE-16961,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestTablesWithQuotas.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestTableSpaceQuotaViolationNotifier.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestTableQuotaViolationStore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestSpaceQuotaViolationPolicyRefresherChore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestRegionServerSpaceQuotaManager.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaTableUtil.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaObserverChoreWithMiniCluster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaObserverChore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestNamespaceQuotaViolationStore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestFileSystemUtilizationChore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.CompactSplitThread.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.TableSpaceQuotaViolationNotifier.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.TableQuotaViolationStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.SpaceQuotaViolationPolicyRefresherChore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.SpaceQuotaViolationNotifierForTest.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.SpaceQuotaViolationNotifierFactory.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.SpaceQuotaViolationNotifier.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.RegionServerSpaceQuotaManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.QuotaViolationStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.QuotaObserverChore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.NamespaceQuotaViolationStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+      <file type="M">hbase-protocol.src.main.protobuf.Quota.proto</file>
+      <file type="M">hbase-protocol.src.main.java.org.apache.hadoop.hbase.protobuf.generated.QuotaProtos.java</file>
+      <file type="M">hbase-protocol-shaded.src.main.protobuf.Quota.proto</file>
+      <file type="M">hbase-protocol-shaded.src.main.java.org.apache.hadoop.hbase.shaded.protobuf.generated.QuotaProtos.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.quotas.QuotaTableUtil.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.quotas.QuotaExceededException.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17003" opendate="2016-11-2 00:00:00" fixdate="2016-3-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update book for filesystem use quotas</summary>
+      <description>Need to make sure that the book's section on quotas reflect the final implementation of the filesystem-use quota support.</description>
+      <version>None</version>
+      <fixedVersion>HBASE-16961,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.ops.mgt.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17514" opendate="2017-1-23 00:00:00" fixdate="2017-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Warn when Thrift Server 1 is configured for proxy users but not the HTTP transport</summary>
+      <description>The config hbase.thrift.support.proxyuser is ignored if the Thrift Server 1 isn't configured to use an HTTP transport with hbase.regionserver.thrift.http.We should emit a warning if our configs request proxy user support but don't specify that HTTP should be used for the transport.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.2.6,1.3.2,1.1.11,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-thrift.src.main.java.org.apache.hadoop.hbase.thrift.ThriftServerRunner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17516" opendate="2017-1-23 00:00:00" fixdate="2017-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Table quota not taking precedence over namespace quota</summary>
+      <description>Romil Choksi found a bug in the current patch-set where a more restrictive table quota did not take priority over a less-restrictive namespace quota.Turns out some of the logic to handle this case was incorrect.</description>
+      <version>None</version>
+      <fixedVersion>HBASE-16961,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestSpaceQuotas.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaStatusRPCs.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.quotas.TestQuotaObserverChoreWithMiniCluster.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.quotas.QuotaObserverChore.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17518" opendate="2017-1-24 00:00:00" fixdate="2017-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HBase Reference Guide has a syntax error</summary>
+      <description>The image of "HFile Version 2 Structure" in Appendix F of HBase Reference Guide (pdf) is missing because of a wrong asciidoc syntax:image:hfilev2.png&amp;#91;HFile Version 2&amp;#93;modified as:image::hfilev2.png&amp;#91;HFile Version 2&amp;#93;it should be a double colon instead of single one</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.appendix.hfile.format.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17520" opendate="2017-1-24 00:00:00" fixdate="2017-3-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement isTableEnabled/Disabled/Available methods</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestAsyncTableAdminApi.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncHBaseAdmin.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncAdmin.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.AsyncMetaTableAccessor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17522" opendate="2017-1-24 00:00:00" fixdate="2017-2-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RuntimeExceptions from MemoryMXBean should not take down server process</summary>
+      <description>RegionServer died after MemoryMXBean threw an IllegalArgumentException while attempting to create a MemoryUsage object for the heap during construction of the server load.We shouldn't allow failure to get load information to take down the RS.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.3.1,1.2.5,1.1.9,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestDefaultMemStore.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.io.hfile.TestCacheConfig.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.MemStoreFlusher.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HeapMemoryManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.util.MemorySizeUtil.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.CacheConfig.java</file>
+      <file type="M">hbase-server.src.main.jamon.org.apache.hadoop.hbase.tmpl.regionserver.ServerMetricsTmpl.jamon</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21277" opendate="2018-10-8 00:00:00" fixdate="2018-10-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prevent to add same table to two sync replication peer&amp;#39;s config</summary>
+      <description>If a table in two sync replication peer's config, it need write wal to three places: local dir and two remote dir. It is not allowed. Need to add check when add sync replication peer or modify sync replication peer's config.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.replication.ReplicationPeerManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.replication.ModifyPeerProcedure.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.replication.AddPeerProcedure.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

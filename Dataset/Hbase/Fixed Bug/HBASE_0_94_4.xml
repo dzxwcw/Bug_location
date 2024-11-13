@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="6177" opendate="2012-6-6 00:00:00" fixdate="2012-6-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add .idea to RAT excludes</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6178" opendate="2012-6-6 00:00:00" fixdate="2012-9-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LoadTest tool no longer packaged after the modularization</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.assembly.hadoop-two-compat.xml</file>
+      <file type="M">src.assembly.hadoop-one-compat.xml</file>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6179" opendate="2012-6-6 00:00:00" fixdate="2012-6-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix stylesheet broke since multimodule and address feedback gotten in new comment system</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.docbkx.ops.mgt.xml</file>
+      <file type="M">src.docbkx.configuration.xml</file>
+      <file type="M">src.docbkx.book.xml</file>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7551" opendate="2013-1-14 00:00:00" fixdate="2013-1-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodeChildrenChange event may happen after the transition to RS_ZK_REGION_SPLITTING in SplitTransaction causing the SPLIT event to be missed in the master side.</summary>
+      <description>This came from HBASE-7468.I got the issue. I am able to reproduce thisSee the logs2013-01-14 14:37:21,760 INFO [main] regionserver.SplitTransaction(216): Starting split of region testShouldClearRITWhenNodeFoundInSplittingState,,1358154439514.a9e57d09c58b3ef3b949d602232fb2c2.2013-01-14 14:37:21,760 DEBUG [main] regionserver.SplitTransaction(871): regionserver:61665-0x13c384e4e4f0002 Creating ephemeral node for a9e57d09c58b3ef3b949d602232fb2c2 in SPLITTING state2013-01-14 14:37:21,844 DEBUG [main] zookeeper.ZKAssign(757): regionserver:61665-0x13c384e4e4f0002 Attempting to transition node a9e57d09c58b3ef3b949d602232fb2c2 from RS_ZK_REGION_SPLITTING to RS_ZK_REGION_SPLITTING2013-01-14 14:37:21,849 DEBUG [Thread-873-EventThread] zookeeper.ZooKeeperWatcher(277): master:62334-0x13c384e4e4f001b Received ZooKeeper Event, type=NodeChildrenChanged, state=SyncConnected, path=/hbase/unassigned2013-01-14 14:37:21,853 DEBUG [main] zookeeper.ZKUtil(1565): regionserver:61665-0x13c384e4e4f0002 Retrieved 140 byte(s) of data from znode /hbase/unassigned/a9e57d09c58b3ef3b949d602232fb2c2; data=region=testShouldClearRITWhenNodeFoundInSplittingState,,1358154439514.a9e57d09c58b3ef3b949d602232fb2c2., origin=Ram.Home,61665,1358154325430, state=RS_ZK_REGION_SPLITTING2013-01-14 14:37:21,918 DEBUG [main] zookeeper.ZKAssign(820): regionserver:61665-0x13c384e4e4f0002 Successfully transitioned node a9e57d09c58b3ef3b949d602232fb2c2 from RS_ZK_REGION_SPLITTING to RS_ZK_REGION_SPLITTING2013-01-14 14:37:21,919 DEBUG [Thread-873-EventThread] zookeeper.ZKUtil(417): master:62334-0x13c384e4e4f001b Set watcher on existing znode /hbase/unassigned/a9e57d09c58b3ef3b949d602232fb2c2Here we can observe that the SPLITTING node was first created. Then we transit it to SPLITTING to SPLITTING so that AM can have the nodeDataChange event. But for the nodeDataChange event to happen first nodeChildrenChange event should happen so that the master can set a watcher on the node.Now when this hang happens, we can see that after the transition happens only then the watcher is set by nodeChildrenChange event and so the SPLITTING to SPLITTING event itself is missed or skipped.Ideally the nodeChildrenChange event iterates thro the list of new znodes on the /hbase/assignment nodes. And then creates a watcher on that. One reason could be there are more than one znode and so the watch setting operation takes time. The order of execution is different when we try running from eclipse and when we run mvn tests. My conclusion is that the testcase actually reveals the problem but the same can happen in any case where the SPLITTING event can get missed out. May be some of the SPLIT related bugs that were raised is due to this? Need to analyse.Any suggestions welcome. We should ensure that the transition from SPLITTING to SPLITTING should happen only after the master has set the watch on the znode and we should be sure of that.</description>
+      <version>0.94.4</version>
+      <fixedVersion>0.94.5,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.AssignmentManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7558" opendate="2013-1-14 00:00:00" fixdate="2013-1-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Client not able to access /hbase/unassigned in secure cluster</summary>
+      <description>HBASE-6068, /hbase/unassigned is not listed as open nodeand catalogTracker tries to read from both: RootRegionTracker (/hbase/root-region-server) and MetaNodeTracker (/hbase/unassigned)Unable to get data of znode /hbase/unassigned/1028785192org.apache.zookeeper.KeeperException$NoAuthException: KeeperErrorCode = NoAuth for /hbase/unassigned/1028785192</description>
+      <version>0.94.4,0.95.2</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7561" opendate="2013-1-14 00:00:00" fixdate="2013-2-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Display the total number of regions for a given table on the master webUI</summary>
+      <description>This is to make it easy to find out the summary of the # of regions for each table on one web page. Currently you need to click on each table URL to find out the # of region of that table. We find this useful to support a shared cluster with different clients.</description>
+      <version>0.94.4</version>
+      <fixedVersion>0.94.5,0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.jamon.org.apache.hadoop.hbase.tmpl.master.MasterStatusTmpl.jamon</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7565" opendate="2013-1-15 00:00:00" fixdate="2013-1-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[replication] Create an interface for the replication state node</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.ReplicationZookeeper.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.ReplicationPeer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.replication.ReplicationAdmin.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7567" opendate="2013-1-15 00:00:00" fixdate="2013-5-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[replication] Create an interface for replication peers</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.TestReplicationZookeeper.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.TestReplicationStateZKImpl.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.TestReplicationStateBasic.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.regionserver.TestReplicationSourceManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSourceManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.master.ReplicationLogCleaner.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.mapreduce.replication.VerifyReplication.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.mapreduce.Import.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKUtil.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKClusterId.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationZookeeper.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationStateZKBase.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationStateInterface.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationStateImpl.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationQueuesZKImpl.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationQueues.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationPeer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7568" opendate="2013-1-15 00:00:00" fixdate="2013-4-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[replication] Create an interface for replication queues</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.95.1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.regionserver.TestReplicationSourceManager.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.replication.TestReplicationAdmin.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSourceManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.Replication.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.master.ReplicationLogCleaner.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationZookeeper.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationStateImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7569" opendate="2013-1-15 00:00:00" fixdate="2013-1-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>change HTD/HCD to use standard byte-byte pair for metadata</summary>
+      <description>Came up as advise from someone during HBASE-7236 review. HTD/HCD shouldn't declare their own byte pairs when the standard one is available in the proto</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.HTableDescriptor.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.HColumnDescriptor.java</file>
+      <file type="M">hbase-protocol.src.main.protobuf.hbase.proto</file>
+      <file type="M">hbase-protocol.src.main.java.org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7570" opendate="2013-1-15 00:00:00" fixdate="2013-1-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>rename user metadata dictionary in shell from CONFIG</summary>
+      <description>As discussed in HBASE-6894, CONFIG name for user metadata dictionary is not a very good/descriptive name. Now it will also cause confusion with per-CF/per-table configuration setting in shell.</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.ruby.shell.commands.create.rb</file>
+      <file type="M">hbase-server.src.main.ruby.shell.commands.alter.rb</file>
+      <file type="M">hbase-server.src.main.ruby.hbase.admin.rb</file>
+      <file type="M">hbase-server.src.main.ruby.hbase.rb</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.HTableDescriptor.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.HColumnDescriptor.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.HConstants.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7571" opendate="2013-1-15 00:00:00" fixdate="2013-1-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add the notion of per-table or per-column family configuration</summary>
+      <description>Main part of split HBASE-7236.</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.TestHTableDescriptor.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.TestHColumnDescriptor.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestStore.java</file>
+      <file type="M">hbase-server.src.main.ruby.hbase.admin.rb</file>
+      <file type="M">hbase-server.src.main.ruby.hbase.rb</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.HTableDescriptor.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.HColumnDescriptor.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.constraint.Constraints.java</file>
+      <file type="M">hbase-protocol.src.main.protobuf.hbase.proto</file>
+      <file type="M">hbase-protocol.src.main.java.org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.HConstants.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7593" opendate="2013-1-16 00:00:00" fixdate="2013-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[site] Adjustments to suit our new publishing process</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.docbkx.developer.xml</file>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7600" opendate="2013-1-17 00:00:00" fixdate="2013-10-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TestAdmin.testCreateBadTables is failing occasionally</summary>
+      <description>See in a 0.94 test run.Looks like in some cases it is possible to create two tables with the same name, which is worrisome.java.lang.AssertionError: expected:&lt;1&gt; but was:&lt;2&gt; at org.junit.Assert.fail(Assert.java:93) at org.junit.Assert.failNotEquals(Assert.java:647) at org.junit.Assert.assertEquals(Assert.java:128) at org.junit.Assert.assertEquals(Assert.java:472) at org.junit.Assert.assertEquals(Assert.java:456) at org.apache.hadoop.hbase.client.TestAdmin.testCreateBadTables(TestAdmin.java:1091)</description>
+      <version>0.94.4</version>
+      <fixedVersion>0.98.0,0.94.13,0.96.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKTable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7601" opendate="2013-1-17 00:00:00" fixdate="2013-1-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix 8 remaining EQ findbug warnings from hbase-server.</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RegionPlan.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.mapred.TableSplit.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.CachedBlock.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.filter.NullComparator.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.Increment.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.Get.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.Action.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7633" opendate="2013-1-21 00:00:00" fixdate="2013-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a metric that tracks the current number of used RPC threads on the regionservers</summary>
+      <description>One way to detect that you're hitting a "John Wayne" disk&amp;#91;1&amp;#93; would be if we could see when region servers exhausted their RPC handlers. This would also be useful when tuning the cluster for your workload to make sure that reads or writes were not starving the other operations out.&amp;#91;1&amp;#93; http://hbase.apache.org/book.html#bad.disk</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.procedure.TestZKProcedure.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.procedure.Procedure.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7649" opendate="2013-1-23 00:00:00" fixdate="2013-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>client retry timeout doesn&amp;#39;t need to do x2 fallback when going to different server</summary>
+      <description>See HBASE-7520. When we go to server A, get a bunch of failures, then finally learn the region is on B it doesn't make sense to wait for 30 seconds before going to B.</description>
+      <version>None</version>
+      <fixedVersion>0.95.1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestHCM.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.IntegrationTestRebalanceAndKillServersTargeted.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.IngestIntegrationTestBase.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.HConnectionManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="772" opendate="2008-7-24 00:00:00" fixdate="2008-7-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Up default lease period from 60 to 120 seconds</summary>
+      <description>At 60 seconds, it seems easy enough for a HRS to timeout if datanode and a tasktracker doing uploading all on the one, smallish machine. Try upping the default to 120. Internally at powerset we have it set to 180 for our big indexing jobs.</description>
+      <version>None</version>
+      <fixedVersion>0.2.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.hbase-default.xml</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7757" opendate="2013-2-4 00:00:00" fixdate="2013-2-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add web UI to REST server and Thrift server</summary>
+      <description>Add Hadoop HttpServer (web UI) to REST server and Thrift server. The Hadoop HttpServer supports metrics/jmx/conf/logLevel/stacks, which is useful to monitor REST/Thrift server.For REST server, use a separate listener/context to avoid path mapping conflicts.</description>
+      <version>None</version>
+      <fixedVersion>0.94.5,0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.thrift.ThriftServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.thrift2.ThriftServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RESTServer.java</file>
+      <file type="M">hbase-server.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7758" opendate="2013-2-4 00:00:00" fixdate="2013-2-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update book to include documentation of CellCounter utility</summary>
+      <description>The book documents RowCounter but not cell counter. Describe them together.</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.docbkx.ops.mgt.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7765" opendate="2013-2-5 00:00:00" fixdate="2013-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>A tool to replay HLog entries in case a log file is missed while log splitting</summary>
+      <description>There may be a case where a HLog can escape the Log splitting. It will be good to have a standalone tool that reads entries from a HLog, and replays it back to HBase.</description>
+      <version>0.94.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.docbkx.ops.mgt.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7771" opendate="2013-2-5 00:00:00" fixdate="2013-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Secure HBase Client in MR job causes tasks to wait forever</summary>
+      <description>This seems to be a regression caused by HBASE-4791 wherein we check if secure zookeeper is enabled and if so we make use of saslLatch to verify security handshake is completed. But in the case of MR, we won't be negotiating a secure connection thus we end up waiting forever for the saslLatch.Since the bug the saslLatch workaround is trying to fix (ZOOKEEPER-1437) is already fixed in zookeeper-3.4.5. Removal of the workaround fixes the problem.</description>
+      <version>0.94.4</version>
+      <fixedVersion>0.94.5,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.zookeeper.TestZooKeeperACL.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.zookeeper.ZooKeeperWatcher.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.zookeeper.ZooKeeperNodeTracker.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7772" opendate="2013-2-5 00:00:00" fixdate="2013-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>clusterId is not set in conf properly if only TableMapReduceUtil.initCredentials() is called</summary>
+      <description>clusterId is not set in the job's conf correctly if only TableMapReduceUtil.initCredentials() is called and thus fails to include the token when using an hbase client in any of the job's tasks. This is a regression.</description>
+      <version>None</version>
+      <fixedVersion>0.94.5,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.HConnectionManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7856" opendate="2013-2-15 00:00:00" fixdate="2013-2-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HTU#waitTableAvailable should have a default value of 30s</summary>
+      <description>It's often used with 5s delay. It's not enough in my env as I parallelize heavily the tests. 30s default seems to make it.</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.access.TestTablePermissions.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.access.TestAccessController.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.access.TestAccessControlFilter.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestRestartCluster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.mapreduce.TestSecureLoadIncrementalHFilesSplitRecovery.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.mapreduce.TestSecureLoadIncrementalHFiles.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.mapreduce.TestLoadIncrementalHFiles.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.mapreduce.TestHFileOutputFormat.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.HBaseTestingUtility.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.coprocessor.TestClassLoading.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestMultiParallel.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8027" opendate="2013-3-7 00:00:00" fixdate="2013-3-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>hbase-7994 redux; shutdown hbase-example unit tests</summary>
+      <description>My patch on hbase-7994 did not stop clusters starting though no test to run (adding the @Ignore in front of the @before and @after class). All tests passed on build #34 but for the failed hbase-examples cluster startups:https://builds.apache.org/job/hbase-0.95/34/</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-examples.src.test.java.org.apache.hadoop.hbase.coprocessor.example.TestZooKeeperScanPolicyObserver.java</file>
+      <file type="M">hbase-examples.src.test.java.org.apache.hadoop.hbase.coprocessor.example.TestRowCountEndpoint.java</file>
+      <file type="M">hbase-examples.src.test.java.org.apache.hadoop.hbase.coprocessor.example.TestBulkDeleteProtocol.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8405" opendate="2013-4-23 00:00:00" fixdate="2013-5-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add more custom options to how ClusterManager runs commands</summary>
+      <description>You may want to run yet more custom commands (such as su as some local user) depending on test setup.</description>
+      <version>None</version>
+      <fixedVersion>0.94.8,0.95.1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.docbkx.developer.xml</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.HBaseClusterManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8406" opendate="2013-4-23 00:00:00" fixdate="2013-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix rat check and rat warning in trunk</summary>
+      <description>See recent trunk hadoop qa where it has test properties for audit set to 84 so when there is actually a rat check problem, it doesn't show up on a hadoop qa build:https://builds.apache.org/job/PreCommit-HBASE-Build/5403/consoleFullGrep for 'There appear to be 84 release audit warnings before the patch and 1 release audit warnings after applying the patch.'Also, we have a rat warning since we did site move back out of hbase-assembly (noticed by JD).</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">dev-support.test-patch.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9706" opendate="2013-10-3 00:00:00" fixdate="2013-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve detection of secure ZooKeeper</summary>
+      <description>HBase client code assumes ZooKeeper is secured, as long as there is a java.security.auth.login.config property being set. When HBase client is embedded in other java program with other security configuration, it can produce wrong assumption that ZooKeeper is secured. Ideally, isSecureZooKeeper method should detect Jaas configuration specifically for ZooKeeper to ensure that client program doesn't have a false positive detection.</description>
+      <version>0.94.4,0.95.0</version>
+      <fixedVersion>0.98.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.zookeeper.TestZooKeeperACL.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKUtil.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

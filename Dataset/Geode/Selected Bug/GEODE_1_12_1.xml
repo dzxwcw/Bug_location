@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="GEODE">
+  
+  
+  <bug fixdate="2016-2-19 01:00:00" id="794" opendate="2016-1-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to match iterators when update in progress</summary>
+      <description>When an update in progress occurs, run time iterators will possibly not be found. This is due to getReceiverNameFromPath not accounting for all the CompiledValue types that override getReceiver()The fix would involve adding CompiledOperation to the instance of checks.</description>
+      <version>None</version>
+      <fixedVersion>1.0.0-incubating.M2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">gemfire-core.src.test.java.com.gemstone.gemfire.cache.query.internal.index.CompactRangeIndexJUnitTest.java</file>
+      <file type="M">gemfire-core.src.main.java.com.gemstone.gemfire.cache.query.internal.index.CompactRangeIndex.java</file>
+      <file type="M">gemfire-core.src.main.java.com.gemstone.gemfire.cache.query.internal.index.AbstractIndex.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-4-1 01:00:00" id="7941" opendate="2020-4-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>upgrade Shiro to 1.5.2</summary>
+      <description>our current Shiro version (1.4.1) is below the recommended version.  Now that Geode 1.12.0 has been released, now is a good time to bump whatever we can.</description>
+      <version>None</version>
+      <fixedVersion>1.12.1,1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-4-9 01:00:00" id="7978" opendate="2020-4-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve tests for Redis Module SREM Command</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.executor.set.SAddExecutor.java</file>
+      <file type="M">geode-redis.src.test.java.org.apache.geode.redis.internal.executor.set.SetExecutorJUnitTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.SetsIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.GeoIntegrationTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-4-10 01:00:00" id="7980" opendate="2020-4-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect member count in rebalance output when rebalancing colocated regions</summary>
+      <description>When colocated regions are present during rebalance, incorrect member counts are reported in the rebalance results: [vm0] [info 2020/04/10 11:28:50.895 PDT &lt;RebalanceCommand1&gt; tid=0x56] Rebalanced partition regions /childRegion [vm0] Total bytes in all redundant bucket copies created during this rebalance = 0 [vm0] Total time (in milliseconds) spent creating redundant bucket copies during this rebalance = 0 [vm0] Total number of redundant copies created during this rebalance = 0 [vm0] Total bytes in buckets moved during this rebalance = 0 [vm0] Total time (in milliseconds) spent moving buckets during this rebalance = 0 [vm0] Total number of buckets moved during this rebalance = 0 [vm0] Total time (in milliseconds) spent switching the primary state of buckets during this rebalance = 0 [vm0] Total primaries transferred during this rebalance = 0 [vm0] Total time (in milliseconds) for this rebalance = 0 [vm0] Total number of members in system on which rebalance is executed = 0[vm0] [info 2020/04/10 11:28:50.896 PDT &lt;RebalanceCommand1&gt; tid=0x56] Rebalanced partition regions /parentRegion [vm0] Total bytes in all redundant bucket copies created during this rebalance = 0 [vm0] Total time (in milliseconds) spent creating redundant bucket copies during this rebalance = 0 [vm0] Total number of redundant copies created during this rebalance = 0 [vm0] Total bytes in buckets moved during this rebalance = 18426 [vm0] Total time (in milliseconds) spent moving buckets during this rebalance = 2715 [vm0] Total number of buckets moved during this rebalance = 132 [vm0] Total time (in milliseconds) spent switching the primary state of buckets during this rebalance = 0 [vm0] Total primaries transferred during this rebalance = 0 [vm0] Total time (in milliseconds) for this rebalance = 5506 [vm0] Total number of members in system on which rebalance is executed = 4  A test to reproduce the issue is provided below.public class RebalanceMembersColocationTest { public static final String PARENT_REGION_NAME = "parentRegion"; public static final String CHILD_REGION_NAME = "childRegion"; @Rule public ClusterStartupRule cluster = new ClusterStartupRule(); @Rule public GfshCommandRule gfsh = new GfshCommandRule(); @Test public void testRebalanceResultOutputMemberCountWIthColocatedRegions() throws Exception { MemberVM locator = cluster.startLocatorVM(0); MemberVM server1 = cluster.startServerVM(1, locator.getPort()); MemberVM server2 = cluster.startServerVM(2, locator.getPort()); server1.invoke(() -&gt; { Region&lt;Object, Object&gt; parentRegion = Objects.requireNonNull(ClusterStartupRule.getCache()) .createRegionFactory(RegionShortcut.PARTITION).create(PARENT_REGION_NAME); IntStream.range(0, 500).forEach(i -&gt; parentRegion.put("key" + i, "value" + 1)); PartitionAttributesImpl attributes = new PartitionAttributesImpl(); attributes.setColocatedWith(PARENT_REGION_NAME); Region&lt;Object, Object&gt; childRegion = Objects.requireNonNull(ClusterStartupRule.getCache()) .createRegionFactory(RegionShortcut.PARTITION).setPartitionAttributes(attributes) .create(CHILD_REGION_NAME); IntStream.range(0, 500).forEach(i -&gt; childRegion.put("key" + i, "value" + 1)); }); server2.invoke(() -&gt; { Objects.requireNonNull(ClusterStartupRule.getCache()) .createRegionFactory(RegionShortcut.PARTITION).create(PARENT_REGION_NAME); PartitionAttributesImpl attributes = new PartitionAttributesImpl(); attributes.setColocatedWith(PARENT_REGION_NAME); Objects.requireNonNull(ClusterStartupRule.getCache()) .createRegionFactory(RegionShortcut.PARTITION).setPartitionAttributes(attributes) .create(CHILD_REGION_NAME); }); locator.waitUntilRegionIsReadyOnExactlyThisManyServers("/" + PARENT_REGION_NAME, 2); locator.waitUntilRegionIsReadyOnExactlyThisManyServers("/" + CHILD_REGION_NAME, 2); gfsh.connectAndVerify(locator); Map&lt;String, List&lt;String&gt;&gt; rebalanceResult = gfsh.executeAndAssertThat("rebalance") .statusIsSuccess().hasTableSection().getActual().getContent(); assertThat(rebalanceResult.get("Value").get(9)).isEqualTo("2"); }}</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.control.RebalanceResultsImpl.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-4-14 01:00:00" id="7984" opendate="2020-4-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Consolidate POM publication scripts</summary>
+      <description>There is a lot of repeated scripting between publishing jar, war, and pom artifacts. DRY it up.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">gradle.publish-war.gradle</file>
+      <file type="M">gradle.publish-java.gradle</file>
+      <file type="M">gradle.publish-common.gradle</file>
+      <file type="M">boms.geode-all-bom.build.gradle</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-4-14 01:00:00" id="7985" opendate="2020-4-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>roll benchmark baseline to 1.12 release</summary>
+      <description>current pipeline is still using 1.10.0 as baseline for benchmarks.  because we've made some improvements since then, we won't be catching any regressions against those gains</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-tools.release.promote.rc.sh</file>
+      <file type="M">ci.pipelines.shared.jinja.variables.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-8-5 01:00:00" id="8410" opendate="2020-8-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove offensive wording from documentation</summary>
+      <description>Offensive wording appears in our documentation.  We should rewrite to eliminate the offensive wording.Here are some examples and possible substitutions:abort becomes stop/cancel/stop prematurelywhitelist and blacklist become allowlist(noun), allow(v) and denylist(noun), deny(v) or blockblackout becomes restriction(noun), restrict(v)master and slave become primary or main and secondary or workerwhitehat and blackhat become ethical and unethicalkill becomes stop or halt </description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.reference.topics.glossary.html.md.erb</file>
+      <file type="M">geode-docs.reference.topics.client-cache.html.md.erb</file>
+      <file type="M">geode-docs.reference.topics.cache.xml.html.md.erb</file>
+      <file type="M">geode-docs.reference.statistics.list.html.md.erb</file>
+      <file type="M">geode-docs.reference.archive.transactions.JTA.transactions.html.md.erb</file>
+      <file type="M">geode-docs.managing.logging.logging.categories.html.md.erb</file>
+      <file type="M">geode-docs.managing.disk.storage.backup.restore.disk.store.html.md.erb</file>
+      <file type="M">geode-docs.developing.outside.data.sources.chapter.overview.html.md.erb</file>
+      <file type="M">geode-docs.developing.events.list.of.event.handlers.and.events.html.md.erb</file>
+      <file type="M">geode-docs.developing.events.how.client.server.distribution.works.html.md.erb</file>
+      <file type="M">geode-docs.configuring.running.starting.up.shutting.down.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2021-2-3 01:00:00" id="8915" opendate="2021-2-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Geode pipelines need to be modified to support concourse 6.x</summary>
+      <description>In order to upgrade to concourse version 6 we need to change the pipelines. This issues will cover all support branches and develop.</description>
+      <version>1.12.1,1.13.2,1.14.0</version>
+      <fixedVersion>1.12.1,1.13.2,1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.mass-test-run.jinja.template.yml</file>
+      <file type="M">ci.pipelines.reaper.jinja.template.yml</file>
+      <file type="M">ci.pipelines.pull-request.jinja.template.yml</file>
+      <file type="M">ci.pipelines.meta.jinja.template.yml</file>
+      <file type="M">ci.pipelines.images.jinja.template.yml</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+      <file type="M">ci.pipelines.examples.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2021-2-3 01:00:00" id="8916" opendate="2021-2-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The gfsh export stack traces command should include the locators</summary>
+      <description>The gfsh export stack traces command should include the locators, but only includes the servers.Here is an excerpt from a slack conversation showing the behavior:Shelley Hughes-Godfrey 6:48 PMI have a question about gfsh export stack-traces ..."list members" shows me servers and locators ...gfsh&gt;list membersMember Count : 3 Name | Id------------------------- | ----------------------------------------------------------------------------gemfire-cluster-server-0 | xx.xx.x.xxx(gemfire-cluster-server-0:1)&lt;v1&gt;:41000gemfire-cluster-locator-0 | xx.xx.x.xxx(gemfire-cluster-locator-0:1:locator)&lt;ec&gt;&lt;v0&gt;:41000 &amp;#91;Coordinator&amp;#93;gemfire-cluster-server-1 | xx.xx.x.xxx(gemfire-cluster-server-1:1)&lt;v2&gt;:41000But, if I don't specify members on the export stack-traces command, I just get the stacks for the servers.gfsh&gt;export stack-tracesstack-trace(s) exported to file: /path/stacktrace_1612316330340On host : ...Specifying a locator returns "No Members found"gfsh&gt;export stack-traces --member=gemfire-cluster-locator-0No Members FoundAlso, it looks like copy-paste was done from export logs =&gt; export stack-traces (for --members and --groups).</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.export.html.md.erb</file>
+      <file type="M">geode-gfsh.src.test.java.org.apache.geode.management.internal.cli.commands.ExportStackTraceCommandTest.java</file>
+      <file type="M">geode-gfsh.src.main.java.org.apache.geode.management.internal.cli.commands.ExportStackTraceCommand.java</file>
+      <file type="M">geode-gfsh.src.distributedTest.java.org.apache.geode.management.internal.cli.commands.ExportStackTraceCommandDUnitTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2021-2-3 01:00:00" id="8917" opendate="2021-2-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Revise docs to match current gfsh export stack-traces behavior</summary>
+      <description>Our docs for gfsh export stack-traces do not match the current behavior. Update the docs.If we don't specify members on the export stack-traces command, we only get the traces for the servers.gfsh&gt;export stack-traces stack-trace(s) exported to file: /data/stacktrace_1612316330340 On host : gemfire-cluster-locator-0.gemfire-cluster-locator.gemfire-system.svc.cluster.localgfsh&gt;export stack-tracesstack-trace(s) exported to file: /path/stacktrace_1612316330340On host : ...Specifying a locator returns "No Members found"gfsh&gt;export stack-traces --member=gemfire-cluster-locator-0No Members FoundAlso, it looks like copy-paste was done from export logs =&gt; export stack-traces (for --members and --groups).</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.export.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2021-2-6 01:00:00" id="8923" opendate="2021-2-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bump shiro to recommended version</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.12.1,1.13.2,1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2021-2-14 01:00:00" id="8947" opendate="2021-2-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Performance degradations due to GEODE-8930</summary>
+      <description>Following the changes introduced by GEODE-8930, performance degradations were seen in situations involving P2P puts with replicated regions.</description>
+      <version>1.12.1,1.13.2,1.14.0,1.15.0</version>
+      <fixedVersion>1.12.1,1.13.2,1.14.0,1.15.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.tx.RemoteOperationMessageTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tx.RemoteOperationMessage.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2021-2-25 01:00:00" id="8974" opendate="2021-2-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>bump apache-httpclient to recommended version</summary>
+      <description>4.5.13 is already on 1.14 and develop, but should be back ported to 1.13 and 1.12</description>
+      <version>1.12.1,1.13.1</version>
+      <fixedVersion>1.12.2,1.13.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2021-3-1 01:00:00" id="8981" opendate="2021-3-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update micrometer version to 1.6.3</summary>
+      <description>Currently, geode 1.12 uses micrometer version 1.2.1 which is much older than the latest release of the micrometer version. Version 1.2.1 of the micrometer release is also out of support (https://github.com/micrometer-metrics/micrometer/releases/tag/v1.2.1). Bumping this version to 1.6.3 which is the most stable release gives us to stay on the LTS support cycle of micrometer. https://micrometer.io/docs/support</description>
+      <version>1.12.0,1.12.1</version>
+      <fixedVersion>1.12.2,1.13.2</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2021-3-2 01:00:00" id="8989" opendate="2021-3-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>bump spring-security to recommended version</summary>
+      <description>update develop, 1.14 from 5.4.2 to 5.4.5update 1.13 from 5.3.2 to 5.3.8update 1.12 from 5.2.4 to 5.2.9</description>
+      <version>1.12.1,1.13.1,1.14.0,1.15.0</version>
+      <fixedVersion>1.12.2,1.13.2,1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2021-3-6 01:00:00" id="9010" opendate="2021-3-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>bump jetty to recommended version on support branches</summary>
+      <description>develop is good but 1.12, 1.13, and 1.14 should be brought up to same level</description>
+      <version>1.12.1,1.13.1,1.14.0</version>
+      <fixedVersion>1.12.2,1.13.2,1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.integrationTest.resources.expected.jars.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">geode-assembly.src.distributedTest.java.org.apache.geode.session.tests.GenericAppServerInstall.java</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+</bugrepository>

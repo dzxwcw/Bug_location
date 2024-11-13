@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10131" opendate="2015-8-19 00:00:00" fixdate="2015-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>consistently sort DCs in nodetool:status</summary>
+      <description>It's kind of annoying that the order flip flops as I look at different clusters.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10238" opendate="2015-9-1 00:00:00" fixdate="2015-9-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Consolidating racks violates the RF contract</summary>
+      <description>I have only tested this on 2.0 so far, but I suspect it will affect multiple versions.Repro: create a datacenter with rf&gt;1 create more than one rack in this datacenter consolidate these racks into 1 getendpoints will reveal the RF in practice is 1, even though other tools will report the original RF that was setRestarting Cassandra will resolve this.</description>
+      <version>2.0.17,2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.locator.TokenMetadataTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.YamlFileNetworkTopologySnitch.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.TokenMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.PropertyFileSnitch.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10272" opendate="2015-9-5 00:00:00" fixdate="2015-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BATCH statement is broken in cqlsh</summary>
+      <description>BEGIN BATCH .... APPLY BATCH is not parsed correctly.Steps:CREATE KEYSPACE Excelsior WITH REPLICATION={'class':'SimpleStrategy','replication_factor':1};CREATE TABLE excelsior.data (id int primary key);BEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0); APPLY BATCH ;ErrorSyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 0:-1 mismatched input '&lt;EOF&gt;' expecting K_APPLY"&gt;SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:0 no viable alternative at input 'APPLY' ([APPLY]...)"&gt;While BEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0) APPLY BATCH ;without ; after insert works.Consequently neitherBEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0);INSERT INTO excelsior.data (id) VALUES (0); APPLY BATCH ;Error:SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 0:-1 mismatched input '&lt;EOF&gt;' expecting K_APPLY"&gt;SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:0 no viable alternative at input 'APPLY' ([APPLY]...)"&gt;norBEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0);INSERT INTO excelsior.data (id) VALUES (0) APPLY BATCH ;ErrorSyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 0:-1 mismatched input '&lt;EOF&gt;' expecting K_APPLY"&gt;SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:43 missing EOF at 'APPLY' (...(id) VALUES (0) [APPLY] BATCH...)"&gt;works.It was OK in 2.2.0 and 3.0 beta 1.3.0-beta2-tentative also affected.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10299" opendate="2015-9-10 00:00:00" fixdate="2015-9-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Issue with sstable selection when anti-compacting</summary>
+      <description>While running some tests with incremental repair we ran into some issues with some data being repaired over and over again. The repairs where scheduled to run every two hours on a different node. So e.g.node1 would repair on hours 0, 8, 16node2 would repair on hours 2, 10, 18node3 would repair on hours 4, 12, 20node4 would repair on hours 6, 14, 22The data being repaired over and over where in a table with static data, so it should've only been required to run repair once for that table. This table generated ~700 small sstables per repair, and when I checked one node had several thousands of sstables in that table alone.The repair command used on each node was:repair -inc -parSo after stopping all clients and waiting for compactions to finish I ran sstablemetadata on the tables and saw that one table wasn't repaired. After checking in the logs I something like this:SSTable ..-ka-X-Data.db (..) will be anticompacted on range (..)...SSTable ..-ka-X-Data.db (..) does not intersect repaired range (..), not touching repairedAt.So I checked the code and there seems to be an issue when one of the repaired ranges does not intersect the sstable range. In that case it just removes the sstable from the anticompaction regardless if any other repaired range intersects with it.Attaching patch for 2.1 that solves this and working on dtest for this. Will create patch for 2.2 and 3.0 as well.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.AntiCompactionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10330" opendate="2015-9-14 00:00:00" fixdate="2015-9-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Gossipinfo could return more useful information</summary>
+      <description>For instance, the version for each state, which can be useful for diagnosing the reason for any missing states. Also instead of just omitting the TOKENS state, let's indicate whether the state was actually present or not.</description>
+      <version>2.0.17,2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10339" opendate="2015-9-15 00:00:00" fixdate="2015-9-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prevent ALTER TYPE from creating circular references</summary>
+      <description>It's possible to define circular/recursive types using ALTER TYPE. They won't work in practice when you try to insert data, but we should detect this earlier and prevent the type modification.Recursive type example (from JAVA-908):CREATE TYPE node (name text,);ALTER TYPE node ADD children frozen&lt;list&lt;node&gt;&gt;;Circular example (from Stack overflow):create type ping(pingid int);create type pong(pongid int, ping frozen&lt;ping&gt;);alter type ping ADD pong frozen&lt;pong&gt;;Note that, in the circular example, references are properly checked when dropping the types, so neither type can be dropped.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.UserTypesTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.TupleType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.SetType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ReversedType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.MapType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ListType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.CompositeType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AbstractType.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTypeStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10357" opendate="2015-9-16 00:00:00" fixdate="2015-9-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>mmap file boundary selection is broken for some large files</summary>
+      <description>If an early open interval occurs to close to an mmap boundary, the boundary can be lost. Patch available here.</description>
+      <version>2.1.10,2.2.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.SegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.MmappedSegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.MappedFileDataInput.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableSimpleWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableSimpleUnsortedWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.CQLSSTableWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.AbstractSSTableSimpleWriter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10359" opendate="2015-9-16 00:00:00" fixdate="2015-9-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Saved caches use ambigous keyspace and CF name to identify tables</summary>
+      <description>2i don't have a unique handle. Robert suggested writing the schema digests into the file and checking that they match before loading caches.Schema changes would temporarily invalidate saved caches, but the next time they are saved they would be usable again.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.KeyCacheCqlTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cache.AutoSavingCache.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10366" opendate="2015-9-17 00:00:00" fixdate="2015-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Added gossip states can shadow older unseen states</summary>
+      <description>In CASSANDRA-6135 we added cloneWithHigherVersion to ensure that if another thread added states to gossip while we were notifying we would increase our version to ensure the existing states wouldn't get shadowed. This however, was not entirely perfect since it's possible that after the clone, but before the addition another thread will insert an even newer state, thus shadowing the others. A common case (of this rare one) is when STATUS and TOKENS are added a bit later in SS.setGossipTokens, where something in another thread injects a new state (likely SEVERITY) just before the addition after the clone.</description>
+      <version>2.0.17,2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10382" opendate="2015-9-22 00:00:00" fixdate="2015-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool info doesn&amp;#39;t show the correct DC and RACK</summary>
+      <description>When running nodetool info cassandra returns UNKNOWN_DC and UNKNOWN_RACK:# nodetool infoID : b94f9ca0-f886-4111-a471-02f295573f37Gossip active : trueThrift active : trueNative Transport active: trueLoad : 44.97 MBGeneration No : 1442913138Uptime (seconds) : 5386Heap Memory (MB) : 429.07 / 3972.00Off Heap Memory (MB) : 0.08Data Center : UNKNOWN_DCRack : UNKNOWN_RACKExceptions : 1Key Cache : entries 642, size 58.16 KB, capacity 100 MB, 5580 hits, 8320 requests, 0.671 recent hit rate, 14400 save period in secondsRow Cache : entries 0, size 0 bytes, capacity 0 bytes, 0 hits, 0 requests, NaN recent hit rate, 0 save period in secondsCounter Cache : entries 0, size 0 bytes, capacity 50 MB, 0 hits, 0 requests, NaN recent hit rate, 7200 save period in secondsToken : (invoke with -T/--tokens to see all 256 tokens)Correct DCs and RACKs are returned by nodetool status and nodetool gossipinfo commands:# nodetool gossipinfo|grep -E 'RACK|DC' DC:POZ RACK:RACK30 DC:POZ RACK:RACK30 DC:SJC RACK:RACK68 DC:POZ RACK:RACK30 DC:SJC RACK:RACK62 DC:SJC RACK:RACK62# nodetool status|grep DatacenterDatacenter: SJCDatacenter: POZ</description>
+      <version>2.1.10</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7410" opendate="2014-6-17 00:00:00" fixdate="2014-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pig support for BulkOutputFormat as a parameter in url</summary>
+      <description>Add BulkOutputFormat support in Pig url</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.pig.org.apache.cassandra.pig.PigTestBase.java</file>
+      <file type="M">test.pig.org.apache.cassandra.pig.CqlTableTest.java</file>
+      <file type="M">test.conf.cassandra.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.pig.CqlStorage.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.pig.CqlNativeStorage.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlBulkRecordWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8611" opendate="2015-1-13 00:00:00" fixdate="2015-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>give streaming_socket_timeout_in_ms a non-zero default</summary>
+      <description>Sometimes as mentioned in CASSANDRA-8472 streams will hang. We have streaming_socket_timeout_in_ms which can retry after a timeout. It would be good to make a default non-zero value. We don't want to paper over problems, but streams sometimes hang and you don't want long running streaming operations to just fail - as in repairs or bootstraps.streaming_socket_timeout_in_ms should be based on the tcp idle timeout so it shouldn't be a problem to set it to on the order of minutes. Also the socket should only be open during the actual streaming and not during operations such as merkle tree generation. We can set it to a conservative value and people can set it more aggressively as needed. Disabling as a default, in my opinion, is too conservative.</description>
+      <version>2.1.10,2.2.2,3.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9232" opendate="2015-4-23 00:00:00" fixdate="2015-8-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"timestamp" is considered as a reserved keyword in cqlsh completion</summary>
+      <description>cqlsh seems to treat "timestamp" as a reserved keyword when used as an identifier:cqlsh:ks1&gt; create table t1 (int int primary key, ascii ascii, bigint bigint, blob blob, boolean boolean, date date, decimal decimal, double double, float float, inet inet, text text, time time, timestamp timestamp, timeuuid timeuuid, uuid uuid, varchar varchar, varint varint);Leads to the following completion when building an INSERT statement:cqlsh:ks1&gt; insert into t1 (int, "timestamp" ascii bigint blob boolean date decimal double float inet text time timeuuid uuid varchar varint"timestamp" is a keyword but not a reserved one and should therefore not be proposed as a quoted string. It looks like this error happens only for timestamp. Not a big deal of course, but it might be worth reviewing the keywords treated as reserved in cqlsh, especially with the many changes introduced in 3.0.</description>
+      <version>2.1.10,2.2.1,3.0beta2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9446" opendate="2015-5-20 00:00:00" fixdate="2015-9-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Failure detector should ignore local pauses per endpoint</summary>
+      <description>In CASSANDRA-9183, we added a feature to ignore local pauses. But it will only not mark 2 endpoints as down. We should do this per endpoint as suggested by Brandon in CASSANDRA-9183.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9838" opendate="2015-7-16 00:00:00" fixdate="2015-9-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to update an element in a static list</summary>
+      <description>I created a table in cassandra (my_table) which has a static list column sizes_list. I created a new row and initialized the list sizes_list as having one element. UPDATE my_table SET sizes_list = sizes_list + &amp;#91;0&amp;#93; WHERE view_id = 0x01Now I m trying to update the element at index '0' with a statement like thisinsert into my_table (my_id, is_deleted , col_id1, col_id2) values (0x01, False, 0x00, 0x00);UPDATE my_table SET sizes_list[0] = 100 WHERE my_id = 0x01 ;Now I see an error like this: InvalidRequest: code=2200 &amp;#91;Invalid query&amp;#93; message="List index 0 out of bound, list has size 0"If I change my list to a non-static list, it works fine!</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9872" opendate="2015-7-22 00:00:00" fixdate="2015-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>only check KeyCache when it is enabled</summary>
+      <description>If the KeyCache exists (because at least one column family is using it) we currenlty check the key cache even for requests to column families where the key cache is disabled. I think it would be better to only check the cache if entries could be there. This will align the key cache with how the row cache behaves. This makes the key cache metrics much more useful. For example, 'requests' becomes 'requests to things that could be in the key cache' and not just 'total requests'. This migh be a micro-optimization saving a few metric update.</description>
+      <version>2.1.10,2.2.2,3.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  <bug fixdate="2016-3-16 01:00:00" id="13053" opendate="2016-12-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>GRANT/REVOKE on table without keyspace performs permissions check incorrectly</summary>
+      <description>When a GRANT or REVOKE statement is executed on a table without specifying the keyspace, we attempt to use the client session's keyspace to qualify the resource. This is done when validating the statement, which occurs after checking that the user executing the statement has sufficient permissions. This means that the permissions checking uses an incorrect resource, namely a table with a null keyspace. If that user is a superuser, then no error is encountered as superuser privs implicitly grants all permissions. If the user is not a superuser, then the GRANT or REVOKE fails with an ugly error, regardless of which keyspace the client session is bound to:Unauthorized: Error from server: code=2100 [Unauthorized] message="User admin has no AUTHORIZE permission on &lt;table null.t1&gt; or any of its parents"</description>
+      <version>2.2.10,3.0.13,3.11.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.PermissionsManagementStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-3-17 01:00:00" id="13130" opendate="2017-1-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Strange result of several list updates in a single request</summary>
+      <description>Let's assume that we have a row with the 'listColumn' column and value {1,2,3,4}.For me it looks logical to expect that the following two pieces of code will ends up with the same result but it isn't so.Code1:UPDATE t SET listColumn[2] = 7, listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,7,8,4}Code2:UPDATE t SET listColumn[2] = 7 WHERE id = 1;UPDATE t SET listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,8,4}So the question is why Code1 and Code2 give different results?Looks like Code1 should give the same result as Code2.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-6-10 01:00:00" id="13209" opendate="2017-2-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>test failure in cqlsh_tests.cqlsh_copy_tests.CqlshCopyTest.test_bulk_round_trip_blogposts_with_max_connections</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-2.1_dtest/528/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_bulk_round_trip_blogposts_with_max_connectionsError Messageerrors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------dtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6jdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}dtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6jdtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directorydtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuWdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}cassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodescassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovereddtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------Stacktrace File "/usr/lib/python2.7/unittest/case.py", line 329, in run testMethod() File "/home/automaton/cassandra-dtest/dtest.py", line 1090, in wrapped f(obj) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2571, in test_bulk_round_trip_blogposts_with_max_connections copy_from_options={'NUMPROCESSES': 2}) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2500, in _test_bulk_round_trip num_records = create_records() File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2473, in create_records ret = rows_to_list(self.session.execute(count_statement))[0][0] File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 1998, in execute return self.execute_async(query, parameters, trace, custom_payload, timeout, execution_profile, paging_state).result() File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 3784, in result raise self._final_exception"errors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4\n-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6j\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ndtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6j\ndtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directory\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuW\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ncassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodes\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovered\ndtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml\n--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------"</description>
+      <version>2.2.10,3.0.14,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-4-12 01:00:00" id="13434" opendate="2017-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add PID file directive in /etc/init.d/cassandra</summary>
+      <description>As mentioned in CASSANDRA-10920, we should add directive for pid file in header that allows creating a unit file with the correct PIDFile=.. entry. Else systemd won't be able to tell if Cassandra is still running.# pidfile: /var/run/cassandra/cassandra.pid</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-12 01:00:00" id="13435" opendate="2017-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect status check use when stopping Cassandra</summary>
+      <description>Function status from /etc/rc.d/init.d/functions will delegate to systemctl status and we can't keep using the output to determine the status result. This should be changed to match the return value instead, which is supposed to return 3 for non-running processes</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-4-21 01:00:00" id="13466" opendate="2017-4-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Set javac encoding to utf-8 in 2.1 and 2.2.</summary>
+      <description>There are non-ASCII characters in 2.1 and 2.2 source code, but javac is not configured to interpret source files in UTF-8</description>
+      <version>2.1.18,2.2.10</version>
+      <fixedVersion>Build</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-5-3 01:00:00" id="13493" opendate="2017-5-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RPM Init: Service startup ordering</summary>
+      <description>Currently, Cassandra is setup to start before network and name services come up, and setup to be town down after them, dangerously close to the final shutdown call.A service daemon which may use network-based storage, and serves requests over a network needs to start clearly after network and network mounts, and come down clearly after.</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

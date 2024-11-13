@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="12100" opendate="2016-6-28 00:00:00" fixdate="2016-8-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compactions are stuck after TRUNCATE</summary>
+      <description>Hi,since the upgrade to C* 3.0.7 I see compaction tasks getting stuck when truncating the column family. I verified this on all nodes of the cluster.Pending compactions seem to disappear after restarting the node.root@node10:~# nodetool -h localhost compactionstatspending tasks: 6 id compaction type keyspace table completed total unit progress 24e1ad30-3cac-11e6-870d-5de740693258 Compaction schema table_1 0 57558382 bytes 0.00% 2be2e3b0-3cac-11e6-870d-5de740693258 Compaction schema table_2 0 65063705 bytes 0.00% 54de38f0-3cac-11e6-870d-5de740693258 Compaction schema table_3 0 187031 bytes 0.00% 31926ce0-3cac-11e6-870d-5de740693258 Compaction schema table_4 0 42951119 bytes 0.00% 3911ad00-3cac-11e6-870d-5de740693258 Compaction schema table_5 0 25918949 bytes 0.00% 3e6a8ab0-3cac-11e6-870d-5de740693258 Compaction schema table_6 0 65466210 bytes 0.00%Active compaction remaining time : 0h00m15s</description>
+      <version>2.2.10,3.0.9,3.8</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12773" opendate="2016-10-11 00:00:00" fixdate="2016-3-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-stress error for one way SSL</summary>
+      <description>CASSANDRA-9325 added keystore/truststore configuration into cassandra-stress. However, for one way ssl (require_client_auth=false), there is no need to pass keystore info into ssloptions. Cassadra-stress errored out:java.lang.RuntimeException: java.io.IOException: Error creating the initializing the SSL Context at org.apache.cassandra.stress.settings.StressSettings.getJavaDriverClient(StressSettings.java:200) at org.apache.cassandra.stress.settings.SettingsSchema.createKeySpacesNative(SettingsSchema.java:79) at org.apache.cassandra.stress.settings.SettingsSchema.createKeySpaces(SettingsSchema.java:69) at org.apache.cassandra.stress.settings.StressSettings.maybeCreateKeyspaces(StressSettings.java:207) at org.apache.cassandra.stress.StressAction.run(StressAction.java:55) at org.apache.cassandra.stress.Stress.main(Stress.java:117) Caused by: java.io.IOException: Error creating the initializing the SSL Context at org.apache.cassandra.security.SSLFactory.createSSLContext(SSLFactory.java:151) at org.apache.cassandra.stress.util.JavaDriverClient.connect(JavaDriverClient.java:128) at org.apache.cassandra.stress.settings.StressSettings.getJavaDriverClient(StressSettings.java:191) ... 5 more Caused by: java.io.IOException: Keystore was tampered with, or password was incorrect at sun.security.provider.JavaKeyStore.engineLoad(JavaKeyStore.java:772) at sun.security.provider.JavaKeyStore$JKS.engineLoad(JavaKeyStore.java:55) at java.security.KeyStore.load(KeyStore.java:1445) at org.apache.cassandra.security.SSLFactory.createSSLContext(SSLFactory.java:129) ... 7 more Caused by: java.security.UnrecoverableKeyException: Password verification failed at sun.security.provider.JavaKeyStore.engineLoad(JavaKeyStore.java:770) ... 10 moreIt's a bug from CASSANDRA-9325. When the keystore is absent, the keystore is assigned to the path of the truststore, but the password isn't taken care.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsTransport.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13053" opendate="2016-12-16 00:00:00" fixdate="2016-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>GRANT/REVOKE on table without keyspace performs permissions check incorrectly</summary>
+      <description>When a GRANT or REVOKE statement is executed on a table without specifying the keyspace, we attempt to use the client session's keyspace to qualify the resource. This is done when validating the statement, which occurs after checking that the user executing the statement has sufficient permissions. This means that the permissions checking uses an incorrect resource, namely a table with a null keyspace. If that user is a superuser, then no error is encountered as superuser privs implicitly grants all permissions. If the user is not a superuser, then the GRANT or REVOKE fails with an ugly error, regardless of which keyspace the client session is bound to:Unauthorized: Error from server: code=2100 [Unauthorized] message="User admin has no AUTHORIZE permission on &lt;table null.t1&gt; or any of its parents"</description>
+      <version>2.2.10,3.0.13,3.11.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.PermissionsManagementStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13090" opendate="2017-1-3 00:00:00" fixdate="2017-2-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Coalescing strategy sleeps too much</summary>
+      <description>With the current code maybeSleep is called even if we managed to take maxItems out of the backlog. In this case we should really avoid sleeping because it means that backlog is building up.I'll send a patch shortly.</description>
+      <version>2.2.10,3.0.12,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.CoalescingStrategiesTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.CoalescingStrategies.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.OutboundTcpConnection.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13119" opendate="2017-1-11 00:00:00" fixdate="2017-5-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure upgrade_tests.upgrade_supercolumns_test.TestSCUpgrade.upgrade_super_columns_through_all_versions_test</summary>
+      <description>The test complains about unreadable sstables version ka and lb during upgrade which is 2.1 and 2.2. These tables look like system tables not user tables.I looked and I can't find any place where system tables are upgraded on upgrade. You can specify them explicitly by name with nodetool, but nodetool defaults to only upgrading user tables and doesn't have a flag to upgrade all tables.These tables probably need to be removed if unused or upgraded if in use.</description>
+      <version>2.2.10</version>
+      <fixedVersion>Legacy/Core,Test/dtest/python</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.nodetool.UpgradeSSTable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13130" opendate="2017-1-17 00:00:00" fixdate="2017-3-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Strange result of several list updates in a single request</summary>
+      <description>Let's assume that we have a row with the 'listColumn' column and value {1,2,3,4}.For me it looks logical to expect that the following two pieces of code will ends up with the same result but it isn't so.Code1:UPDATE t SET listColumn[2] = 7, listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,7,8,4}Code2:UPDATE t SET listColumn[2] = 7 WHERE id = 1;UPDATE t SET listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,8,4}So the question is why Code1 and Code2 give different results?Looks like Code1 should give the same result as Code2.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13147" opendate="2017-1-24 00:00:00" fixdate="2017-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Secondary index query on partition key columns might not return all the rows.</summary>
+      <description>A secondary index query on a partition key column will, apparently, not return the empty partitions with static data.The following unit test can be used to reproduce the problem. public void testIndexOnPartitionKeyWithStaticColumnAndNoRows() throws Throwable { createTable("CREATE TABLE %s (pk1 int, pk2 int, c int, s int static, v int, PRIMARY KEY((pk1, pk2), c))"); createIndex("CREATE INDEX ON %s (pk2)"); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 1, 1, 1, 9, 1); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 1, 1, 2, 9, 2); execute("INSERT INTO %s (pk1, pk2, s) VALUES (?, ?, ?)", 2, 1, 9); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 3, 1, 1, 9, 1); assertRows(execute("SELECT * FROM %s WHERE pk2 = ?", 1), row(1, 1, 1, 9, 1), row(1, 1, 2, 9, 2), row(2, 1, null, 9, null), &lt;-- is not returned row(3, 1, 1, 9, 1)); }</description>
+      <version>2.1.18,2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.SecondaryIndexTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13153" opendate="2017-1-25 00:00:00" fixdate="2017-3-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reappeared Data when Mixing Incremental and Full Repairs</summary>
+      <description>This happens for both LeveledCompactionStrategy and SizeTieredCompactionStrategy. I've only tested it on Cassandra version 2.2 but it most likely also affects all Cassandra versions after 2.2, if they have anticompaction with full repair.When mixing incremental and full repairs, there are a few scenarios where the Data SSTable is marked as unrepaired and the Tombstone SSTable is marked as repaired. Then if it is past gc_grace, and the tombstone and data has been compacted out on other replicas, the next incremental repair will push the Data to other replicas without the tombstone.Simplified scenario:3 node cluster with RF=3Intial config: Node 1 has data and tombstone in separate SSTables. Node 2 has data and no tombstone. Node 3 has data and tombstone in separate SSTables.Incremental repair (nodetool repair -pr) is run every day so now we have tombstone on each node.Some minor compactions have happened since so data and tombstone get merged to 1 SSTable on Nodes 1 and 3. Node 1 had a minor compaction that merged data with tombstone. 1 SSTable with tombstone. Node 2 has data and tombstone in separate SSTables. Node 3 had a minor compaction that merged data with tombstone. 1 SSTable with tombstone.Incremental repairs keep running every day.Full repairs run weekly (nodetool repair -full -pr). Now there are 2 scenarios where the Data SSTable will get marked as "Unrepaired" while Tombstone SSTable will get marked as "Repaired".Scenario 1: Since the Data and Tombstone SSTable have been marked as "Repaired" and anticompacted, they have had minor compactions with other SSTables containing keys from other ranges. During full repair, if the last node to run it doesn't own this particular key in it's partitioner range, the Data and Tombstone SSTable will get anticompacted and marked as "Unrepaired". Now in the next incremental repair, if the Data SSTable is involved in a minor compaction during the repair but the Tombstone SSTable is not, the resulting compacted SSTable will be marked "Unrepaired" and Tombstone SSTable is marked "Repaired".Scenario 2: Only the Data SSTable had minor compaction with other SSTables containing keys from other ranges after being marked as "Repaired". The Tombstone SSTable was never involved in a minor compaction so therefore all keys in that SSTable belong to 1 particular partitioner range. During full repair, if the last node to run it doesn't own this particular key in it's partitioner range, the Data SSTable will get anticompacted and marked as "Unrepaired". The Tombstone SSTable stays marked as Repaired.Then it’s past gc_grace. Since Node’s #1 and #3 only have 1 SSTable for that key, the tombstone will get compacted out. Node 1 has nothing. Node 2 has data (in unrepaired SSTable) and tombstone (in repaired SSTable) in separate SSTables. Node 3 has nothing.Now when the next incremental repair runs, it will only use the Data SSTable to build the merkle tree since the tombstone SSTable is flagged as repaired and data SSTable is marked as unrepaired. And the data will get repaired against the other two nodes. Node 1 has data. Node 2 has data and tombstone in separate SSTables. Node 3 has data.If a read request hits Node 1 and 3, it will return data. If it hits 1 and 2, or 2 and 3, however, it would return no data.Tested this with single range tokens for simplicity.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Tools,Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13209" opendate="2017-2-10 00:00:00" fixdate="2017-6-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>test failure in cqlsh_tests.cqlsh_copy_tests.CqlshCopyTest.test_bulk_round_trip_blogposts_with_max_connections</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-2.1_dtest/528/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_bulk_round_trip_blogposts_with_max_connectionsError Messageerrors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------dtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6jdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}dtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6jdtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directorydtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuWdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}cassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodescassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovereddtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------Stacktrace File "/usr/lib/python2.7/unittest/case.py", line 329, in run testMethod() File "/home/automaton/cassandra-dtest/dtest.py", line 1090, in wrapped f(obj) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2571, in test_bulk_round_trip_blogposts_with_max_connections copy_from_options={'NUMPROCESSES': 2}) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2500, in _test_bulk_round_trip num_records = create_records() File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2473, in create_records ret = rows_to_list(self.session.execute(count_statement))[0][0] File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 1998, in execute return self.execute_async(query, parameters, trace, custom_payload, timeout, execution_profile, paging_state).result() File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 3784, in result raise self._final_exception"errors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4\n-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6j\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ndtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6j\ndtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directory\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuW\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ncassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodes\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovered\ndtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml\n--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------"</description>
+      <version>2.2.10,3.0.14,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13282" opendate="2017-3-1 00:00:00" fixdate="2017-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Commitlog replay may fail if last mutation is within 4 bytes of end of segment</summary>
+      <description>Following CASSANDRA-9749 , stricter correctness checks on commitlog replay can incorrectly detect "corrupt segments" and stop commitlog replay (and potentially stop cassandra, depending on the configured policy). In CommitlogReplayer#replaySyncSection we try to read a 4 byte int serializedSize, and if it's 0 (which will happen due to zeroing when the segment was created), we continue on to the next segment. However, it appears that if a mutation is sized such that it ends with 1, 2, or 3 bytes remaining in the segment, we'll pass the isEOF on the while loop but fail to read the serializedSize int, and fail.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.commitlog.CommitLogTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogReplayer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13412" opendate="2017-4-5 00:00:00" fixdate="2017-5-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update of column with TTL results in secondary index not returning row</summary>
+      <description>Cassandra versions: 2.2.3, 3.0.111 datacenter, keyspace has RF 3. Default consistency level.Steps:1. I create these table and index.CREATE TABLE my_table ( a text, b text, c text, d set&lt;int&gt;, e float, f text, g int, h double, j set&lt;int&gt;, k float, m set&lt;text&gt;, PRIMARY KEY (a, b, c)) WITH read_repair_chance = 0.0 AND dclocal_read_repair_chance = 0.1 AND gc_grace_seconds = 864000 AND bloom_filter_fp_chance = 0.01 AND caching = { 'keys' : 'ALL', 'rows_per_partition' : 'NONE' } AND comment = '' AND compaction = { 'class' : 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy' } AND compression = { 'sstable_compression' : 'org.apache.cassandra.io.compress.LZ4Compressor' } AND default_time_to_live = 0 AND speculative_retry = '99.0PERCENTILE' AND min_index_interval = 128 AND max_index_interval = 2048;CREATE INDEX my_index ON my_table (c);2. I have 9951 INSERT statements in a file and I run the following command to execute them. The INSERT statements have no TTL and no consistency level is specified.cqlsh &lt;ip&gt; &lt;port&gt; -u &lt;user&gt; -f &lt;file&gt;3. I update a column filtering by the whole primary key, and setting a TTL. For example:UPDATE my_table USING TTL 30 SET h = 10 WHERE a = 'test_a' AND b = 'test_b' AND c = 'test_c';4. After the time specified in the TTL I run the following queries:SELECT * FROM my_table WHERE a = 'test_a' AND b = 'test_b' AND c = 'test_c';SELECT * FROM my_table WHERE c = 'test_c';The first one returns the correct row with an empty h column (as it has expired). However, the second query (which uses the secondary index on column c) returns nothing.I've done the query through my app which uses the Java driver v3.0.4 and reads with CL local_one, from the cql shell and from DBeaver 3.8.5. All display the same behaviour. The queries are performed minutes after the writes and the servers don't have a high load, so I think it's unlikely to be a consistency issue.I've tried to reproduce the issue in ccm and cqlsh by creating a new keyspace and table, and inserting just 1 row, and the bug doesn't manifest. This leads me to think that it's an issue only present with not trivially small amounts of data, or maybe present only after Cassandra compacts or performs whatever maintenance it needs to do.</description>
+      <version>2.1.18,2.2.10</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.index.AbstractSimplePerColumnSecondaryIndex.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.SecondaryIndexTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13434" opendate="2017-4-12 00:00:00" fixdate="2017-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add PID file directive in /etc/init.d/cassandra</summary>
+      <description>As mentioned in CASSANDRA-10920, we should add directive for pid file in header that allows creating a unit file with the correct PIDFile=.. entry. Else systemd won't be able to tell if Cassandra is still running.# pidfile: /var/run/cassandra/cassandra.pid</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13435" opendate="2017-4-12 00:00:00" fixdate="2017-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect status check use when stopping Cassandra</summary>
+      <description>Function status from /etc/rc.d/init.d/functions will delegate to systemctl status and we can't keep using the output to determine the status result. This should be changed to match the return value instead, which is supposed to return 3 for non-running processes</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13466" opendate="2017-4-21 00:00:00" fixdate="2017-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Set javac encoding to utf-8 in 2.1 and 2.2.</summary>
+      <description>There are non-ASCII characters in 2.1 and 2.2 source code, but javac is not configured to interpret source files in UTF-8</description>
+      <version>2.1.18,2.2.10</version>
+      <fixedVersion>Build</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13493" opendate="2017-5-3 00:00:00" fixdate="2017-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RPM Init: Service startup ordering</summary>
+      <description>Currently, Cassandra is setup to start before network and name services come up, and setup to be town down after them, dangerously close to the final shutdown call.A service daemon which may use network-based storage, and serves requests over a network needs to start clearly after network and network mounts, and come down clearly after.</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

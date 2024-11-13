@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="6344" opendate="2013-11-13 00:00:00" fixdate="2013-5-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When running CQLSH with file input, exit with error status code if script fails</summary>
+      <description>Just thought it would be nice if the cqlsh process would exit with an error status code if there are errors in the script, since it is the only thing the cqlsh process does when executing.Preferably a predictable status code could be used for a script error to discern it from some other odd error (i.e., don't use `1` because that could be many things). Maybe `2` or something.</description>
+      <version>1.2.17,2.0.9,2.1rc1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6539" opendate="2014-1-2 00:00:00" fixdate="2014-6-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Track metrics at a keyspace level as well as column family level</summary>
+      <description>It would be useful to be able to see aggregated metrics (write/read count/latency) at a keyspace level as well as at the individual column family level.</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Keyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6546" opendate="2014-1-3 00:00:00" fixdate="2014-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>disablethrift results in unclosed file descriptors</summary>
+      <description>Disabling thrift results in unclosed thrift sockets being left around.Steps to reproduce and observe:1. Have a handful of clients connect via thrift.2. Disable thrift.3. Enable thrift, have the clients reconnect.4. Observe netstat or lsof, and you'll find a lot of thrift sockets in CLOSE_WAIT state, and they'll never go away. Also verifiable from org.apache.cassandra.metrics:type=Client,name=connectedThriftClients MBean.What's extra fun about this is the leaked sockets still count towards your maximum RPC thread count. As a result, toggling thrift enough times will result in an rpc_max_threads number of CLOSED_WAIT sockets, with no new clients able to connect.This was reproduced with HSHA. I haven't tried it in sync yet.</description>
+      <version>1.2.17,2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CustomTHsHaServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6787" opendate="2014-3-1 00:00:00" fixdate="2014-4-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>assassinate should continue when the endpoint vanishes</summary>
+      <description>Assassinate can NPE in various situations, most notably if the endpoint vanishes during the sleep-for-safety check.</description>
+      <version>1.2.17,2.0.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6831" opendate="2014-3-10 00:00:00" fixdate="2014-5-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Updates to COMPACT STORAGE tables via cli drop CQL information</summary>
+      <description>If a COMPACT STORAGE table is altered using the CLI all information about the column names reverts to the initial "key, column1, column2" namings. Additionally, the changes in the columns name will not take effect until the Cassandra service is restarted. This means that the clients using CQL will continue to work properly until the service is restarted, at which time they will start getting errors about non-existant columns in the table.When attempting to rename the columns back using ALTER TABLE an error stating the column already exists will be raised. The only way to get it back is to ALTER TABLE and change the comment or something, which will bring back all the original column names.This seems to be related to CASSANDRA-6676 and CASSANDRA-6370In cqlshConnected to cluster1 at 127.0.0.3:9160.[cqlsh 3.1.8 | Cassandra 1.2.15-SNAPSHOT | CQL spec 3.0.0 | Thrift protocol 19.36.2]Use HELP for help.cqlsh&gt; CREATE KEYSPACE test WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 3 };cqlsh&gt; USE test;cqlsh:test&gt; CREATE TABLE foo (bar text, baz text, qux text, PRIMARY KEY(bar, baz) ) WITH COMPACT STORAGE;cqlsh:test&gt; describe table foo;CREATE TABLE foo ( bar text, baz text, qux text, PRIMARY KEY (bar, baz)) WITH COMPACT STORAGE AND bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};Now in cli: Connected to: "cluster1" on 127.0.0.3/9160Welcome to Cassandra CLI version 1.2.15-SNAPSHOTType 'help;' or '?' for help.Type 'quit;' or 'exit;' to quit.[default@unknown] use test;Authenticated to keyspace: test[default@test] UPDATE COLUMN FAMILY foo WITH comment='hey this is a comment';3bf5fa49-5d03-34f0-b46c-6745f7740925Now back in cqlsh:cqlsh:test&gt; describe table foo;CREATE TABLE foo ( bar text, column1 text, value text, PRIMARY KEY (bar, column1)) WITH COMPACT STORAGE AND bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='hey this is a comment' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};cqlsh:test&gt; ALTER TABLE foo WITH comment='this is a new comment';cqlsh:test&gt; describe table foo;CREATE TABLE foo ( bar text, baz text, qux text, PRIMARY KEY (bar, baz)) WITH COMPACT STORAGE AND bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='this is a new comment' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.config.ColumnDefinitionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.ColumnDefinition.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6971" opendate="2014-4-1 00:00:00" fixdate="2014-4-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Schedule schema pulls onChange</summary>
+      <description>The dtest suite is running a test which creates a 3 node cluster, then adds a keyspace and column family. For some reason the 3 nodes are not agreeing on the schema version. The problem is intermittent &amp;#8211; either the nodes all agree on schema quickly, or they seem to stay stuck in limbo.The simplest way to reproduce is to run the dtest (simple_increment_test):https://github.com/riptano/cassandra-dtest/blob/master/counter_tests.pyusing nosetests:nosetests -vs counter_tests.py:TestCounters.simple_increment_testIf the problem is reproduced nose will return this:ProgrammingError: Bad Request: Keyspace 'ks' does not existI am not yet sure if the bug is reproducible outside of the dtest suite.</description>
+      <version>1.2.17,2.0.7,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6972" opendate="2014-4-1 00:00:00" fixdate="2014-4-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Throw an ERROR when auto_bootstrap: true and bootstrapping node is listed in seeds</summary>
+      <description>Obviously when this condition exists the node will not bootstrap. But it is not obvious from the logs why it is not bootstrapping. Throwing an error would make it obvious and therefore faster to correct.</description>
+      <version>1.2.17,2.0.7,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6980" opendate="2014-4-3 00:00:00" fixdate="2014-4-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Non-droppable verbs shouldn&amp;#39;t be dropped from OTC</summary>
+      <description>In CASSANDRA-5393, a retry was added if there was an exception sending a non-droppable verb. However, the message can still be dropped if it has been in the queue longer than rpc timeout. When this happens for e.g. Merkle trees, the repair hangs. The message should not be dropped.</description>
+      <version>1.2.17,2.0.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.OutboundTcpConnection.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6999" opendate="2014-4-8 00:00:00" fixdate="2014-4-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog replay should account for CF truncation records</summary>
+      <description>Just as HHOM does, BM should properly handle column families' truncation records and not replay mutations that are younger that the last known record.</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.HintedHandOffTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.BatchlogManagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RowMutation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogReplayer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="70" opendate="2009-4-10 00:00:00" fixdate="2009-8-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>MultiGet</summary>
+      <description>Avinash is working on a multiget interface (requesting data from multiple keys at once).</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.QuorumResponseHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MultiAsyncResult.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IMessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.IAsyncResult.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.AsyncResult.java</file>
+      <file type="M">test.system.test.server.py</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraServer.java</file>
+      <file type="M">interface.gen-java.org.apache.cassandra.service.Cassandra.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7038" opendate="2014-4-15 00:00:00" fixdate="2014-4-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool rebuild_index requires named indexes argument</summary>
+      <description>In addition to explicitly listing the indexes to be rebuilt, nodetool rebuild_indexes will also accept just keyspace &amp; columnfamily arguments, indicating that all indexes for that ks/cf should be rebuilt.This doesn't actually work as CFS.rebuildSecondaryIndex requires the explicit list. In the 2 arg version, nodetool just passes an empty list here and so the rebuild becomes a no-op. As this has been the case since CASSANDRA-3860 (AFAICT, 80ea03f is the commit that removed this) we may as well just remove the option from nodetool, patch attached to do that.</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7058" opendate="2014-4-19 00:00:00" fixdate="2014-4-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HHOM and BM direct delivery should not cause hints to be written on timeout</summary>
+      <description>Currently, a timed out HHOM hint delivery would create a further hint, with a wrong TTL. BM direct delivery code is using the same code snippet basically, so is also affected (with slightly worse consequences).</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7105" opendate="2014-4-28 00:00:00" fixdate="2014-5-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SELECT with IN on final column of composite and compound primary key fails</summary>
+      <description>I have a failing sequence where I specify an IN constraint on the final int column of the composite primary key and an IN constraint on the final String column of the compound primary key and no rows are returned, when rows should be returned. CREATE TABLE IF NOT EXISTS sr2 (siteID TEXT, partition INT, listID BIGINT, emailAddr TEXT, emailCrypt TEXT, createDate TIMESTAMP, removeDate TIMESTAMP, removeImportID BIGINT, properties TEXT, PRIMARY KEY ((siteID, listID, partition), createDate, emailCrypt) ) WITH CLUSTERING ORDER BY (createDate DESC, emailCrypt DESC) AND compression = {'sstable_compression' : 'SnappyCompressor'} AND compaction = {'class' : 'SizeTieredCompactionStrategy'};insert into sr2 (siteID, listID, partition, emailAddr, emailCrypt, createDate) values ('4ca4f79e-3ab2-41c5-ae42-c7009736f1d5', 34, 1, 'xyzzy', '5fe7719229092cdde4526afbc65c900c', '2014-04-28T14:05:59.236-0500');insert into sr2 (siteID, listID, partition, emailAddr, emailCrypt, createDate) values ('4ca4f79e-3ab2-41c5-ae42-c7009736f1d5', 34, 2, 'noname', '97bf28af2ca9c498d6e47237bb8680bf', '2014-04-28T14:05:59.236-0500');select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 2 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt = '97bf28af2ca9c498d6e47237bb8680bf'; emailcrypt | emailaddr----------------------------------+----------- 97bf28af2ca9c498d6e47237bb8680bf | noname(1 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 1 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt = '5fe7719229092cdde4526afbc65c900c'; emailcrypt | emailaddr----------------------------------+----------- 5fe7719229092cdde4526afbc65c900c | xyzzy(1 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)cqlsh:test_multiple_in&gt; select * from sr2; siteid | listid | partition | createdate | emailcrypt | emailaddr | properties | removedate | removeimportid--------------------------------------+--------+-----------+------------------------------------------+------------+----------------------------------+------------+------------+---------------- 4ca4f79e-3ab2-41c5-ae42-c7009736f1d5 | 34 | 2 | 2014-04-28 14:05:59Central Daylight Time | noname | 97bf28af2ca9c498d6e47237bb8680bf | null | null | null 4ca4f79e-3ab2-41c5-ae42-c7009736f1d5 | 34 | 1 | 2014-04-28 14:05:59Central Daylight Time | xyzzy | 5fe7719229092cdde4526afbc65c900c | null | null | null(2 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 1 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 2 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)cqlsh:test_multiple_in&gt; select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf'); emailcrypt | emailaddr----------------------------------+----------- 97bf28af2ca9c498d6e47237bb8680bf | noname(1 rows)cqlsh:test_multiple_in&gt; select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('5fe7719229092cdde4526afbc65c900c'); emailcrypt | emailaddr----------------------------------+----------- 5fe7719229092cdde4526afbc65c900c | xyzzy(1 rows)As you can see, when I specify IN on the final primary column, no rows are returned, even when I specify equality on the partition column. If I use IN to constrain the partition column but simple equality on the final column, one row is returned for each of the possible values. This appears to be a variation on Cassandra-6327 but with a String as the final primary key column. I initially saw this with a blob as the final primary key column, so the issue is not exclusive to String. When I tried a real simple case with ints throughout, that worked fine.</description>
+      <version>1.2.17</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7122" opendate="2014-4-30 00:00:00" fixdate="2014-5-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replacement nodes have null entries in system.peers</summary>
+      <description>If a node is replaced with -Dcassandra.replace_address, the new node has mostly null entries in system.peers:&gt; select * from system.peers; peer | data_center | host_id | rack | release_version | rpc_address | schema_version | tokens-----------+-------------+---------+------+-----------------+-------------+----------------+-------------------------- 127.0.0.3 | null | null | null | null | null | null | {'-3074457345618258602'}To reproduce, simply kill a node and replace it. The entries are correctly populated if the replacement node is restarted but they are never populated if it isn't.I can think of at least two bad consequences of this:1. Drivers like Datastax java-driver use the peers table to find the rpc_address and location info of a node. If the entires are null it assumes rpc_address=ip and the node is in the local DC.2. When using GossipingPropertyFileSnitch and node won't persist the DC/rack of another node so may not be able to locate it during restarts.I reproduced in 1.2.15 but from inspection it looks to be present in 1.2.16 and 2.0.7.</description>
+      <version>1.2.17,2.0.9,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7126" opendate="2014-4-30 00:00:00" fixdate="2014-5-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>relocate doesn&amp;#39;t update system.peers correctly</summary>
+      <description>While testing CASSANDRA-2434 I noticed the tokens being relocated aren't being removed from the source node.Here is a dtest https://github.com/tjake/cassandra-dtest/tree/taketoken</description>
+      <version>1.2.17,2.0.8,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7191" opendate="2014-5-8 00:00:00" fixdate="2014-5-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>reduce needless garbage/thrashing in pending range calculation</summary>
+      <description>code inverts the same multimap in a loop... just pull it out of the loopagainst 1.2</description>
+      <version>1.2.17,2.0.9,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.PendingRangeCalculatorService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7257" opendate="2014-5-17 00:00:00" fixdate="2014-5-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>only query once for local host id on join</summary>
+      <description>switch to just querying once for local host id</description>
+      <version>1.2.17</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7268" opendate="2014-5-19 00:00:00" fixdate="2014-6-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Secondary Index can miss data without an error</summary>
+      <description>Seeing issues with secondary indexes after upgrading from 1.1-&gt;1.2. Using the same thrift code from 1.1, every once in a while a row is inserted that does not show up in the secondary index on a text column.Using sstable2json we can see the row in the regular sstables on every node, but not in the secondary index sstables (even after flushing/taking a snapshot).If we move the snapshot to a test node and rebuild the secondary index, it gets populated correctly and returns the data.Sanitized create statement:create column family test2i with column_type = 'Standard' and comparator = 'UTF8Type' and default_validation_class = 'UTF8Type' and key_validation_class = 'UTF8Type' and read_repair_chance = 1.0 and dclocal_read_repair_chance = 0.0 and populate_io_cache_on_flush = false and gc_grace = 0 and min_compaction_threshold = 4 and max_compaction_threshold = 32 and replicate_on_write = false and compaction_strategy = 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy' and caching = 'KEYS_ONLY' and column_metadata = [ {column_name : 'second', validation_class : UTF8Type, index_name : 'test2i_second_idx', index_type : 0}, {column_name : 'A', validation_class : UTF8Type}, {column_name : 'B', validation_class : UTF8Type}, {column_name : 'C', validation_class : UTF8Type}, {column_name : 'D', validation_class : UTF8Type}, {column_name : 'E', validation_class : UTF8Type}, {column_name : 'F', validation_class : UTF8Type}, {column_name : 'G', validation_class : UTF8Type}, {column_name : 'H', validation_class : UTF8Type}, {column_name : 'I', validation_class : UTF8Type}, {column_name : 'J', validation_class : UTF8Type}, {column_name : 'K', validation_class : UTF8Type}, {column_name : 'L', validation_class : UTF8Type}, {column_name : 'M', validation_class : UTF8Type}] and compression_options = {'sstable_compression' : 'org.apache.cassandra.io.compress.SnappyCompressor'};</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyStoreTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7273" opendate="2014-5-20 00:00:00" fixdate="2014-6-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>expose global ColumnFamily metrics</summary>
+      <description>It would be very useful to have cassandra expose ColumnFamily metrics that span all column families. A general purpose cassandra monitoring system built up around the current ColumnFamily metrics really only has a couple of choices right now: publish metrics for all column families or fetch metrics for all column families, aggregate them and then publish the aggregated metrics. The first can be quite expensive for the downstream monitoring system and the second is a piece of work that it seems is better pushed into cassandra itself.Perhaps these global ColumnFamily metrics could be published under a name of:org.apache.cassandra.metrics:type=(ColumnFamily|IndexColumnFamily),name=(Metric name)(Same as existing ColumnFamily metrics, but with no keyspace or scope.)</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.KeyspaceTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.LatencyMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.KeyspaceMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.ColumnFamilyMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Keyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7307" opendate="2014-5-27 00:00:00" fixdate="2014-6-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>New nodes mark dead nodes as up for 10 minutes</summary>
+      <description>When doing a node replacement when other nodes are down we see the down nodes marked as up for about 10 minutes. This means requests are routed to the dead nodes causing timeouts. It also means replacing a node when multiple nodes from a replica set is extremely difficult - the node usually tries to stream from a dead node and the replacement fails.This isn't limited to host replacement. I did a simple test:1. Create a 2 node cluster2. Kill node 23. Start a 3rd node with a unique token (I used auto_bootstrap=false but I don't think this is significant)The 3rd node lists node 2 (127.0.0.2) as up for almost 10 minutes:INFO [main] 2014-05-27 14:28:24,753 CassandraDaemon.java (line 119) Logging initializedINFO [GossipStage:1] 2014-05-27 14:28:31,492 Gossiper.java (line 843) Node /127.0.0.2 is now part of the clusterINFO [GossipStage:1] 2014-05-27 14:28:31,495 Gossiper.java (line 809) InetAddress /127.0.0.2 is now UPINFO [GossipTasks:1] 2014-05-27 14:37:44,526 Gossiper.java (line 823) InetAddress /127.0.0.2 is now DOWNI reproduced on 1.2.15 and 1.2.16.</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7333" opendate="2014-5-31 00:00:00" fixdate="2014-6-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gossipinfo should include the generation</summary>
+      <description>As the title says, we should include this information in gossipinfo so it's easier to diagnose the generation-from-future type problems.</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7356" opendate="2014-6-5 00:00:00" fixdate="2014-6-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a more ops friendly replace_address flag</summary>
+      <description>Doing a host replacement with cassandra.replace_address works well, but it is operationally difficult because the flag needs clearing once the replace is successful. Most people will launch through some scripts so remembering to clear the flag is a pain. Forgetting means the node won't come up on a restart.We should have a flag like cassandra.replace_address_first_boot that works the same as auto_bootstrap/initial_token: it is totally ignored if the node has successfully bootstrapped but on starting from a clean disk it will work as the existing cassandra.replace_address.</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7380" opendate="2014-6-11 00:00:00" fixdate="2014-6-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Native protocol needs keepalive, we should add it</summary>
+      <description>On clients connecting to C* 1.2.15 using native protocol. We see that when the client is bounced, the old connection is not going awayOn Thrift, there is the rpc_keepalive but there is no similar feature for the native protocol</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7399" opendate="2014-6-15 00:00:00" fixdate="2014-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: describe table shows wrong data type for CompositeType</summary>
+      <description>DESCRIBE for CompositeType produces wrong output.Currently:CREATE TABLE compo.comp ( id int PRIMARY KEY, comp 'org.apache.cassandra.db.marshal.CompositeType'&lt;int, text&gt;)...Correct:CREATE TABLE compo.comp ( id int PRIMARY KEY, comp 'org.apache.cassandra.db.marshal.CompositeType(Int32Type,UTF8Type)')...Means:1. use normal brackets instead of &lt;&gt;1. use C* type names instead of CQL3 names1. move types inside quoted</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7407" opendate="2014-6-17 00:00:00" fixdate="2014-6-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY command does not work properly with collections causing failure to import data</summary>
+      <description>The COPY command does not properly format collections in the output CSV - to be able to re-import the data.Here is how you can replicate the problem:CREATE TABLE user_colors ( user_id int PRIMARY KEY, colors list&lt;ascii&gt; );UPDATE user_colors SET colors = ['red','blue'] WHERE user_id=5; UPDATE user_colors SET colors = ['purple','yellow'] WHERE user_id=6; UPDATE user_colors SET colors = ['black''] WHERE user_id=7;COPY user_colors (user_id, colors) TO 'output.csv';CREATE TABLE user_colors2 ( user_id int PRIMARY KEY, colors list&lt;ascii&gt; );COPY user_colors2 (user_id, colors ) FROM 'user_colors.csv';Bad Request: line 1:68 no viable alternative at input ']'Aborting import at record #0 (line 1). Previously-inserted values still present.0 rows imported in 0.007 seconds.The CSV file seems to be malformed The single quotes within the collection are missing The double quotes for collection on user_id=7 are missing and causing COPY to fail.5,"[red, blue]"7,[black]6,"[purple, yellow]"Should be like this5,"['red', 'blue']"7,"['black']"6,"['purple', 'yellow']"Once the file is changed, the import worksCOPY user_colors2 (user_id, colors ) FROM 'user_colors.csv';3 rows imported in 0.012 seconds.SELECT * FROM user_colors2; user_id | colors---------+------------------ 5 | [red, blue] 7 | [black] 6 | [purple, yellow](3 rows)</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

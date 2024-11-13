@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="10010" opendate="2013-11-20 00:00:00" fixdate="2013-12-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>eliminate the put latency spike on the new log file beginning</summary>
+      <description>In deed, the original finding came from fb, see HBASE-6813 for detailed discussion.Through this improvement doesn't expect obvious gain on 95th or 99th latency, it still could make the response time more stable to me.</description>
+      <version>0.94.13</version>
+      <fixedVersion>0.98.0,0.96.1,0.94.15,0.99.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.regionserver.TestReplicationHLogReaderManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.FSHLog.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10078" opendate="2013-12-4 00:00:00" fixdate="2013-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dynamic Filter - Not using DynamicClassLoader when using FilterList</summary>
+      <description>I've tried to use dynamic jar load (https://issues.apache.org/jira/browse/HBASE-1936) but seems to have an issue with FilterList. Here is some log from my app where i send a Get with a FilterList containing AFilter and other with BFilter.2013-12-02 13:55:42,564 DEBUG org.apache.hadoop.hbase.util.DynamicClassLoader: Class d.p.AFilter not found - using dynamical class loader2013-12-02 13:55:42,564 DEBUG org.apache.hadoop.hbase.util.DynamicClassLoader: Finding class: d.p.AFilter2013-12-02 13:55:42,564 DEBUG org.apache.hadoop.hbase.util.DynamicClassLoader: Loading new jar files, if any2013-12-02 13:55:42,677 DEBUG org.apache.hadoop.hbase.util.DynamicClassLoader: Finding class again: d.p.AFilter2013-12-02 13:55:43,004 ERROR org.apache.hadoop.hbase.io.HbaseObjectWritable: Can't find class d.p.BFilterjava.lang.ClassNotFoundException: d.p.BFilter at java.net.URLClassLoader$1.run(URLClassLoader.java:202) at java.security.AccessController.doPrivileged(Native Method) at java.net.URLClassLoader.findClass(URLClassLoader.java:190) at java.lang.ClassLoader.loadClass(ClassLoader.java:306) at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:301) at java.lang.ClassLoader.loadClass(ClassLoader.java:247) at java.lang.Class.forName0(Native Method) at java.lang.Class.forName(Class.java:247) at org.apache.hadoop.conf.Configuration.getClassByName(Configuration.java:820) at org.apache.hadoop.hbase.io.HbaseObjectWritable.getClassByName(HbaseObjectWritable.java:792) at org.apache.hadoop.hbase.io.HbaseObjectWritable.readObject(HbaseObjectWritable.java:679) at org.apache.hadoop.hbase.io.HbaseObjectWritable.readObject(HbaseObjectWritable.java:594) at org.apache.hadoop.hbase.filter.FilterList.readFields(FilterList.java:324) at org.apache.hadoop.hbase.client.Get.readFields(Get.java:405) at org.apache.hadoop.hbase.io.HbaseObjectWritable.readObject(HbaseObjectWritable.java:690) at org.apache.hadoop.hbase.io.HbaseObjectWritable.readObject(HbaseObjectWritable.java:594) at org.apache.hadoop.hbase.client.Action.readFields(Action.java:101) at org.apache.hadoop.hbase.io.HbaseObjectWritable.readObject(HbaseObjectWritable.java:690) at org.apache.hadoop.hbase.io.HbaseObjectWritable.readObject(HbaseObjectWritable.java:594) at org.apache.hadoop.hbase.client.MultiAction.readFields(MultiAction.java:116) at org.apache.hadoop.hbase.io.HbaseObjectWritable.readObject(HbaseObjectWritable.java:690) at org.apache.hadoop.hbase.ipc.Invocation.readFields(Invocation.java:126) at org.apache.hadoop.hbase.ipc.HBaseServer$Connection.processData(HBaseServer.java:1311) at org.apache.hadoop.hbase.ipc.HBaseServer$Connection.readAndProcess(HBaseServer.java:1226) at org.apache.hadoop.hbase.ipc.HBaseServer$Listener.doRead(HBaseServer.java:748) at org.apache.hadoop.hbase.ipc.HBaseServer$Listener$Reader.doRunLoop(HBaseServer.java:539) at org.apache.hadoop.hbase.ipc.HBaseServer$Listener$Reader.run(HBaseServer.java:514) at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908) at java.lang.Thread.run(Thread.java:662)AFilter is not found so it tries with DynamicClassLoader, but when it tries to load AFilter, it uses URLClassLoader and fails without checking out for dynamic jars.I think the issue is releated to FilterList#readFieldsFilterList.java public void readFields(final DataInput in) throws IOException { byte opByte = in.readByte(); operator = Operator.values()[opByte]; int size = in.readInt(); if (size &gt; 0) { filters = new ArrayList&lt;Filter&gt;(size); for (int i = 0; i &lt; size; i++) { Filter filter = (Filter)HbaseObjectWritable.readObject(in, conf); filters.add(filter); } } }HbaseObjectWritable#readObject uses a conf (created by calling HBaseConfiguration.create()) which i suppose doesn't include a DynamicClassLoader instance.</description>
+      <version>0.94.13</version>
+      <fixedVersion>0.94.16</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-client.src.test.java.org.apache.hadoop.hbase.client.TestGet.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1008" opendate="2008-11-19 00:00:00" fixdate="2008-5-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[performance] The replay of logs on server crash takes way too long</summary>
+      <description>Watching recovery from a crash on streamy.com where there were 1048 logs and repay is running at rate of about 20 seconds each. Meantime these regions are not online. This is way too long to wait on recovery for a live site. Marking critical. Performance related so priority and in 0.20.0.</description>
+      <version>None</version>
+      <fixedVersion>0.20.0,0.19.3</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HLog.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.HConstants.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11819" opendate="2014-8-25 00:00:00" fixdate="2014-6-25 01:00:00" resolution="Later">
+    <buginformation>
+      <summary>Unit test for CoprocessorHConnection</summary>
+      <description>Add a unit test to hbase-server that exercises CoprocessorHConnection .</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.coprocessor.TestCoprocessorHConnection.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="844" opendate="2008-8-25 00:00:00" fixdate="2008-10-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Can&amp;#39;t pass script to hbase shell</summary>
+      <description>Shell documentation says:~ stack$ ${HBASE_HOME}/bin/hbase shell PATH_TO_SCRIPTYour script can lean on the methods provided by the HBase Shell.This doesn't actually work.</description>
+      <version>None</version>
+      <fixedVersion>0.19.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.hirb.rb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8441" opendate="2013-4-25 00:00:00" fixdate="2013-8-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[replication] Refactor KeeperExceptions thrown from replication state interfaces into replication specific exceptions</summary>
+      <description>Currently, the replication state interfaces (state, peers and queues) throw KeeperExceptions from some of their methods. Refactor these into replication specific exceptions to prevent the implementation details of Zookeeper from leaking through.</description>
+      <version>None</version>
+      <fixedVersion>0.96.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.TestReplicationStateBasic.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSourceManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.Replication.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.master.ReplicationLogCleaner.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.mapreduce.replication.VerifyReplication.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationQueuesZKImpl.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationQueuesClientZKImpl.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationQueuesClient.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationQueues.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationPeersZKImpl.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationPeers.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.replication.ReplicationPeer.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.replication.ReplicationAdmin.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="975" opendate="2008-10-31 00:00:00" fixdate="2008-11-31 01:00:00" resolution="Won&amp;#39;t Fix">
+    <buginformation>
+      <summary>Improve MapFile performance for start and end key</summary>
+      <description>Keeping a MapFile's start and end key in cache would save us some seeks, see if it can be done.</description>
+      <version>None</version>
+      <fixedVersion>0.19.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.org.apache.hadoop.hbase.regionserver.TestSplit.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.regionserver.TestHStoreFile.java</file>
+      <file type="M">src.test.org.apache.hadoop.hbase.HBaseClusterTestCase.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HStoreFile.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.io.ImmutableBytesWritable.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.io.BlockFSInputStream.java</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.client.HTable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9750" opendate="2013-10-11 00:00:00" fixdate="2013-10-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add retries around Action server stop/start</summary>
+      <description>These can fail on occasion (my upping ConnectionTimeout is not enough). Lets just retry a few times at least rather than fail at least for server start. Losing a server makes tests run for longer and there is also the danger we could lose all servers and the long-running test would then outright fail.</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.96.1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.HBaseTestingUtility.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.HBaseClusterManager.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.chaos.monkies.PolicyBasedChaosMonkey.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.chaos.actions.MoveRegionsOfTableAction.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.util.RetryCounterFactory.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.util.RetryCounter.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

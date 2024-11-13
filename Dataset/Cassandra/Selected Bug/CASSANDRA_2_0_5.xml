@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  
+  
+  <bug fixdate="2013-1-2 01:00:00" id="6131" opendate="2013-10-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JAVA_HOME on cassandra-env.sh is ignored on Debian packages</summary>
+      <description>I've just got upgraded to 2.0.1 package from the apache repositories using apt. I had the JAVA_HOME environment variable set in /etc/cassandra/cassandra-env.sh but after the upgrade it only worked by setting it on /usr/sbin/cassandra script. I can't configure java 7 system wide, only for cassandra.Off-toppic: Thanks for getting rid of the jsvc mess.</description>
+      <version>2.0.5</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2013-1-9 01:00:00" id="6465" opendate="2013-12-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DES scores fluctuate too much for cache pinning</summary>
+      <description>To quote the conf:# if set greater than zero and read_repair_chance is &lt; 1.0, this will allow# 'pinning' of replicas to hosts in order to increase cache capacity.# The badness threshold will control how much worse the pinned host has to be# before the dynamic snitch will prefer other replicas over it. This is# expressed as a double which represents a percentage. Thus, a value of# 0.2 means Cassandra would continue to prefer the static snitch values# until the pinned host was 20% worse than the fastest.dynamic_snitch_badness_threshold: 0.1An assumption of this feature is that scores will vary by less than dynamic_snitch_badness_threshold during normal operations. Attached is the result of polling a node for the scores of 6 different endpoints at 1 Hz for 15 minutes. The endpoints to sample were chosen with `nodetool getendpoints` for row that is known to get reads. The node was acting as a coordinator for a few hundred req/second, so it should have sufficient data to work with. Other traces on a second cluster have produced similar results. The scores vary by far more than I would expect, as show by the difficulty of seeing anything useful in that graph. The difference between the best and next-best score is usually &gt; 10% (default dynamic_snitch_badness_threshold).Neither ClientRequest nor ColumFamily metrics showed wild changes during the data gathering period.Attachments: jython script cobbled together to gather the data (based on work on the mailing list from Maki Watanabe a while back) csv of DES scores for 6 endpoints, polled about once a second Attempt at making a graph</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.DynamicEndpointSnitch.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2013-1-17 01:00:00" id="6495" opendate="2013-12-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LOCAL_SERIAL use QUORUM consistency level to validate expected columns</summary>
+      <description>If CAS is done at LOCAL_SERIAL consistency level, only the nodes from the local data center should be involved. Here we are using QUORAM to validate the expected columns. This will require nodes from more than one DC. We should use LOCAL_QUORAM here when CAS is done at LOCAL_SERIAL. Also if we have 2 DCs with DC1:3,DC2:3, a single DC down will cause CAS to not work even for LOCAL_SERIAL.</description>
+      <version>2.0.5</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2014-1-7 01:00:00" id="6554" opendate="2014-1-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>During upgrade from 1.2 -&gt; 2.0, upgraded node sees other nodes as Down</summary>
+      <description>During an upgrade from 1.2.13 to 2.0.3/2.0.4, the upgraded node sees the remaining nodes of the cluster as Down.automaton@ip-10-139-1-113:~$ nodetool statusDatacenter: datacenter1=======================Status=Up/Down|/ State=Normal/Leaving/Joining/Moving-- Address Load Owns Host ID Token RackUN 10.139.1.113 98.94 MB 33.3% 33b1cd06-e17b-4332-8066-0c6c401e0cf3 -9223372036854775808 rack1DN 10.139.11.168 97.51 MB 33.3% ec97c163-8f2d-4019-a3d1-55df5e4037d4 -3074457345618258603 rack1DN 10.238.221.115 97.34 MB 33.3% 73a76d3f-73ef-481d-b603-0833c0ff80c2 3074457345618258602 rack1automaton@ip-10-139-1-113:~$ nodetool gossipinfo/10.238.221.115 SEVERITY:0.0 RPC_ADDRESS:0.0.0.0 DC:datacenter1 RELEASE_VERSION:1.2.13 LOAD:1.02066255E8 STATUS:NORMAL,3074457345618258602 SCHEMA:8b351435-81ef-3a14-adf7-8555e2f19ecd NET_VERSION:6 RACK:rack1 HOST_ID:73a76d3f-73ef-481d-b603-0833c0ff80c2/10.139.1.113 RPC_ADDRESS:0.0.0.0 SEVERITY:0.0 DC:datacenter1 RELEASE_VERSION:2.0.4 LOAD:1.03750451E8 STATUS:NORMAL,-9223372036854775808 SCHEMA:dfafb212-5b8f-31cb-a80b-2ba58fcef73d NET_VERSION:7 RACK:rack1 HOST_ID:33b1cd06-e17b-4332-8066-0c6c401e0cf3/10.139.11.168 SEVERITY:0.0 RPC_ADDRESS:0.0.0.0 DC:datacenter1 RELEASE_VERSION:1.2.13 LOAD:1.02245066E8 STATUS:NORMAL,-3074457345618258603 SCHEMA:8b351435-81ef-3a14-adf7-8555e2f19ecd NET_VERSION:6 RACK:rack1 HOST_ID:ec97c163-8f2d-4019-a3d1-55df5e4037d4</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-1-10 01:00:00" id="6569" opendate="2014-1-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog replays copy the entire batchlog table into the heap</summary>
+      <description>The current batchlog replay path will read the entire batchlog table into the heap. This is pretty bad. This was compounded by CASSANDRA-5762, which caused the SELECT statement used by the batchlog replay to bring the entire row into memory instead of just the selected columns.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-1-16 01:00:00" id="6597" opendate="2014-1-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tombstoned cells warning log improvement</summary>
+      <description>The "tombstone_warn_threshold" logs warnings about reads encountering too many tombstones but doesn't tell you in which CF.Since the large amount of tombstones could be caused by a bad design, it would be useful to know which CF was being read.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+</bugrepository>

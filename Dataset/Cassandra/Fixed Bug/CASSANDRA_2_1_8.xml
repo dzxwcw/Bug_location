@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="9064" opendate="2015-3-27 00:00:00" fixdate="2015-6-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[LeveledCompactionStrategy] cqlsh can&amp;#39;t run cql produced by its own describe table statement</summary>
+      <description>Here's how to reproduce:1) Create a table with LeveledCompactionStrategyCREATE keyspace foo WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor' : 3};CREATE TABLE foo.bar ( spam text PRIMARY KEY) WITH compaction = {'class': 'LeveledCompactionStrategy'};2) Describe the table and save the outputcqlsh -e "describe table foo.bar"Output should be something likeCREATE TABLE foo.bar ( spam text PRIMARY KEY) WITH bloom_filter_fp_chance = 0.1 AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}' AND comment = '' AND compaction = {'min_threshold': '4', 'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy', 'max_threshold': '32'} AND compression = {'sstable_compression': 'org.apache.cassandra.io.compress.LZ4Compressor'} AND dclocal_read_repair_chance = 0.1 AND default_time_to_live = 0 AND gc_grace_seconds = 864000 AND max_index_interval = 2048 AND memtable_flush_period_in_ms = 0 AND min_index_interval = 128 AND read_repair_chance = 0.0 AND speculative_retry = '99.0PERCENTILE';3) Save the output to repro.cql4) Drop the table foo.barcqlsh -e "drop table foo.bar"5) Run the create table statement we savedcqlsh -f "repro.cql"6) Expected: normal execution without an error7) Reality:ConfigurationException: &lt;ErrorMessage code=2300 &amp;#91;Query invalid because of configuration issue&amp;#93; message="Properties specified &amp;#91;min_threshold, max_threshold&amp;#93; are not understood by LeveledCompactionStrategy"&gt;</description>
+      <version>2.1.8,2.2.0rc2</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-2.6.0c1.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9090" opendate="2015-4-1 00:00:00" fixdate="2015-6-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow JMX over SSL directly from nodetool</summary>
+      <description>Currently cqlsh allows users to connect via SSL to their cassandra cluster via command line. Nodetool only offers username/password authentication &amp;#91;1&amp;#93;, and if users want to use SSL, they need to use jconsole &amp;#91;2&amp;#93;. We should support nodetool connecting via SSL in the same way cqlsh does.&amp;#91;1&amp;#93; http://wiki.apache.org/cassandra/JmxSecurity&amp;#91;2&amp;#93; https://www.lullabot.com/blog/article/monitor-java-jmx&amp;#91;3&amp;#93; http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html</description>
+      <version>2.1.8,2.2.0rc2,3.0alpha1</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">conf.cassandra-env.sh</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.nodetool</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9385" opendate="2015-5-14 00:00:00" fixdate="2015-6-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh autocomplete does not work for DTCS min_threshold</summary>
+      <description>Confirmed that min_threshold is a valid parameter for DTCS:create TABLE test1 (key text, col1 text, primary key (key)) WITH compaction = {'class': 'DateTieredCompactionStrategy', 'min_threshold': '4' };But the min_threshold does not appear in the tab auto complete options.</description>
+      <version>2.0.17,2.1.8,2.2.0rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9527" opendate="2015-6-1 00:00:00" fixdate="2015-6-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cannot create secondary index on a table WITH COMPACT STORAGE</summary>
+      <description>In CASSANDRA-8156 it is said that secondary indexes are not allowed on clustering columns in COMPACT tables.However, I found that it is not possible to create a secondary index on the value column in a COMPACT table:CREATE TABLE t ( a INT, b INT, c INT, PRIMARY KEY (a, b)) WITH COMPACT STORAGE;CREATE INDEX ON t (c);Bad Request: Secondary indexes are not supported on PRIMARY KEY columns in COMPACT STORAGE tables</description>
+      <version>2.0.17,2.1.8,2.2.0rc2</version>
+      <fixedVersion>Feature/2iIndex,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9540" opendate="2015-6-3 00:00:00" fixdate="2015-6-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cql IN query wrong on rows with values bigger than 64kb</summary>
+      <description>We are investigating a weird issue where one of our clients doesn't get data on his dashboard. It seems Cassandra is not returning data for a particular key ("brokenkey" from now on).Some background:We have a row where we store a "metadata" column and data in columns "bucket/0", "bucket/1", "bucket/2", etc. Depending on the date selection of the UI, we know that we only need to retrieve bucket/0, bucket/0 and bucket/1 etc. (we always need to retrieve "metadata").A typical query may look like this (using SELECT column1 to just show what is returned, normally we would of course do SELECT value):cqlsh:AppBrain&gt; select blobAsText(column1) from "GroupedSeries" where key=textAsBlob('install/workingkey'); blobAsText(column1)--------------------- bucket/0 metadata(2 rows)cqlsh:AppBrain&gt; select blobAsText(column1) from "GroupedSeries" where key=textAsBlob('install/brokenkey'); blobAsText(column1)--------------------- bucket/0 metadata(2 rows)These two queries work as expected, and return the information that we actually stored.However, when we "filter" for certain columns, the brokenkey starts behaving very weird:cqlsh:AppBrain&gt; select blobAsText(column1) from "GroupedSeries" where key=textAsBlob('install/workingkey') and column1 IN (textAsBlob('metadata'),textAsBlob('bucket/0'),textAsBlob('bucket/1'),textAsBlob('bucket/2')); blobAsText(column1)--------------------- bucket/0 metadata(2 rows)cqlsh:AppBrain&gt; select blobAsText(column1) from "GroupedSeries" where key=textAsBlob('install/workingkey') and column1 IN (textAsBlob('metadata'),textAsBlob('bucket/0'),textAsBlob('bucket/1'),textAsBlob('bucket/2'),textAsBlob('asdfasdfasdf')); blobAsText(column1)--------------------- bucket/0 metadata(2 rows)*** As expected, querying for more information doesn't really matter for the working key ***cqlsh:AppBrain&gt; select blobAsText(column1) from "GroupedSeries" where key=textAsBlob('install/brokenkey') and column1 IN (textAsBlob('metadata'),textAsBlob('bucket/0'),textAsBlob('bucket/1'),textAsBlob('bucket/2')); blobAsText(column1)--------------------- bucket/0(1 rows)*** Cassandra stops giving us the metadata column when asking for a few more columns! ***cqlsh:AppBrain&gt; select blobAsText(column1) from "GroupedSeries" where key=textAsBlob('install/brokenkey') and column1 IN (textAsBlob('metadata'),textAsBlob('bucket/0'),textAsBlob('bucket/1'),textAsBlob('bucket/2'),textAsBlob('asdfasdfasdf')); key | column1 | value-----+---------+-------(0 rows)*** Adding the bogus column name even makes it return nothing from this row anymore! ***There are at least two rows that malfunction like this in our table (which is quite old already and has gone through a bunch of Cassandra upgrades). I've upgraded our whole cluster to 2.1.5 (we were on 2.1.2 when I discovered this problem) and compacted, repaired and scrubbed this column family, which hasn't helped.Our table structure is:cqlsh:AppBrain&gt; describe table "GroupedSeries";CREATE TABLE "AppBrain"."GroupedSeries" ( key blob, column1 blob, value blob, PRIMARY KEY (key, column1)) WITH COMPACT STORAGE AND CLUSTERING ORDER BY (column1 ASC) AND caching = '{"keys":"ALL", "rows_per_partition":"NONE"}' AND comment = '' AND compaction = {'min_threshold': '4', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32'} AND compression = {'sstable_compression': 'org.apache.cassandra.io.compress.LZ4Compressor'} AND dclocal_read_repair_chance = 0.1 AND default_time_to_live = 0 AND gc_grace_seconds = 864000 AND max_index_interval = 2048 AND memtable_flush_period_in_ms = 0 AND min_index_interval = 128 AND read_repair_chance = 1.0 AND speculative_retry = 'NONE';Let me know if I can give more information that may be helpful.</description>
+      <version>2.1.8,2.2.0rc2</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableNamesIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9603" opendate="2015-6-16 00:00:00" fixdate="2015-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose private listen_address in system.local</summary>
+      <description>We had some hopes CASSANDRA-9436 would add it, yet it added rpc_address instead of both rpc_address and listen_address. We really need listen_address here, because we need to get information on the private IP C* binds to. Knowing this we could better match Spark nodes to C* nodes and process data locally in environments where rpc_address != listen_address like EC2. See, Spark does not know rpc addresses nor it has a concept of broadcast address. It only knows the hostname / IP its workers bind to. In case of cloud environments, these are private IPs. Now if we give Spark a set of C* nodes identified by rpc_addresses, Spark doesn't recognize them as belonging to the same cluster. It treats them as "remote" nodes and has no idea where to send tasks optimally. Current situation (example):Spark worker nodes: &amp;#91;10.0.0.1, 10.0.0.2, 10.0.0.3&amp;#93;C* nodes: &amp;#91;10.0.0.1 / node1.blah.ec2.com, 10.0.0.2 / node2.blah.ec2.com, 10.0.0.3 / node3.blah.ec2.com&amp;#93;What the application knows about the cluster: &amp;#91;node1.blah.ec2.com, node2.blah.ec2.com, node3.blah.ec2.com&amp;#93;What the application sends to Spark for execution: Task1 - please execute on node1.blah.ec2.com Task2 - please execute on node2.blah.ec2.com Task3 - please execute on node3.blah.ec2.comHow Spark understands it: "I have no idea what node1.blah.ec2.com is, let's assign Task1 it to a random node" Expected:Spark worker nodes: &amp;#91;10.0.0.1, 10.0.0.2, 10.0.0.3&amp;#93;C* nodes: &amp;#91;10.0.0.1 / node1.blah.ec2.com, 10.0.0.2 / node2.blah.ec2.com, 10.0.0.3 / node3.blah.ec2.com&amp;#93;What the application knows about the cluster: &amp;#91;10.0.0.1 / node1.blah.ec2.com, 10.0.0.2 / node2.blah.ec2.com, 10.0.0.3 / node3.blah.ec2.com&amp;#93;What the application sends to Spark for execution: Task1 - please execute on node1.blah.ec2.com or 10.0.0.1 Task2 - please execute on node2.blah.ec2.com or 10.0.0.2 Task3 - please execute on node3.blah.ec2.com or 10.0.0.3How Spark understands it: "10.0.0.1? - I have a worker on that node, lets put Task 1 there"</description>
+      <version>2.0.17,2.1.8,2.2.0rc2</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9631" opendate="2015-6-22 00:00:00" fixdate="2015-6-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unnecessary required filtering for query on indexed clustering key</summary>
+      <description>Let's create and populate a simple table composed of one partition key a, two clustering keys b &amp; c, and one secondary index on a standard column e:$ cqlsh 127.0.0.1Connected to test21 at 127.0.0.1:9160.[cqlsh 4.1.1 | Cassandra 2.1.6-SNAPSHOT | CQL spec 3.1.1 | Thrift protocol 19.39.0]Use HELP for help.cqlsh&gt; CREATE KEYSPACE test WITH REPLICATION={'class': 'SimpleStrategy', 'replication_factor': 3};cqlsh&gt; CREATE TABLE test.table1 ( ... a int, ... b int, ... c int, ... d int, ... e int, ... PRIMARY KEY (a, b, c) ... );cqlsh&gt; CREATE INDEX table1_e ON test.table1 (e);cqlsh&gt; INSERT INTO test.table1 (a, b, c, d, e) VALUES (1, 1, 1, 1, 1);(...)cqlsh&gt; SELECT * FROM test.table1; a | b | c | d | e---+---+---+---+--- 1 | 1 | 1 | 1 | 1 1 | 1 | 2 | 2 | 2 1 | 1 | 3 | 3 | 3 1 | 2 | 1 | 1 | 3 1 | 3 | 1 | 1 | 1 2 | 4 | 1 | 1 | 1(6 rows)With such a schema, I am allowed to query on the indexed column without filtering by providing the first two elements of the primary key:cqlsh&gt; SELECT * FROM test.table1 WHERE a=1 AND b=1 AND e=3; a | b | c | d | e---+---+---+---+--- 1 | 1 | 3 | 3 | 3(1 rows)Let's now introduce an index on the first clustering key:cqlsh&gt; CREATE INDEX table1_b ON test.table1 (b);Now, I expect the same query as above to work without filtering, but it's not:cqlsh&gt; SELECT * FROM test.table1 WHERE a=1 AND b=1 AND e=3;Bad Request: Cannot execute this query as it might involve data filtering and thus may have unpredictable performance. If you want to execute this query despite the performance unpredictability, use ALLOW FILTERINGI think this is a bug on the way secondary indexes are accounted for when checking for unfiltered queries.</description>
+      <version>2.0.17,2.1.8,2.2.0rc2</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.SingleColumnRelationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9637" opendate="2015-6-23 00:00:00" fixdate="2015-6-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CFS selectAndReference Blocks for Compaction</summary>
+      <description>The Spark Cassandra Connector uses dsecribe_splits_ex to deterimine token information about the C* cluster. On 2.1.4 this behaves normally and responds in a few milliseconds. On 2.1.5 the function blocks while compaction is running which basically makes the function unusable. Under the hood this function access sstable information using selectAndReference. A debugging session led us to determine that the error occurred because the code would simply spin (unable to gain references to compacting tables) while compaction was happening.A fix was tested and proposed:https://github.com/belliottsmith/cassandra/tree/fix-spinning</description>
+      <version>2.1.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9656" opendate="2015-6-26 00:00:00" fixdate="2015-7-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Strong circular-reference leaks</summary>
+      <description>As discussed in CASSANDRA-9423, we are leaking references to the ref-counted object into the Ref.Tidy, so that they remain strongly reachable, significantly limiting the value of the leak detection.</description>
+      <version>2.1.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableRewriterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneUpgrader.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneSplitter.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneScrubber.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableRewriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableDeletingTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9693" opendate="2015-7-1 00:00:00" fixdate="2015-7-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh DESCRIBE KEYSPACES reporting error &amp;#39;None not found in keyspaces&amp;#39; after keyspaces</summary>
+      <description>This was introduced by CASSANDRA-7814</description>
+      <version>2.1.8,2.2.0rc2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

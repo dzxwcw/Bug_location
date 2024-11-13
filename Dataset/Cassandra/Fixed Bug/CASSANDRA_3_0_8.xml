@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10532" opendate="2015-10-15 00:00:00" fixdate="2015-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow LWT operation on static column with only partition keys</summary>
+      <description>SchemaCREATE TABLE IF NOT EXISTS achilles_embedded.entity_with_static_column(id bigint,uuid uuid,static_col text static,value text,PRIMARY KEY(id, uuid));When trying to prepare the following queryDELETE static_col FROM achilles_embedded.entity_with_static_column WHERE id=:id_Eq IF static_col=:static_col;I got the error DELETE statements must restrict all PRIMARY KEY columns with equality relations in order to use IF conditions, but column 'uuid' is not restrictedSince the mutation only impacts the static column and the CAS check is on the static column, it makes sense to provide only partition key</description>
+      <version>2.1.15,2.2.7,3.0.8,3.8</version>
+      <fixedVersion>Feature/LightweightTransactions,Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.InsertUpdateIfConditionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DeleteStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11327" opendate="2016-3-9 00:00:00" fixdate="2016-6-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Maintain a histogram of times when writes are blocked due to no available memory</summary>
+      <description>I have a theory that part of the reason C* is so sensitive to timeouts during saturating write load is that throughput is basically a sawtooth with valleys at zero. This is something I have observed and it gets worse as you add 2i to a table or do anything that decreases the throughput of flushing.I think the fix for this is to incrementally release memory pinned by memtables and 2i during flushing instead of releasing it all at once. I know that's not really possible, but we can fake it with memory accounting that tracks how close to completion flushing is and releases permits for additional memory. This will lead to a bit of a sawtooth in real memory usage, but we can account for that so the peak footprint is the same.I think the end result of this change will be a sawtooth, but the valley of the sawtooth will not be zero it will be the rate at which flushing progresses. Optimizing the rate at which flushing progresses and it's fairness with other work can then be tackled separately.Before we do this I think we should demonstrate that pinned memory due to flushing is actually the issue by getting better visibility into the distribution of instances of not having any memory by maintaining a histogram of spans of time where no memory is available and a thread is blocked.MemtableAllocatr$SubPool.allocate(long) should be a relatively straightforward entry point for this. The first thread to block can mark the start of memory starvation and the last thread out can mark the end. Have a periodic task that tracks the amount of time spent blocked per interval of time and if it is greater than some threshold log with more details, possibly at debug.</description>
+      <version>3.0.8,3.8</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.memory.MemtablePool.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.memory.MemtableAllocator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11481" opendate="2016-4-2 00:00:00" fixdate="2016-6-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Example metrics config has DroppedMetrics</summary>
+      <description>Noticed this when setting up metrics reporting on a new cluster. I assume it is meant to be DroppedMessage</description>
+      <version>3.0.8,3.8</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.metrics-reporter-config-sample.yaml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11696" opendate="2016-5-2 00:00:00" fixdate="2016-6-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incremental repairs can mark too many ranges as repaired</summary>
+      <description>Incremental repairs are tracked using a parent session - a subordinate repair session is created for each range in the repair. When a node participating in the repair receives a validation request, it will reference the sstables in the parent repair session. When all subordinate sessions conclude, each node anticompacts SSTables based on the parent repair session for the whole range of the repair, but these referenced SSTables may have only been present for the validation of some subset of the ranges because the SSTables were created concurrent with the parent repair session.</description>
+      <version>2.1.15,2.2.7,3.0.8,3.8</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.ActiveRepairServiceTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11749" opendate="2016-5-11 00:00:00" fixdate="2016-6-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQLSH gets SSL exception following a COPY FROM</summary>
+      <description>When running Cassandra and cqlsh with SSL, the following command occasionally results in the exception below:cqlsh --ssl -f kv.cqlERROR [SharedPool-Worker-2] 2016-05-11 12:41:03,583 Message.java:538 - Unexpected exception during request; channel = [id: 0xeb75e05d, /127.0.0.1:51083 =&gt; /127.0.0.1:9042]io.netty.handler.codec.DecoderException: javax.net.ssl.SSLException: bad record MAC at io.netty.handler.codec.ByteToMessageDecoder.callDecode(ByteToMessageDecoder.java:280) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.handler.codec.ByteToMessageDecoder.channelRead(ByteToMessageDecoder.java:149) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:333) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:319) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:787) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.epoll.EpollSocketChannel$EpollSocketUnsafe.epollInReady(EpollSocketChannel.java:722) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.epoll.EpollEventLoop.processReady(EpollEventLoop.java:326) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.epoll.EpollEventLoop.run(EpollEventLoop.java:264) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.util.concurrent.SingleThreadEventExecutor$2.run(SingleThreadEventExecutor.java:116) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.util.concurrent.DefaultThreadFactory$DefaultRunnableDecorator.run(DefaultThreadFactory.java:137) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at java.lang.Thread.run(Thread.java:745) [na:1.8.0_91]Caused by: javax.net.ssl.SSLException: bad record MAC at sun.security.ssl.Alerts.getSSLException(Alerts.java:208) ~[na:1.8.0_91] at sun.security.ssl.SSLEngineImpl.fatal(SSLEngineImpl.java:1728) ~[na:1.8.0_91] at sun.security.ssl.SSLEngineImpl.readRecord(SSLEngineImpl.java:981) ~[na:1.8.0_91] at sun.security.ssl.SSLEngineImpl.readNetRecord(SSLEngineImpl.java:907) ~[na:1.8.0_91] at sun.security.ssl.SSLEngineImpl.unwrap(SSLEngineImpl.java:781) ~[na:1.8.0_91] at javax.net.ssl.SSLEngine.unwrap(SSLEngine.java:624) ~[na:1.8.0_91] at io.netty.handler.ssl.SslHandler.unwrap(SslHandler.java:982) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.handler.ssl.SslHandler.unwrap(SslHandler.java:908) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.handler.ssl.SslHandler.decode(SslHandler.java:854) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.handler.codec.ByteToMessageDecoder.callDecode(ByteToMessageDecoder.java:249) ~[netty-all-4.0.23.Final.jar:4.0.23.Final] ... 10 common frames omittedCaused by: javax.crypto.BadPaddingException: bad record MAC at sun.security.ssl.InputRecord.decrypt(InputRecord.java:219) ~[na:1.8.0_91] at sun.security.ssl.EngineInputRecord.decrypt(EngineInputRecord.java:177) ~[na:1.8.0_91] at sun.security.ssl.SSLEngineImpl.readRecord(SSLEngineImpl.java:974) ~[na:1.8.0_91] ... 17 common frames omittedwherecat kv.cql create keyspace if not exists cvs_copy_ks with replication = {'class': 'SimpleStrategy', 'replication_factor':1};create table if not exists cvs_copy_ks.kv (key int primary key, value text);truncate cvs_copy_ks.kv;copy cvs_copy_ks.kv (key, value) from 'kv.csv' with header='true';select * from cvs_copy_ks.kv;drop keyspace cvs_copy_ks;stefi@cuoricina:~/git/cstar/cassandra$ cat kv.ckv.cql kv.csv cat kv.csv key,value1,'a'2,'b'3,'c'The COPY FROM succeeds, however the following select does not. The easiest way to reproduce this is to restart the Cassandra process, it seems to happen in preference after a restart.</description>
+      <version>2.1.15,2.2.7,3.0.8,3.8</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11755" opendate="2016-5-11 00:00:00" fixdate="2016-6-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool info should run with "readonly" jmx access</summary>
+      <description>nodetool info crash when granted with readonly jmx accessIn the example given in attachment, the jmxremote.access file gives readonly access to the cassandra jmx role.When the role is granted to readwrite access, everything works.The main reason is that node datacenter and rack info are fetched by an operation invocation instead of by an attribute read. The former one is not allowed to the role with readonly access.This is a security concern because nodetool info could be called by a monitoring agent (Nagios for instance) and enterprise policy often don't allow these agents to connect to JMX with higher privileges than "readonly".</description>
+      <version>2.1.15,3.0.8,3.8</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.EndpointSnitchInfoMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.EndpointSnitchInfo.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11798" opendate="2016-5-12 00:00:00" fixdate="2016-6-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow specification of &amp;#39;time&amp;#39; column value as number in CQL query.</summary>
+      <description>The 'time' cql type is internally stored and sent over the protocol as an 8-byte long value representing nanoseconds since midnight. When specifying a time column value as a number in a simple statement,, C* currently responds with:InvalidRequest: code=2200 [Invalid query] message="Invalid INTEGER constant (42000000000) for "time" of type time"Instead one must provide this value as a string (i.e. '42000000000') or use an HH.MM.SS.sssssssss format (i.e. '00:00:42.000000000'). It would be nice if it supported unquoted numbers as well.Example:cqlsh:simple&gt; CREATE TABLE timeentity (id varchar PRIMARY KEY, time time);# Doesn't workcqlsh:simple&gt; INSERT into timeentity (id, time) values ('1', 42000000000);InvalidRequest: code=2200 [Invalid query] message="Invalid INTEGER constant (42000000000) for "time" of type time"# Workscqlsh:simple&gt; INSERT into timeentity (id, time) values ('1', '42000000000');When using prepared statements or simple statements with parameters, one could provide a long value, depending on the driver implementation. I.E. the java driver has setTime(int index, long v).</description>
+      <version>3.0.8,3.8</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.marshal.TimeTypeTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Constants.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11878" opendate="2016-5-23 00:00:00" fixdate="2016-6-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in upgrade_tests.cql_tests.TestCQLNodes2RF1_Upgrade_current_3_x_To_indev_3_x.select_key_in_test</summary>
+      <description>example failure:http://cassci.datastax.com/job/upgrade_tests-all/47/testReport/upgrade_tests.cql_tests/TestCQLNodes2RF1_Upgrade_current_3_x_To_indev_3_x/select_key_in_testFailed on CassCI build upgrade_tests-all #47Attached logs for test failure.ERROR [CompactionExecutor:2] 2016-05-21 23:10:35,678 CassandraDaemon.java:195 - Exception in thread Thread[CompactionExecutor:2,1,main]java.util.concurrent.RejectedExecutionException: ThreadPoolExecutor has shut down at org.apache.cassandra.concurrent.DebuggableThreadPoolExecutor$1.rejectedExecution(DebuggableThreadPoolExecutor.java:61) ~[apache-cassandra-3.5.jar:3.5] at java.util.concurrent.ThreadPoolExecutor.reject(ThreadPoolExecutor.java:823) ~[na:1.8.0_51] at java.util.concurrent.ThreadPoolExecutor.execute(ThreadPoolExecutor.java:1364) ~[na:1.8.0_51] at org.apache.cassandra.concurrent.DebuggableThreadPoolExecutor.execute(DebuggableThreadPoolExecutor.java:165) ~[apache-cassandra-3.5.jar:3.5] at java.util.concurrent.AbstractExecutorService.submit(AbstractExecutorService.java:112) ~[na:1.8.0_51] at org.apache.cassandra.db.compaction.CompactionManager.submitBackground(CompactionManager.java:184) ~[apache-cassandra-3.5.jar:3.5] at org.apache.cassandra.db.compaction.CompactionManager$BackgroundCompactionCandidate.run(CompactionManager.java:270) ~[apache-cassandra-3.5.jar:3.5] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) ~[na:1.8.0_51] at java.util.concurrent.FutureTask.run(FutureTask.java:266) ~[na:1.8.0_51] at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142) ~[na:1.8.0_51] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617) [na:1.8.0_51] at java.lang.Thread.run(Thread.java:745) [na:1.8.0_51]</description>
+      <version>3.0.8,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11991" opendate="2016-6-10 00:00:00" fixdate="2016-6-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>On clock skew, paxos may "corrupt" the node clock</summary>
+      <description>W made a mistake in CASSANDRA-9649 so that a temporal clock skew on one node can "corrupt" other node clocks through Paxos. That wasn't intended and we should fix that. I'll attach a patch later.</description>
+      <version>2.1.15,2.2.7,3.0.8,3.8</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.UUIDGen.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12077" opendate="2016-6-23 00:00:00" fixdate="2016-6-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NPE when trying to get sstables for anticompaction</summary>
+      <description>This was introduced in CASSANDRA-11739 - we need to avoid trying to get sstables for tables we are not repairing</description>
+      <version>2.1.15,2.2.7,3.0.8,3.8</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9842" opendate="2015-7-18 00:00:00" fixdate="2015-6-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inconsistent behavior for &amp;#39;= null&amp;#39; conditions on static columns</summary>
+      <description>Both inserting a row (in a non-existent partition) and updating a static column in the same LWT fails. Creating the partition before performing the LWT works.Table Definitioncreate table txtable(pcol bigint, ccol bigint, scol bigint static, ncol text, primary key((pcol), ccol));Inserting row in non-existent partition and updating static column in one LWTbegin batch insert into txtable (pcol, ccol, ncol) values (1, 1, 'A'); update txtable set scol = 1 where pcol = 1 if scol = null;apply batch;[applied]----------- FalseCreating partition before LWTinsert into txtable (pcol, scol) values (1, null) if not exists;begin batch insert into txtable (pcol, ccol, ncol) values (1, 1, 'A'); update txtable set scol = 1 where pcol = 1 if scol = null;apply batch;[applied]----------- True</description>
+      <version>2.1.15,2.2.7,3.0.8,3.8</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.InsertUpdateIfConditionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

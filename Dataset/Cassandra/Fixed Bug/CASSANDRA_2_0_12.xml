@@ -1,0 +1,601 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="4959" opendate="2012-11-14 00:00:00" fixdate="2012-10-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQLSH insert help has typo</summary>
+      <description>&amp;#91;cqlsh 2.3.0 | Cassandra 1.2.0-beta2-SNAPSHOT | CQL spec 3.0.0 | Thrift protocol 19.35.0&amp;#93;Use HELP for help.cqlsh&gt; help INSERT INSERT INTO &amp;#91;&lt;keyspace&gt;.&amp;#93;&lt;tablename&gt; ( &lt;colname1&gt;, &lt;colname2&gt; [, &lt;colname3&gt; &amp;#91;, ...&amp;#93;] ) VALUES ( &lt;colval1&gt;, &lt;colval2&gt; [, &lt;colval3&gt; &amp;#91;, ...&amp;#93;] ) &amp;#91;USING TIMESTAMP &lt;timestamp&gt;&amp;#93; &amp;#91;AND TTL &lt;timeToLive&amp;#93;];Should be. &amp;#91;AND TTL &lt;timeToLive&gt;&amp;#93;];Also it was not clear to me initially that you could just do:USING TTL &lt;timeToLive&gt;But maybe that is just me.</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.helptopics.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6952" opendate="2014-3-29 00:00:00" fixdate="2014-12-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cannot bind variables to USE statements</summary>
+      <description>Attempting to bind a variable for a USE query results in a syntax error.Example Invocation:ResultSet result = session.execute("USE ?", "system");Error:ERROR SYNTAX_ERROR: line 1:4 no viable alternative at input '?', v=2</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7386" opendate="2014-6-12 00:00:00" fixdate="2014-11-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JBOD threshold to prevent unbalanced disk utilization</summary>
+      <description>Currently the pick the disks are picked first by number of current tasks, then by free space. This helps with performance but can lead to large differences in utilization in some (unlikely but possible) scenarios. Ive seen 55% to 10% and heard reports of 90% to 10% on IRC. With both LCS and STCS (although my suspicion is that STCS makes it worse since harder to be balanced).I purpose the algorithm change a little to have some maximum range of utilization where it will pick by free space over load (acknowledging it can be slower). So if a disk A is 30% full and disk B is 5% full it will never pick A over B until it balances out.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.DirectoriesTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.CommitLogTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamReceiveTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.DiskAwareRunnable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.Scrubber.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7510" opendate="2014-7-8 00:00:00" fixdate="2014-11-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Notify clients that bootstrap is finished over binary protocol</summary>
+      <description>Currently, Cassandra will notify clients when a new node is added to a cluster. However, that node is typically not usable yet. It first needs to gossip its key range and finish loading all its assigned data before it allows clients to connect. Depending on the amount of data this may take quite a while. The clients in the mean time have no clue about the bootstrap status of that node. The only thing they can do is periodically check if it will accept a connection. My proposal would be to send an additional UP event when the bootstrap is done, this allows clients to mark the node initially as down/unavailable and simply wait for the UP event to arrive.Kind regards,Joost</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7704" opendate="2014-8-5 00:00:00" fixdate="2014-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>FileNotFoundException during STREAM-OUT triggers 100% CPU usage</summary>
+      <description>See attached backtrace which was what triggered this. This stream failed and then ~12 seconds later it emitted that exception. At that point, all CPUs went to 100%. A thread dump shows all the ReadStage threads stuck inside IntervalTree.searchInternal inside of CFS.markReferenced().</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.streaming.StreamTransferTaskTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamTransferTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7897" opendate="2014-9-7 00:00:00" fixdate="2014-11-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NodeTool command to display OffHeap memory usage</summary>
+      <description>Most of the highest memory consuming data structure in Cassandra is now off-heap. It will be nice to display the memory used by BF's, Index Summaries, FS Buffers, Caches and Memtables (when enabled)This ticket is to track and display off heap memory allocation/used by running Cassandra process, this will help users to further tune the memory used by these data structures per CF.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>Legacy/Observability,Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.obs.OpenBitSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.obs.OffHeapBitSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.obs.IBitSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.Murmur3BloomFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.IFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.AlwaysPresentFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.KeyspaceMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.ColumnFamilyMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummary.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStoreMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7947" opendate="2014-9-16 00:00:00" fixdate="2014-12-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change error message when RR times out</summary>
+      <description>When a quorum request detects a checksum mismatch, it then reads the data to repair the mismatch by issuing a request at CL.ALL to the same endpoints (SP.fetchRows) If this request in turn times out, this delivers a TOE to the client with a misleading message that mentions CL.ALL, possibly causing them to think the request has gone cross-DC when it has not, it was just slow due to timing out.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="798" opendate="2010-2-15 00:00:00" fixdate="2010-12-15 01:00:00" resolution="Won&amp;#39;t Fix">
+    <buginformation>
+      <summary>Add readme file to contrib/circuit</summary>
+      <description>There is no readme file or equivalent in the contrib/circuit directory. This makes it hard to get a quick overview of what the purpose is.</description>
+      <version>None</version>
+      <fixedVersion>Legacy/DocumentationandWebsite</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">interface.cassandra.genavro</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8087" opendate="2014-10-8 00:00:00" fixdate="2014-12-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Multiple non-DISTINCT rows returned when page_size set</summary>
+      <description>Using the following statements to reproduce:CREATE TABLE test ( k int, p int, s int static, PRIMARY KEY (k, p) );INSERT INTO test (k, p) VALUES (1, 1);INSERT INTO test (k, p) VALUES (1, 2);SELECT DISTINCT k, s FROM test ;Native clients that set result_page_size in the query message receive multiple non-distinct rows back (one per clustered value p in row k).This is only reproduced on 2.0.10. Does not appear in 2.1.0It does not appear in cqlsh for 2.0.10 because thrift.See https://datastax-oss.atlassian.net/browse/PYTHON-164 for background</description>
+      <version>2.0.12</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.PagedRangeCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataRange.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ColumnGroupMap.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8125" opendate="2014-10-15 00:00:00" fixdate="2014-11-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool statusgossip doesn&amp;#39;t exist</summary>
+      <description>nodetool supports different checks for status on thrift and for binary but does not support a check for gossip. You can get this information from nodetool info.The ones that exist are:nodetool statusbinarynodetool statusthriftIt would be nice if the following existed:nodetool statusgossip</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8139" opendate="2014-10-18 00:00:00" fixdate="2014-10-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The WRITETIME function returns null for negative timestamp values</summary>
+      <description>Insert a column with a negative timestamp value:INSERT INTO my_table (col1, col2, col3)VALUES ('val1', 'val2', 'val3') USING TIMESTAMP -1413614886750020;Then attempt to read the writetime:SELECT WRITETIME(col3) FROM my_table WHERE col1 = 'val1'The result is null.</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.Selection.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8156" opendate="2014-10-21 00:00:00" fixdate="2014-12-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix validation of indexes on composite column components of COMPACT tables</summary>
+      <description>CASSANDRA-5125 added support of indexes on composite column components for non-compact tables (see CASSANDRA-5125 comments for additional information).This is a follow up for compact tables.Using compact tables it is possible to CREATE INDEX on composite primary key columns, but queries returns no results for the tests below.CREATE TABLE users2 ( userID uuid, fname text, zip int, state text, PRIMARY KEY ((userID, fname))) WITH COMPACT STORAGE;CREATE INDEX ON users2 (userID);CREATE INDEX ON users2 (fname);INSERT INTO users2 (userID, fname, zip, state) VALUES (b3e3bc33-b237-4b55-9337-3d41de9a5649, 'John', 10007, 'NY');-- the following queries returns 0 rows, instead of 1 expectedSELECT * FROM users2 WHERE fname='John'; SELECT * FROM users2 WHERE userid=b3e3bc33-b237-4b55-9337-3d41de9a5649;SELECT * FROM users2 WHERE userid=b3e3bc33-b237-4b55-9337-3d41de9a5649 AND fname='John';-- dropping 2ndary indexes restore normal behavior</description>
+      <version>2.0.12</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8164" opendate="2014-10-22 00:00:00" fixdate="2014-11-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>OOM due to slow memory meter</summary>
+      <description>Memory meter holds strong reference to memtable while it iterates over memtable cells. Because meter is not fast, it prevents memtable from being GCed after it has been flushed for some time.If write rate is fast enough, this makes node OOM.Fixed this by aborting metering if table becomes not active in datatracker, i.e. flushing or flushed.</description>
+      <version>2.0.12</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8166" opendate="2014-10-22 00:00:00" fixdate="2014-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Not all data is loaded to Pig using CqlNativeStorage</summary>
+      <description>Not all the data from Cassandra table is loaded into Pig using CqlNativeStorage function.Steps to reproduce:cql3 create table statement:CREATE TABLE time_bucket_step ( key varchar, object_id varchar, value varchar, PRIMARY KEY (key, object_id));Loading and saving data to Cassandra ("sorted" file is in the attachment): time_bucket_step = load 'sorted' using PigStorage('\t') as (key:chararray, object_id:chararray, value:chararray);records = foreach time_bucket_step generate TOTUPLE(TOTUPLE('key', key),TOTUPLE('object_id', object_id)), TOTUPLE(value);store records into 'cql://socialdata/time_bucket_step?output_query=UPDATE+socialdata.time_bucket_step+set+value+%3D+%3F' using org.apache.cassandra.hadoop.pig.CqlNativeStorage();Results:Input(s):Successfully read 139026 records (11115817 bytes) from: "hdfs://.../sorted"Output(s):Successfully stored 139026 records in: "cql://socialdata/time_bucket_step?output_query=UPDATE+socialdata.time_bucket_step+set+value+%3D+%3F"Loading data from Cassandra: (note that not all data are read)time_bucket_step_cass = load 'cql://socialdata/time_bucket_step' using org.apache.cassandra.hadoop.pig.CqlNativeStorage();store time_bucket_step_cass into 'time_bucket_step_cass' using PigStorage('\t','-schema');Results:Input(s):Successfully read 80727 records (20068 bytes) from: "cql://socialdata/time_bucket_step"Output(s):Successfully stored 80727 records (2098178 bytes) in: "hdfs://..../time_bucket_step_cass"Actual: only 80727 of 139026 records were loadedExpected: All data should be loaded</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlRecordReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8178" opendate="2014-10-23 00:00:00" fixdate="2014-11-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Column names are not converted correctly for non-text comparators</summary>
+      <description>If a column family is created with a non-text comparator through Thrift (or cassandra-cli) and column metadata is defined, those column names cannot be queried through cql3.For example:[default@ks1] create column family entity_data... with column_type = 'Standard'... and comparator = 'BytesType'... and default_validation_class = 'BytesType'... and key_validation_class = 'UTF8Type'... and column_metadata = [... {column_name : '0008',... validation_class : UTF8Type,... index_name : 'entity_data_0008_idx',... index_type : 0}];When you attempt to query that column through cqlsh, you'll get an error like this:cqlsh:ks1&gt; select "0008" FROM entity_data ;Bad Request: Undefined name 0008 in selection clauseThe problem is that we aren't taking the comparator type into account when converting column names in cql3 statements to their internal (ByteBuffer) representation.</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.Selection.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.Selectable.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.RawSelector.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DeleteStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.SingleColumnRelation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Operation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.MultiColumnRelation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ColumnIdentifier.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.UpdateStatement.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8193" opendate="2014-10-27 00:00:00" fixdate="2014-1-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Multi-DC parallel snapshot repair</summary>
+      <description>The current behaviour of snapshot repair is to let one node at a time calculate a merkle tree. This is to ensure only one node at a time is doing the expensive calculation. The drawback is that it takes even longer time to do the merkle tree calculation.In a multi-DC setup, I think it would make more sense to have one node in each DC calculate the merkle tree at the same time. This would yield a significant improvement when you have many data centers.I'm not sure how relevant this is in 2.1, but I don't see us upgrading to 2.1 any time soon. Unless there is an obvious drawback that I'm missing, I'd like to implement this in the 2.0 branch.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RequestCoordinator.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairJob.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8205" opendate="2014-10-29 00:00:00" fixdate="2014-10-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ColumnFamilyMetrics#totalDiskSpaceUsed gets wrong value when SSTable is deleted</summary>
+      <description>ColumnFamilyMetrics#totalDiskSpaceUsed is decremented when actual SSTables files are deleted from disk. The amount of decrement is calculated at the beginning of SSTableReader instantiation(through SSTableDeletionTask).But the size can change because Summary.db file may be re-created after SSTableReader instantiation, and that leads to calculate wrong value for totalDiskSpaceUsed.I attached unit test file for 2.0, but you can also compare the value after doing "TRUNCATE".</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>Legacy/Observability</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableDeletingTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8206" opendate="2014-10-29 00:00:00" fixdate="2014-11-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Deleting columns breaks secondary index on clustering column</summary>
+      <description>Removing items from a set breaks index for field id:cqlsh:cs&gt; CREATE TABLE buckets ( ... tenant int, ... id int, ... items set&lt;text&gt;, ... PRIMARY KEY (tenant, id) ... );cqlsh:cs&gt; CREATE INDEX buckets_ids ON buckets(id);cqlsh:cs&gt; INSERT INTO buckets (tenant, id, items) VALUES (1, 1, {'foo', 'bar'});cqlsh:cs&gt; SELECT * FROM buckets; tenant | id | items--------+----+---------------- 1 | 1 | {'bar', 'foo'}(1 rows)cqlsh:cs&gt; SELECT * FROM buckets WHERE id = 1; tenant | id | items--------+----+---------------- 1 | 1 | {'bar', 'foo'}(1 rows)cqlsh:cs&gt; UPDATE buckets SET items=items-{'foo'} WHERE tenant=1 AND id=1;cqlsh:cs&gt; SELECT * FROM buckets; tenant | id | items--------+----+--------- 1 | 1 | {'bar'}(1 rows)cqlsh:cs&gt; SELECT * FROM buckets WHERE id = 1;(0 rows)Re-building the index fixes the issue:cqlsh:cs&gt; DROP INDEX buckets_ids;cqlsh:cs&gt; CREATE INDEX buckets_ids ON buckets(id);cqlsh:cs&gt; SELECT * FROM buckets WHERE id = 1; tenant | id | items--------+----+--------- 1 | 1 | {'bar'}(1 rows)Adding items does not cause similar failure, only delete. Also didn't test if other collections are also affected</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.PerColumnSecondaryIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.composites.CompositesIndexOnPartitionKey.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.composites.CompositesIndexOnClusteringKey.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.AbstractSimplePerColumnSecondaryIndex.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.unit.org.apache.cassandra.db.SecondaryIndexColumnSizeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.RangeTombstoneTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8221" opendate="2014-10-29 00:00:00" fixdate="2014-11-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Specify keyspace in error message when streaming fails due to missing replicas</summary>
+      <description>When there aren't sufficient live replicas for streaming (during bootstrap, etc), you'll get an error message like "unable to find sufficient sources for streaming range". It would be helpful to include the keyspace that this failed for, since each keyspace can have different replication settings.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.RangeStreamer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8247" opendate="2014-11-3 00:00:00" fixdate="2014-11-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HHOM creates repeated &amp;#39;No files to compact for user defined compaction&amp;#39; messages</summary>
+      <description>HH is a guess because it's every 10m, but it seems likely:INFO 19:16:39 No files to compact for user defined compactionINFO 19:26:39 No files to compact for user defined compactionINFO 19:36:39 No files to compact for user defined compactionINFO 19:46:39 No files to compact for user defined compactionINFO 19:56:39 No files to compact for user defined compaction</description>
+      <version>2.0.12,2.1.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8248" opendate="2014-11-4 00:00:00" fixdate="2014-12-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Possible memory leak</summary>
+      <description>Sometimes during repair cassandra starts to consume more memory than expected.Total amount of data on node is about 20GB.Size of the data directory is 66GC because of snapshots.Top reports: PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND15724 loadbase 20 0 493g 55g 44g S 28 44.2 4043:24 javaAt the /proc/15724/maps there are a lot of deleted file maps7f63a6102000-7f63a6332000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a6332000-7f63a6562000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a6562000-7f63a6792000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a6792000-7f63a69c2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a69c2000-7f63a6bf2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a6bf2000-7f63a6e22000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a6e22000-7f63a7052000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a7052000-7f63a7282000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a7282000-7f63a74b2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a74b2000-7f63a76e2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a76e2000-7f63a7912000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a7912000-7f63a7b42000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a7b42000-7f63a7d72000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a7d72000-7f63a7fa2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a7fa2000-7f63a81d2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a81d2000-7f63a8402000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a8402000-7f63a8622000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a8622000-7f63a8842000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a8842000-7f63a8a62000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a8a62000-7f63a8c82000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a8c82000-7f63a8ea2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a8ea2000-7f63a90c2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)7f63a90c2000-7f63a92e2000 r--s 00000000 08:21 9442763 /ssd/cassandra/data/iss/feedback_history-d32bc7e048c011e49b989bc3e8a5a440/iss-feedback_history-tmplink-ka-328671-Index.db (deleted)$ sudo grep deleted /proc/15724/maps | wc -l640118$ sudo grep -v deleted /proc/15724/maps | wc -l303340</description>
+      <version>None</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8260" opendate="2014-11-5 00:00:00" fixdate="2014-12-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replacing a node can leave the old node in system.peers on the replacement</summary>
+      <description>Here's what happens:Nodes: X, Y, Z. Z replaces Y which is dead.0. Replacement finishes1. Z removes Y, quarantines and evicts (that is, removes the state)2. X sees the replacement, quarantines, but keeps state3. 60s elapses4. quarantine on Z expires5. X sends syn to Z, repopulates Y endpoint state and persists to system.peers, but Z sees the conflict and does not update tMD for Y. 6. FatClient timer on Z starts counting.7. quarantine on X expires, fat client has been idle, evicts and re-quarantines8. 30s elapses9. Fat client timeout occurs on Z, evicts and re-quarantines10. 30s elapses11. quarantine on X expires, so it never gets repopulated with Y since Z already removed itIt's important to note here that there is a small but relevant gap between steps 1 and 2, which then correlates to steps 4 and 5, and step 5 is where the problem occurs. This also explains why it looks related to RING_DELAY, since the quarantine is RING_DELAY * 2, but Y never quarantines and the fat client timeout is RING_DELAY, effectively making the discrepancy near equal to RING_DELAY in the end.</description>
+      <version>2.0.12</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8265" opendate="2014-11-6 00:00:00" fixdate="2014-11-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disable SSLv3 for POODLE</summary>
+      <description>We should probably disable SSLv3.http://www.oracle.com/technetwork/java/javase/documentation/cve-2014-3566-2342133.html</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.SimpleClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CustomTThreadPoolServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.security.SSLFactory.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8285" opendate="2014-11-10 00:00:00" fixdate="2014-12-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move all hints related tasks to hints private executor</summary>
+      <description>We ran drivers 3-days endurance tests against Cassandra 2.0.11 and C* crashed with an OOME. This happened both with ruby-driver 1.0-beta and java-driver 2.0.8-snapshot.Attached are : OOME_node_system.log The system.log of one Cassandra node that crashed gc.log.gz The GC log on the same node heap-usage-after-gc.png The heap occupancy evolution after every GC cycle heap-usage-after-gc-zoom.png A focus on when things start to go wrong Workload :Our test executes 5 CQL statements (select, insert, select, delete, select) for a given unique id, during 3 days, using multiple threads. There is not change in the workload during the test.Symptoms :In the attached log, it seems something starts in Cassandra between 2014-11-06 10:29:22 and 2014-11-06 10:45:32. This causes an allocation that fills the heap. We eventually get stuck in a Full GC storm and get an OOME in the logs.I have run the java-driver tests against Cassandra 1.2.19 and 2.1.1. The error does not occur. It seems specific to 2.0.11.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.DebuggableScheduledThreadPoolExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8286" opendate="2014-11-10 00:00:00" fixdate="2014-11-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression in ORDER BY</summary>
+      <description>The dtest cql_tests.py:TestCQL.order_by_multikey_test is now failing in 2.0:http://cassci.datastax.com/job/cassandra-2.0_dtest/lastCompletedBuild/testReport/cql_tests/TestCQL/order_by_multikey_test/history/This failure began at the commit for CASSANDRA-8178.The error message reads ======================================================================ERROR: order_by_multikey_test (cql_tests.TestCQL)----------------------------------------------------------------------Traceback (most recent call last): File "/Users/philipthompson/cstar/cassandra-dtest/dtest.py", line 524, in wrapped f(obj) File "/Users/philipthompson/cstar/cassandra-dtest/cql_tests.py", line 1807, in order_by_multikey_test res = cursor.execute("SELECT col1 FROM test WHERE my_id in('key1', 'key2', 'key3') ORDER BY col1;") File "/Library/Python/2.7/site-packages/cassandra/cluster.py", line 1281, in execute result = future.result(timeout) File "/Library/Python/2.7/site-packages/cassandra/cluster.py", line 2771, in result raise self._final_exceptionInvalidRequest: code=2200 [Invalid query] message="ORDER BY could not be used on columns missing in select clause."and occurs at the query SELECT col1 FROM test WHERE my_id in('key1', 'key2', 'key3') ORDER BY col1;</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.Selection.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.Selectable.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.RawSelector.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ColumnIdentifier.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8329" opendate="2014-11-17 00:00:00" fixdate="2014-11-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LeveledCompactionStrategy should split large files across data directories when compacting</summary>
+      <description>Because we fall back to STCS for L0 when LCS gets behind, the sstables in L0 can get quite large during sustained periods of heavy writes. This can result in large imbalances between data volumes when using JBOD support. Eventually these large files get broken up as L0 sstables are moved up into higher levels; however, because LCS only chooses a single volume on which to write all of the sstables created during a single compaction, the imbalance is persisted.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.DiskAwareRunnable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Memtable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8346" opendate="2014-11-20 00:00:00" fixdate="2014-12-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paxos operation can use stale data during multiple range movements</summary>
+      <description>Paxos operations correctly account for pending ranges for all operation pertaining to the Paxos state, but those pending ranges are not taken into account when reading the data to check for the conditions or during a serial read. It's thus possible to break the LWT guarantees by reading a stale value. This require 2 node movements (on the same token range) to be a problem though.Basically, we have RF replicas + P pending nodes. For the Paxos prepare/propose phases, the number of required participants (the "Paxos QUORUM") is (RF + P + 1) / 2 (SP.getPaxosParticipants), but the read done to check conditions or for serial reads is done at a "normal" QUORUM (or LOCAL_QUORUM), and so a weaker (RF + 1) / 2. We have a problem if it's possible that said read can read only from nodes that were not part of the paxos participants, and so we have a problem if:"normal quorum" == (RF + 1) / 2 &lt;= (RF + P) - ((RF + P + 1) / 2) == "participants considered - blocked for"We're good if P = 0 or P = 1 since this inequality gives us respectively RF + 1 &lt;= RF - 1 and RF + 1 &lt;= RF, both of which are impossible. But at P = 2 (2 pending nodes), this inequality is equivalent to RF &lt;= RF and so we might read stale data.</description>
+      <version>2.0.12</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.exceptions.UnavailableException.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8373" opendate="2014-11-25 00:00:00" fixdate="2014-12-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>MOVED_NODE Topology Change event is never emitted</summary>
+      <description>lifeCycleSubscribers.onMove never gets called because this tokenMetadata.updateNormalTokens call changes the endpoint moving status, making the later isMoving conditional always false.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8401" opendate="2014-12-1 00:00:00" fixdate="2014-12-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dropping a CF doesn&amp;#39;t remove the latency-sampling task</summary>
+      <description>this retains the CF object on heap indefinitely</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8408" opendate="2014-12-2 00:00:00" fixdate="2014-12-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>limit appears to replace page size under certain conditions</summary>
+      <description>This seems it could be related to CASSANDRA-8403.When paging a query with:limit &lt; page size &lt;&lt; data size, and querying using an 'IN' clause across several partitions, I get back several pages of size=limit (instead of the page size being used). So the limit is being exceeded and it seems to supplant the page size value, but something is still keeping the total rows returned down.To repro, create a table:CREATE TABLE paging_test ( id int, value text, PRIMARY KEY (id, value) )And add data across several partitions (I used 6 partitions). Add a bunch of rows to each partition (I have 80 total across all partitions).Perform a paged query using an 'IN' clause across all the partitions, where:limit &lt; page_size &lt;&lt; data size. I used something like:SELECT * FROM paging_test where id in (1,2,3,4,5,6) LIMIT 9;(with a page_size of 20 for the query).What I get returned is three pages of sizes: 9, 9, 8 &amp;#8211; 26 rows in total but I'm uncertain why.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.QueryPagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.QueryPagers.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.Pageable.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.MultiPartitionPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8416" opendate="2014-12-3 00:00:00" fixdate="2014-12-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AssertionError &amp;#39;Incoherent new size -1&amp;#39; during hints compaction</summary>
+      <description>I've seen the error on 2.0.9:java.lang.AssertionError: Incoherent new size -1 replacing &amp;#91;SSTableReader(path=&amp;#39;/cassandra/d1/data/system/hints/system-hints-jb-24386-Data.db&amp;#39;)&amp;#93; by [] in View(pending_count=0, sstables=[], compacting=&amp;#91;SSTableReader(path=&amp;#39;/cassandra/d1/data/system/hints/system-hints-jb-24386-Data.db&amp;#39;)&amp;#93;)in logs during hints compaction. It looks like there are 2 concurrent compactions of the same file - just before this error the logs say:INFO &amp;#91;CompactionExecutor:220316&amp;#93; 2014-11-19 22:53:54,650 CompactionTask.java (line 115) Compacting &amp;#91;SSTableReader(path=&amp;#39;/cassandra/d1/data/system/hints/system-hints-jb-24386-Data.db&amp;#39;)&amp;#93;INFO &amp;#91;CompactionExecutor:220315&amp;#93; 2014-11-19 22:53:54,651 CompactionTask.java (line 115) Compacting &amp;#91;SSTableReader(path=&amp;#39;/cassandra/d1/data/system/hints/system-hints-jb-24386-Data.db&amp;#39;)&amp;#93;The assertion is:int newSSTablesSize = sstables.size() - oldSSTables.size() + Iterables.size(replacements);assert newSSTablesSize &gt;= Iterables.size(replacements) : String.format("Incoherent new size %d replacing %s by %s in %s", newSSTablesSize, oldSSTables, replacements, this);So if the first compaction completes, the second one has sstables=[] (as seen in the assertion failure print), so newSSTablesSize = 0 - 1 + 0 = -1 and we get the error.It is possible the root cause is the same as CASSANDRA-7145. Does anyone know how to tell? The error happens very rarely so hard to know from testing.</description>
+      <version>2.0.12</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8417" opendate="2014-12-3 00:00:00" fixdate="2014-12-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Default base_time_seconds in DTCS is almost always too large</summary>
+      <description>One hour is a very long time to compact all new inserts together with any reasonable volume at all.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyOptions.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8462" opendate="2014-12-11 00:00:00" fixdate="2014-1-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrading a 2.0 to 2.1 breaks CFMetaData on 2.0 nodes</summary>
+      <description>Added a 2.1.2 node to a cluster running 2.0.11. Didn't make any schema changes. When I tried to reboot one of the 2.0 nodes, it failed to boot with this exception. Besides an obvious fix, any workarounds for this?java.lang.IllegalArgumentException: No enum constant org.apache.cassandra.config.CFMetaData.Caching.{"keys":"ALL", "rows_per_partition":"NONE"} at java.lang.Enum.valueOf(Enum.java:236) at org.apache.cassandra.config.CFMetaData$Caching.valueOf(CFMetaData.java:286) at org.apache.cassandra.config.CFMetaData.fromSchemaNoColumnsNoTriggers(CFMetaData.java:1713) at org.apache.cassandra.config.CFMetaData.fromSchema(CFMetaData.java:1793) at org.apache.cassandra.config.KSMetaData.deserializeColumnFamilies(KSMetaData.java:307) at org.apache.cassandra.config.KSMetaData.fromSchema(KSMetaData.java:288) at org.apache.cassandra.db.DefsTables.loadFromKeyspace(DefsTables.java:131) at org.apache.cassandra.config.DatabaseDescriptor.loadSchemas(DatabaseDescriptor.java:529) at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:270) at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:496) at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:585)</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8485" opendate="2014-12-15 00:00:00" fixdate="2014-12-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move 2.0 metered flusher to its own thread</summary>
+      <description>We are using SS.optionalTasks for the MF right now - something we most definitely should not be doing, given just how important running MF regularly is to the stability of a node. Currently a bunch of other tasks are also using SS.optionalTasks (like serializing caches).See also: CASSANDRA-8285.</description>
+      <version>2.0.12</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.MeteredFlusher.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8490" opendate="2014-12-16 00:00:00" fixdate="2014-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DISTINCT queries with LIMITs or paging are incorrect when partitions are deleted</summary>
+      <description>Using paging demo code from https://github.com/PatrickCallaghan/datastax-paging-demoThe code creates and populates a table with 1000 entries and pages through them with setFetchSize set to 100. If we then delete one entry with 'cqlsh':cqlsh:datastax_paging_demo&gt; delete from datastax_paging_demo.products where productId = 'P142'; (The specified productid is number 6 in the resultset.)and run the same query ("Select * from") again we get:[com.datastax.paging.Main.main()] INFO com.datastax.paging.Main - Paging demo took 0 secs. Total Products : 999which is what we would expect.If we then change the "select" statement in dao/ProductDao.java (line 70) from "Select * from " to "Select DISTINCT productid from " we get this result:[com.datastax.paging.Main.main()] INFO com.datastax.paging.Main - Paging demo took 0 secs. Total Products : 99So it looks like the tombstone stops the paging behaviour. Is this a bug?DEBUG [Native-Transport-Requests:788] 2014-12-16 10:09:13,431 Message.java (line 319) Received: QUERY Select DISTINCT productid from datastax_paging_demo.products, v=2DEBUG [Native-Transport-Requests:788] 2014-12-16 10:09:13,434 AbstractQueryPager.java (line 98) Fetched 99 live rowsDEBUG [Native-Transport-Requests:788] 2014-12-16 10:09:13,434 AbstractQueryPager.java (line 115) Got result (99) smaller than page size (100), considering pager exhausted</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ExtendedFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataRange.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AbstractRangeCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8558" opendate="2015-1-4 00:00:00" fixdate="2015-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>deleted row still can be selected out</summary>
+      <description>firstCREATE KEYSPACE space1 WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};CREATE TABLE space1.table3(a int, b int, c text,primary key(a,b));CREATE KEYSPACE space2 WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3};secondCREATE TABLE space2.table1(a int, b int, c int, primary key(a,b));CREATE TABLE space2.table2(a int, b int, c int, primary key(a,b));INSERT INTO space1.table3(a,b,c) VALUES(1,1,'1');drop table space2.table1;DELETE FROM space1.table3 where a=1 and b=1;drop table space2.table2;select * from space1.table3 where a=1 and b=1;you will find that the row (a=1 and b=1) in space1.table3 is not deleted.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.composites.CellNameType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableNamesIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.IndexedSliceReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AtomDeserializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8562" opendate="2015-1-5 00:00:00" fixdate="2015-1-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix checking available disk space before compaction starts</summary>
+      <description>When starting a compaction we check if there is enough disk space available to start it, otherwise we might (for STCS) reduce the compaction so that the result could fit. Now (since CASSANDRA-8329) we check for the directory to write to a lot later and this can reduce the compaction after we have created the scanners.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.DiskAwareRunnable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8579" opendate="2015-1-8 00:00:00" fixdate="2015-1-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablemetadata can&amp;#39;t load org.apache.cassandra.tools.SSTableMetadataViewer</summary>
+      <description>The sstablemetadata tool only works when running from the source tree. The classpath doesn't get set correctly when running on a deployed environment.This bug looks to exist in 2.1 as well.</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.bin.sstablemetadata</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8640" opendate="2015-1-17 00:00:00" fixdate="2015-1-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paxos requires all nodes for CAS</summary>
+      <description>In C* 2.1,int requiredParticipants = participants + 1 / 2; // See CASSANDRA-833Will always return participants because of operator precedence. I am not sure just adding parentheses will fix the problem, though, as the original code differentiated between pending and natural endpoints. int requiredParticipants = pendingEndpoints.size() + 1 + naturalEndpoints.size() / 2; // See CASSANDRA-833</description>
+      <version>2.0.12,2.1.3</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="3316" opendate="2011-10-5 00:00:00" fixdate="2011-11-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a JMX call to force cleaning repair sessions (in case they are hang up)</summary>
+      <description>A repair session contains many parts, most of which are not local to the node (implying the node waits on those operation). You request merkle trees, then you schedule streaming (and in 1.0.0, some of the streaming don't involve the local node itself). It's lots of place where something can go wrong, and if so it leaves the repair hanging and as a consequence it leaves a repairSessions tasks sitting active on the 'AntiEntropy Session' executor.Obviously, we should improve the detection by repair of those things that can go wrong. CASSANDRA-2433 started and CASSANDRA-3112 is open to fill as much of the remaining parts as possible, but my bet is that it will be hard to cover everything (and it may not be worth of handling very improbable failure scenario). Besides CASSANDRA-3112 will involve change in the wire protocol, so it may take some time to be committed. In the meantime, it would be nice to provide a JMX call to force terminating repairSessions so that you don't end up in the case where you have enough 'zombie' sessions on the executor that you can't submit new ones (you could restart the node but it's ugly). Anyway, it's not a big issue but it would be simple to add such a JMX call.</description>
+      <version>1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AntiEntropyService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3326" opendate="2011-10-6 00:00:00" fixdate="2011-10-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add timing information to cassandra-cli queries</summary>
+      <description>It would be highly helpful for monitoring cluster health to return ETA on queries in cassandra-cli. MySQL is doing it too and you can switch this feature on in Postgresql and Oracle CLI.get testdb&amp;#91;234123&amp;#93;;Returned 0 results in 0.08 ms.</description>
+      <version>1.0.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3399" opendate="2011-10-24 00:00:00" fixdate="2011-10-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Truncate disregards running compactions when deleting sstables</summary>
+      <description>All truncation do is `cfs.markCompacted(truncatedSSTables)` without holding any lock or anything. Which have the effect of actually deleting sstables that may be compacting. More precisely there is three problems: It removes those compacting sstables from the current set of active sstables for the cfs. But when they are done compacting, DataTracker.replaceCompactedSSTables() will be called and it assumes that the compacted sstable are parts of the current set of active sstables. In other words, we'll get an exception looking like the one of CASSANDRA-3306. The result of the compaction will be added as a new active sstable (actually no, because the code will throw an exception before because of the preceding point, but that's something we should probably deal with). Currently, compaction don't 'acquire references' on SSTR. That's because the code assumes we won't compact twice the same sstable and that compaction is the only mean to delete an sstable. With these two assumption, acquiring references is not necessary, but truncate break that first assumption.As for solution, I see two possibilities: make the compaction lock be per-cf instead of global (which I think is easy and a good idea anyway) and grab the write lock to do the markCompacted call. The big downside is that truncation will potentially take much longer. had two phases: mark the sstable that are not compacting as compacted and set the dataTracker as 'truncated at', and let it deal with the other sstable when their compaction is done. A bit like what is proposed for CASSANDRA-3116</description>
+      <version>0.8.8,1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3420" opendate="2011-10-29 00:00:00" fixdate="2011-12-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>test run from ant</summary>
+      <description>We have everything all setup to run a test node on localhost:9170, why not create an ant target to do that?Patch to follow.</description>
+      <version>1.0.2</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3432" opendate="2011-10-31 00:00:00" fixdate="2011-10-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid large array allocation for compressed chunk offsets</summary>
+      <description>For each compressed file we keep the chunk offsets in memory (a long[]). The size of this array is directly proportional to the sstable file and the chunk_length_kb used, but say for a 64GB sstable, we're talking ~8MB in memory by default.Without being absolutely huge, this probably makes the life of the GC harder than necessary for the same reasons than CASSANDRA-2466, and this ticket proposes the same solution, i.e. to break down those big array into smaller ones to ease fragmentation.Note that this is only a concern for size tiered compaction. But until leveled compaction is battle tested, the default and we know nobody uses size tiered anymore, it's probably worth making the optimization.</description>
+      <version>1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionMetadata.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3433" opendate="2011-10-31 00:00:00" fixdate="2011-10-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Describe ring is broken</summary>
+      <description>CASSANDRA-2882 broke describe_ring by causing the 'endpoints' field to contain the rpc address rather than the listen address. the rpc_address belongs in the 'rpc_endpoints' field. Hence the name.</description>
+      <version>1.0.2</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.EndpointDetails.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3436" opendate="2011-10-31 00:00:00" fixdate="2011-11-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL Metadata has inconsistent schema nomenclature</summary>
+      <description>The dumped object below shows that the default_name_type and the default_value_type are referenced inconsistently .. default_name_type should probably use the shortened version like everything else.&amp;#8212; !ruby/object:CassandraCQL::Thrift::CqlResult rows: !ruby/object:CassandraCQL::Thrift::CqlRow columns: !ruby/object:CassandraCQL::Thrift::Column name: id timestamp: -1 value: test string !ruby/object:CassandraCQL::Thrift::Column name: test_column timestamp: 1320097088551000 value: test key: test stringschema: !ruby/object:CassandraCQL::Thrift::CqlMetadata default_name_type: org.apache.cassandra.db.marshal.UTF8Type default_value_type: UTF8Type name_types: id: AsciiType value_types: id: AsciiType test_column: UTF8Typetype: 1</description>
+      <version>1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3438" opendate="2011-11-1 00:00:00" fixdate="2011-11-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader fails</summary>
+      <description>Ticket at the request of driftx in IRC. I've attached the files I'm attempting to load (this is fabricated test data for 100 keys). I generated this using SSTableSimpleUnsortedWriter. I have four dedicated nodes (mine, not ec2 or other cloud host) that I'm using, we'll call them A,B,C, and D. I first start cassandra on node A and create the test keyspace and CF:create keyspace test with placement_strategy = 'SimpleStrategy' and strategy_options = {replication_factor : 1} and durable_writes = true;use test;create column family test with column_type = 'Super' and comparator = 'UTF8Type' and subcomparator = 'UTF8Type' and default_validation_class = 'UTF8Type' and key_validation_class = 'UTF8Type' and rows_cached = 0.0 and row_cache_save_period = 0 and row_cache_keys_to_save = 2147483647 and keys_cached = 200000.0 and key_cache_save_period = 14400 and read_repair_chance = 1.0 and gc_grace = 864000 and min_compaction_threshold = 4 and max_compaction_threshold = 32 and replicate_on_write = true and row_cache_provider = 'ConcurrentLinkedHashCacheProvider' and compaction_strategy = 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy';Then I perform a load using sstableloader from node D, which works fine with the following output:Starting client (and waiting 30 seconds for gossip) ... INFO 09:12:17,660 Loading settings from file:/opt/apache-cassandra-1.0.1/conf/cassandra.yaml INFO 09:12:17,761 DiskAccessMode 'auto' determined to be mmap, indexAccessMode is mmap INFO 09:12:17,771 Global memtable threshold is enabled at 75MB INFO 09:12:17,917 Starting up client gossip INFO 09:12:17,934 Starting Messaging Service on port 7000 INFO 09:12:19,941 Node /172.21.31.244 is now part of the cluster INFO 09:12:19,941 InetAddress /172.21.31.244 is now UP INFO 09:12:48,003 Opening test/test-h-1 (2884 bytes) INFO 09:12:48,017 JNA not found. Native methods will be disabled.Streaming revelant part of test/test-h-1-Data.db to [/172.21.31.244] INFO 09:12:48,052 Stream context metadata [test/test-h-1-Data.db sections=1 progress=0/2884 - 0%], 1 sstables. INFO 09:12:48,053 Streaming to /172.21.31.244progress: [/172.21.31.244 0/1 (0)] [total: 0 - 0MB/s (avg: 0MB/s)] INFO 09:12:48,103 Shutting down MessageService... INFO 09:12:48,103 Waiting for in-progress requests to complete INFO 09:12:48,104 MessagingService shutting down server thread.Then I start over by shutting cassandra, deleting all of the data and commitlog dirs, starting cassandra on Node A and Node B and creating the same keyspace and CF. When I run the loader against that, I get:Starting client (and waiting 30 seconds for gossip) ... INFO 09:15:09,316 Loading settings from file:/opt/apache-cassandra-1.0.1/conf/cassandra.yaml INFO 09:15:09,417 DiskAccessMode 'auto' determined to be mmap, indexAccessMode is mmap INFO 09:15:09,427 Global memtable threshold is enabled at 75MB INFO 09:15:09,572 Starting up client gossip INFO 09:15:09,591 Starting Messaging Service on port 7000 INFO 09:15:10,777 Node /172.21.31.244 is now part of the cluster INFO 09:15:10,778 InetAddress /172.21.31.244 is now UP INFO 09:15:10,780 Node /172.21.31.245 is now part of the cluster INFO 09:15:10,781 InetAddress /172.21.31.245 is now UP INFO 09:15:39,664 Opening test/test-h-1 (2884 bytes) INFO 09:15:39,691 JNA not found. Native methods will be disabled.Streaming revelant part of test/test-h-1-Data.db to [/172.21.31.244, /172.21.31.245] INFO 09:15:39,730 Stream context metadata [test/test-h-1-Data.db sections=1 progress=0/274 - 0%], 1 sstables. INFO 09:15:39,731 Streaming to /172.21.31.244 INFO 09:15:39,743 Stream context metadata [test/test-h-1-Data.db sections=2 progress=0/2610 - 0%], 1 sstables. INFO 09:15:39,743 Streaming to /172.21.31.245progress: [/172.21.31.244 0/1 (0)] [/172.21.31.245 0/1 (0)] [total: 0 - 0MB/s (avg: 0MB/s)]Exception in thread "MiscStage:1" java.lang.AssertionError: Reference counter -1 for test/test-h-1-Data.db at org.apache.cassandra.io.sstable.SSTableReader.releaseReference(SSTableReader.java:715) at org.apache.cassandra.streaming.StreamOutSession.startNext(StreamOutSession.java:123) at org.apache.cassandra.streaming.StreamReplyVerbHandler.doVerb(StreamReplyVerbHandler.java:59) at org.apache.cassandra.net.MessageDeliveryTask.run(MessageDeliveryTask.java:59) at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:885) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:907) at java.lang.Thread.run(Thread.java:619)Exception in thread "MiscStage:2" java.lang.AssertionError: Reference counter -2 for test/test-h-1-Data.db at org.apache.cassandra.io.sstable.SSTableReader.releaseReference(SSTableReader.java:715) at org.apache.cassandra.streaming.StreamOutSession.close(StreamOutSession.java:150) at org.apache.cassandra.streaming.StreamOutSession.close(StreamOutSession.java:132) at org.apache.cassandra.streaming.StreamReplyVerbHandler.doVerb(StreamReplyVerbHandler.java:67) at org.apache.cassandra.net.MessageDeliveryTask.run(MessageDeliveryTask.java:59) at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:885) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:907) at java.lang.Thread.run(Thread.java:619)progress: [/172.21.31.244 1/1 (100)] [/172.21.31.245 1/1 (100)] [total: 100 - 0MB/s (avg: 0MB/s)]Waiting for targets to rebuild indexes ...After that, it never exists. There are on errors in the logs on the server side for either node. Additional tests with larger inputs that show the same general error show slightly different behavior, specifically the progress on all but the first node gets past 1/N. For example, this is the last line on a test of a real data set that had 16 sstables: "progress: &amp;#91;/172.21.31.244 16/16 (100)&amp;#93; &amp;#91;/172.21.31.245 1/16 (6)&amp;#93; &amp;#91;total: 19 - 0MB/s (avg: 3MB/s)&amp;#93;]"... and it never progresses from there, and avg drops to zero over time indicating nothing is happening. I haven't replicated on any previous versions.</description>
+      <version>1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3441" opendate="2011-11-2 00:00:00" fixdate="2011-11-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PerRowSecondaryIndexes skip the first column on update</summary>
+      <description>PerRowSecondaryIndexes skip the initial field on apply</description>
+      <version>1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3451" opendate="2011-11-3 00:00:00" fixdate="2011-11-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>estimated row sizes regression</summary>
+      <description>CASSANDRA-2753 broke the histogram collection; it got the histogram for column count (which can go up to 2B) switched with the one for row size in bytes (which goes up to ~1.5PB). So any row over 2GB, will break things.</description>
+      <version>1.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableMetadata.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

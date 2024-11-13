@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="22618" opendate="2019-6-22 00:00:00" fixdate="2019-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>added the possibility to load custom cost functions</summary>
+      <description>Hi,We wouls like to open the discussion about bringing the possibility to have regions deployed on Heterogeneous deployment, i.e Hbase cluster running different kind of hardware.Why? Cloud deployments means that we may not be able to have the same hardware throughout the years Some tables may need special requirements such as SSD whereas others should be using hard-drives  in our usecase(single table, dedicated HBase and Hadoop tuned for our usecase, good key distribution), the number of regions per RS was the real limit for us.Our usecaseWe found out that in our usecase(single table, dedicated HBase and Hadoop tuned for our usecase, good key distribution), the number of regions per RS was the real limit for us.Over the years, due to historical reasons and also the need to benchmark new machines, we ended-up with differents groups of hardware: some servers can handle only 180 regions, whereas the biggest can handle more than 900. Because of such a difference, we had to disable the LoadBalancing to avoid the roundRobinAssigmnent. We developed some internal tooling which are responsible for load balancing regions across RegionServers. That was 1.5 year ago.Our Proof-of-conceptWe did work on a Proof-of-concept here, and some early tests here, here, and here. We wrote the balancer for our use-case, which means that: there is one table there is no region-replica good key dispersion there is no regions on masterA rule file is loaded before balancing. It contains lines of rules. A rule is composed of a regexp for hostname, and a limit. For example, we could have: rs&amp;#91;0-9&amp;#93; 200rs1&amp;#91;0-9&amp;#93; 50 RegionServers with hostname matching the first rules will have a limit of 200, and the others 50. If there's no match, a default is set.Thanks to the rule, we have two informations: the max number of regions for this cluster, and the rules for each servers. HeterogeneousBalancer will try to balance regions according to their capacity.Let's take an example. Let's say that we have 20 RS: 10 RS, named through rs0 to rs9 loaded with 60 regions each, and each can handle 200 regions. 10 RS, named through rs10 to rs19 loaded with 60 regions each, and each can support 50 regions.Based on the following rules: rs&amp;#91;0-9&amp;#93; 200rs1&amp;#91;0-9&amp;#93; 50 The second group is overloaded, whereas the first group has plenty of space.We know that we can handle at maximum 2500 regions (200*10 + 50*10) and we have currently 1200 regions (60*20). HeterogeneousBalancer will understand that the cluster is full at 48.0% (1200/2500). Based on this information, we will then try to put all the RegionServers to ~48% of load according to the rules. In this case, it will move regions from the second group to the first.The balancer will: compute how many regions needs to be moved. In our example, by moving 36 regions on rs10, we could go from 120.0% to 46.0% select regions with lowest data-locality try to find an appropriate RS for the region. We will take the lowest available RS.Other implementations and ideasClay Baenziger proposed this idea on the dev ML:Could it work to have the stochastic load balancer use pluggable cost functions instead of this static list of cost functions? Then, could this type of a load balancer be implemented simply as a new cost function which folks could choose to load and mix with the others?I think this could be an interesting way to include user-functions in the mix. As you know your hardawre and the pattern access, you can easily know which metrics is important for balancing, for us, it will only be the number of regions, but we could mix-it with the incoming writes! bhupendra.jain proposed also the ideas of "labels" Internally, we are also having discussion to develop similar solution. In our approach, We were also thinking of adding "RS Label" Feature similar to Hadoop Node Label feature. Each RS can have a label to denote its capabilities / resources . When user create table, there can be extra attributes with its descriptor. The balancer can decide to host region of table based on RS label and these attributes further.   With RS label feature, Balancer can be more intelligent.  Example tables with high read load needs more cache backed by SSDs , So such table regions should be hosted on RS having SSDs ... I love the idea, but I think Clay's idea is better for a better and faster first set of commits on the subject! What do you think?</description>
+      <version>3.0.0-alpha-1,2.2.0,2.2.1,2.1.6,1.4.11,2.1.7</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.balancer.TestStochasticLoadBalancer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.balancer.StochasticLoadBalancer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2262" opendate="2010-2-24 00:00:00" fixdate="2010-2-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ZKW.ensureExists should check for existence</summary>
+      <description>The fact that ZKW.ensureExists relies on KeeperException.NodeExistsException creates a lot of chatter in HBase and Zookeeper logs and also confuses users. We should use ZooKeeper.exists instead.</description>
+      <version>None</version>
+      <fixedVersion>0.20.4,0.90.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">core.src.main.java.org.apache.hadoop.hbase.zookeeper.ZooKeeperWrapper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22954" opendate="2019-8-30 00:00:00" fixdate="2019-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Whitelist net.java.dev.jna which got pulled in through Hadoop 3.3.0</summary>
+      <description>YARN-9477 added a new dependency net.java.dev.jna, which resulted in license check failure in HBase because the checker thinks it's LGPL 2.1 licensed. But in fact, it is dual licensed. &lt;name&gt;Java Native Access&lt;/name&gt; &lt;description&gt;Java Native Access&lt;/description&gt; &lt;url&gt;https://github.com/java-native-access/jna&lt;/url&gt; &lt;licenses&gt; &lt;license&gt; &lt;name&gt;LGPL, version 2.1&lt;/name&gt; &lt;url&gt;http://www.gnu.org/licenses/licenses.html&lt;/url&gt; &lt;distribution&gt;repo&lt;/distribution&gt; &lt;/license&gt; &lt;license&gt; &lt;name&gt;Apache License v2.0&lt;/name&gt; &lt;url&gt;http://www.apache.org/licenses/LICENSE-2.0.txt&lt;/url&gt; &lt;distribution&gt;repo&lt;/distribution&gt; &lt;/license&gt; &lt;/licenses&gt;We can(1) white list this dependency(2) or update the license checker to search for if any of the licenses is permitted</description>
+      <version>3.0.0-alpha-1,2.3.0,2.1.7,2.2.2</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.2.1,2.1.7</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-resource-bundle.src.main.resources.supplemental-models.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23043" opendate="2019-9-18 00:00:00" fixdate="2019-9-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TestWALEntryStream times out</summary>
+      <description>TestWALEntryStream#testDifferentCounts times out almost every time (90%+).On my machine the test runs in 9,5 minutes but on ASF infra it reaches the 720s timeout.</description>
+      <version>3.0.0-alpha-1,2.3.0,2.1.7,2.2.2</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.1.7,2.2.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23202" opendate="2019-10-23 00:00:00" fixdate="2019-6-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ExportSnapshot (import) will fail if copying files to root directory takes longer than cleaner TTL</summary>
+      <description>HBASE-17330 removed the checking of the snapshot .tmp directory when determining which files are candidates for deletes. It appears that in the latest branches, this isn't an issue for taking a snapshot as it checks whether a snapshot is in progress via the SnapshotManager.However, when using the ExportSnapshot tool to import a snapshot into a cluster, it will first copy the snapshot manifest into /.snapshot/.tmp/&lt;snapshot&gt; &amp;#91;1&amp;#93;, copies the files, and then renames the snapshot manifest to the final snapshot directory. If the copyFiles job takes longer than the cleaner TTL, the ExportSnapshot job will fail because HFiles will get deleted before the snapshot is committed to the final directory. The ExportSnapshot tool already has a functionality to skipTmp and write the manifest directly to the final location. However, this has unintended consequences such as the snapshot appearing to the user before it is usable. So it looks like we will have to bring back the tmp directory check to avoid this situation.&amp;#91;1&amp;#93; https://github.com/apache/hbase/blob/master/hbase-mapreduce/src/main/java/org/apache/hadoop/hbase/snapshot/ExportSnapshot.java#L1029</description>
+      <version>3.0.0-alpha-1,1.5.0,2.2.1,1.4.11,2.1.7</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.snapshot.TestSnapshotDescriptionUtils.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.snapshot.SnapshotTestingUtils.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.snapshot.TestSnapshotHFileCleaner.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.snapshot.TestSnapshotFileCacheWithDifferentWorkingDir.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.snapshot.TestSnapshotFileCache.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.snapshot.TakeSnapshotHandler.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.snapshot.SnapshotHFileCleaner.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.snapshot.SnapshotFileCache.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23303" opendate="2019-11-15 00:00:00" fixdate="2019-12-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add security headers to REST server/info page</summary>
+      <description>Vulnerability scanners suggest that the following extra headers should be added to both Info/Rest server endpoints which are exposed by hbase-rest project. X-Frame-Options: SAMEORIGIN X-Xss-Protection: 1; mode=block X-Content-Type-Options: nosniff Strict-Transport-Security: “max-age=63072000;includeSubDomains;preload” Content-Security-Policy: default-src https: data: 'unsafe-inline' 'unsafe-eval'Info server already has "X-Frame-Options: DENY" which is more restrictive than "SAMEORIGIN", so it's probably fine. All of three headers are missing from REST responses.I'll put together a patch to resolve this. </description>
+      <version>3.0.0-alpha-1,2.0.6,2.1.7,2.2.2</version>
+      <fixedVersion>2.5.0,3.0.0-alpha-3,2.4.11</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-rest.src.main.java.org.apache.hadoop.hbase.rest.RESTServer.java</file>
+      <file type="M">hbase-http.src.main.java.org.apache.hadoop.hbase.http.HttpServer.java</file>
+      <file type="M">hbase-http.src.main.java.org.apache.hadoop.hbase.http.ClickjackingPreventionFilter.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

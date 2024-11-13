@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  <bug fixdate="2015-10-3 01:00:00" id="10264" opendate="2015-9-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to use conditions on static columns for DELETE</summary>
+      <description>cqlsh:test&gt; create table static_table(id int, stat int static, ord int, val text, primary key(id,ord));cqlsh:test&gt; insert into static_table (id,stat,ord,val) VALUES ( 1, 1, 1, '1');cqlsh:test&gt; delete from static_table where id=1 and ord=1 if stat != 1;Invalid syntax at line 1, char 55 delete from static_table where id=1 and ord=1 if stat != 1; ^Same error if using =, &lt;, &lt;=, &gt;= or &gt; conditionAccording to thobbs the syntax should work. Plus, the error message is wrong</description>
+      <version>2.1.12,2.2.4,3.0.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.InsertUpdateIfConditionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-10-17 01:00:00" id="10367" opendate="2015-9-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Aggregate with Initial Condition fails with C* 3.0</summary>
+      <description>I'm seeing some inconsistent behavior between 2.2 and 3.0 C* with regards to UDF, Aggregates and Initial Conditions. I have a scenario, which I think is valid. It works in C* 2.2 but not in 3.0Using the following user defined functionCREATE OR REPLACE FUNCTION extend_list(s list&lt;text&gt;, i int) CALLED ON NULL INPUT RETURNS list&lt;text&gt; LANGUAGE java AS 'if (i != null) s.add(String.valueOf(i)); return s;';With the aggregate belowCREATE AGGREGATE aggregatemetadata.test_init_cond_aggregate(int) SFUNC extend_list STYPE list&lt;text&gt; INITCOND [ ]When I attempt to exercise the aggregate on from a simple key value table.SELECT test_init_cond_aggregate(v) AS list_res FROM tin 2.2 it works fine and returns the aggregate.The exact same test ran against the 3.0 branch produces the following exception from the server.InvalidRequest: code=2200 [Invalid query] message="ERROR FUNCTION_FAILURE: execution of 'aggregatemetadata.extend_list[list&lt;text&gt;, int]' failed: java.lang.UnsupportedOperationException"I've grepped through the C* logs but I couldn't find a more verbose stack trace, or any errors. Robert Stupp suggested I open a ticket.I am able to reproduce both in the python driver manually using cql.</description>
+      <version>3.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.UDHelper.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.functions.UDFunction.java</file>
+      <file type="M">lib.cassandra-driver-core-3.0.0-alpha3-093a692-SNAPSHOT-shaded.jar</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-10-19 01:00:00" id="10376" opendate="2015-9-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix upgrade_tests/paging_test.py:TestPagingData.static_columns_paging_test</summary>
+      <description>Follow-up to CASSANDRA-10354 to fix the related upgrade issue.To quote bdeggleston:So the failure is caused by an edge case where a names filter is used in a paging query against a table that needs SinglePartitionNamesCommand instances converted to SinglePartitionSliceCommand instances in order to be converted to legacy read commands.If the previous read returned all requested clusterings and a number of rows equal to the page size, the subsequent read would have an empty clustering names filter. When an empty clustering names filter is converted to a slice filter, the slice filter is created with Slices.ALL.</description>
+      <version>3.0.0</version>
+      <fixedVersion>Legacy/CQL,Legacy/Testing</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ReadCommand.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-10-14 01:00:00" id="10524" opendate="2015-10-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add ability to skip TIME_WAIT sockets on port check on Windows startup</summary>
+      <description>C* sockets are often staying TIME_WAIT for up to 120 seconds (2x max segment lifetime) for me in my dev environment on Windows. This is rather obnoxious since it means I can't launch C* for up to 2 minutes after stopping it.Attaching a patch that adds a simple -a for aggressive startup to the launch scripts to ignore duplicate port check from netstat if it's TIME_WAIT. Also snuck in some more liberal interpretation of help strings in the .ps1.</description>
+      <version>3.0.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cassandra.ps1</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-10-21 01:00:00" id="10559" opendate="2015-10-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support encrypted and plain traffic on the same port</summary>
+      <description>To be able to migrate clusters in a rolling way from plain to encrypted traffic it would be very helpful if we could have Cassandra accept both on the same port.</description>
+      <version>2.1.12,2.2.4,3.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.NativeTransportServiceTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.EncryptionOptions.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-10-23 01:00:00" id="10577" opendate="2015-10-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix cqlsh COPY commands that use NULL</summary>
+      <description>Looks like this commit:https://github.com/apache/cassandra/commit/806378c8c295fb062f94eb8bf0f719b398d27745broke some of the behavior of cqlsh COPY:http://cassci.datastax.com/view/cassandra-3.0/job/cassandra-3.0_dtest/280/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_null_as_null_indicator/history/http://cassci.datastax.com/view/cassandra-3.0/job/cassandra-3.0_dtest/280/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_undefined_as_null_indicator/history/The NULL tests are the only ones that fail, so it doesn't look like any other parts of it are broken:http://cassci.datastax.com/view/cassandra-3.0/job/cassandra-3.0_dtest/280/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/</description>
+      <version>2.1.12,2.2.4,3.0.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-10-29 01:00:00" id="10620" opendate="2015-10-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Debian package build broken.</summary>
+      <description>Debian package build is broken post- CASSANDRA-5261 with the removal of token-generator. tools/bin/sstableofflinerelevel added, as well, since it was missing.</description>
+      <version>3.0.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.cassandra-tools.install</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2013-10-15 01:00:00" id="5261" opendate="2013-2-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove token generator</summary>
+      <description>Obsoleted by vnodes</description>
+      <version>3.0.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.bin.token-generator.bat</file>
+      <file type="M">tools.bin.token-generator</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-11-29 01:00:00" id="7645" opendate="2014-7-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: show partial trace if incomplete after max_trace_wait</summary>
+      <description>If a trace hasn't completed within max_trace_wait, cqlsh will say the trace is unavailable and not show anything. It (and the underlying python driver) determines when the trace is complete by checking if the duration column in system_traces.sessions is non-null. If duration is null but we still have some trace events when the timeout is hit, cqlsh should print whatever trace events we have along with a warning about it being incomplete.</description>
+      <version>2.2.4,3.0.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

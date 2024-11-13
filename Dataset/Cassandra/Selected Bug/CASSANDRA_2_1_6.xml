@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2014-5-12 01:00:00" id="7212" opendate="2014-5-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow to switch user within CQLSH session</summary>
+      <description>Once a user is logged into CQLSH, it is not possible to switch to another user without exiting and relaunchThis is a feature offered in postgres and probably other databases:http://secure.encivasolutions.com/knowledgebase.php?action=displayarticle&amp;id=1126 Perhaps this could be implemented on CQLSH as part of the "USE" directive:USE &lt;Keyspace&gt; &amp;#91;USER&amp;#93; &amp;#91;password&amp;#93;</description>
+      <version>2.0.16,2.1.6,2.2.0beta1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-5-3 01:00:00" id="8051" opendate="2014-10-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add SERIAL and LOCAL_SERIAL consistency levels to cqlsh</summary>
+      <description>cqlsh does not support setting the serial consistency level. The default CL.SERIAL does not let users safely execute LWT alongside an app that runs at LOCAL_SERIAL, and can prevent any LWT from running when a DC is down (e.g. with 2 DCs, RF=3 in each.)Implementing this well is a bit tricky. A user setting the serial CL will probably not want all of their statements to have a serial CL attached, but only the conditional updates. At the same time it would be useful to support serial reads. "WITH CONSISTENCY LEVEL" used to provide this flexibility.I believe that it is currently impossible to run a SELECT at SERIAL or LOCAL_SERIAL; the only workaround seems to be to run a conditional update with a predicate that always resolves to False, and to rely on the CAS response to read the data.</description>
+      <version>2.0.15,2.1.6</version>
+      <fixedVersion>Feature/LightweightTransactions,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cql-internal-only-1.4.1.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-6-15 01:00:00" id="8487" opendate="2014-12-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>system.schema_columns sometimes missing for &amp;#39;system&amp;#39; keyspace</summary>
+      <description>Occasionally a Cassandra node will have missing schema_columns information where keyspace_name='system'.cqlsh&gt; select * from system.schema_columns where keyspace_name='system'; keyspace_name | columnfamily_name | column_name---------------+-------------------+-------------(0 rows)All keyspace and column family schema info is present for 'system' &amp;#8211; it's only the column information missing.This can occur on an existing cluster following node restart. The data usually appears again after bouncing the node.This is impactful to client drivers that expect column meta for configured tables.Reproducible in 2.1.2. Have not seen it crop up in 2.0.11.</description>
+      <version>2.1.6,2.2.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-5-13 01:00:00" id="8606" opendate="2015-1-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstablesplit does not remove original sstable</summary>
+      <description>sstablesplit leaves the original file on disk, it should not.</description>
+      <version>2.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneUpgrader.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.StandaloneSplitter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-5-10 01:00:00" id="8940" opendate="2015-3-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inconsistent select count and select distinct</summary>
+      <description>When performing select count( * ) from ... I expect the results to be consistent over multiple query executions if the table at hand is not written to / deleted from in the mean time. However, in my set-up it is not. The counts returned vary considerable (several percent). The same holds for select distinct partition-key-columns from ....I have a table in a keyspace with replication_factor = 1 which is something like:CREATE TABLE tbl ( id frozen&lt;id_type&gt;, bucket bigint, offset int, value double, PRIMARY KEY ((id, bucket), offset))The frozen udt is:CREATE TYPE id_type ( tags map&lt;text, text&gt;);The table contains around 35k rows (I'm not trying to be funny here ...). The consistency level for the queries was ONE.</description>
+      <version>2.0.16,2.1.6</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.RangeSliceCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.PagedRangeCommand.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-6-1 01:00:00" id="9083" opendate="2015-4-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY functionality doesn&amp;#39;t work together with SOURCE or with cqlsh -f</summary>
+      <description>Executing a COPY command from an external file using the cqlsh -f or the SOURCE command results in the error:filename.cql:7:descriptor 'lower' requires a 'str' object but received a 'unicode'Looks like there was a change in the cqlsh code from 2.1.2 to 2.1.3 which makes use of codecs.open() instead of open(), which returns a unicode object. The offending line of code that returns the error seems to be in cqlsh, line 1415:copyoptnames = map(str.lower, parsed.get_binding('optnames', ()))</description>
+      <version>2.1.6,2.2.0rc1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.pylexotron.py</file>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-7-7 01:00:00" id="9132" opendate="2015-4-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>resumable_bootstrap_test can hang</summary>
+      <description>The bootstrap_test.TestBootstrap.resumable_bootstrap_test can hang sometimes. It looks like the following line never completes:node3.watch_log_for("Listening for thrift clients...")I'm not familiar enough with the recent bootstrap changes to know why that's not happening.</description>
+      <version>2.0.15,2.1.6,2.2.0rc1</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.IncomingFileMessage.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-5-13 01:00:00" id="9183" opendate="2015-4-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Failure detector should detect and ignore local pauses</summary>
+      <description>A local node can be paused for many reasons such as GC, and if the pause is long enough when it recovers it will think all the other nodes are dead until it gossips, causing UAE to be thrown to clients trying to use it as a coordinator. Instead, the FD can track the current time, and if the gap there becomes too large, skip marking the nodes down (reset the FD data perhaps)</description>
+      <version>2.1.6,2.2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-4-15 01:00:00" id="9198" opendate="2015-4-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Deleting from an empty list produces an error</summary>
+      <description>While deleting an element from a list that does not contain it is a no-op, deleting it from an empty list causes an error.This edge case is a bit inconsistent, because it makes list deletion non idempotent:cqlsh:test&gt; create table foo (k int primary key, v list&lt;int&gt;);cqlsh:test&gt; insert into foo(k,v) values (1, [1,2]);cqlsh:test&gt; update foo set v = v - [1] where k = 1;cqlsh:test&gt; update foo set v = v - [1] where k = 1;cqlsh:test&gt; update foo set v = v - [2] where k = 1;cqlsh:test&gt; update foo set v = v - [2] where k = 1;InvalidRequest: code=2200 [Invalid query] message="Attempted to delete an element from a list which is null"With speculative retries coming to the drivers, idempotency becomes more important because it determines which query we might retry or not. So it would be better if deleting from an empty list succeeded.</description>
+      <version>2.1.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2015-5-1 01:00:00" id="9282" opendate="2015-5-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Warn on unlogged batches</summary>
+      <description>At least until CASSANDRA-8303 is done and we can block them entirely, we should log a warning when unlogged batches across multiple partition keys are used. This could either be done by backporting NoSpamLogger and blindly logging every time, or we could add a threshold and warn when more than 10 keys are seen.</description>
+      <version>2.1.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-5-5 01:00:00" id="9297" opendate="2015-5-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The configuration for remote debugging is not valid anymore.</summary>
+      <description>The current configuration for remote debugging that we use is: # JVM_OPTS="$JVM_OPTS -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=1414"Since java 1.5 it should be: JVM_OPTS="$JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=1414"</description>
+      <version>None</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2015-5-18 01:00:00" id="9417" opendate="2015-5-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Do not swallow RejectedExecutionExceptions at shutdown</summary>
+      <description>As a consequence of CASSANDRA-8564, RejectedExecutionExceptions are now swallowed, which is suboptimal. It would be probably better to either rethrow a specialized exception to be caught and debug logged, or just cancel the task inside the handler so that at least the submitting thread can check for the cancellation status and properly react.</description>
+      <version>2.1.6</version>
+      <fixedVersion>Local/StartupandShutdown</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.concurrent.DebuggableScheduledThreadPoolExecutor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-6-20 01:00:00" id="9436" opendate="2015-5-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose rpc_address and broadcast_address of each Cassandra node</summary>
+      <description>When running Cassandra nodes with collocated Spark nodes and accessing such cluster from remote, to get data-locality right, we need to tell Spark the locations of the Cassandra nodes and they should match the addresses that Spark nodes bind to. Therefore in cloud environments we need to use private IPs for that. Unfortunately, the client which connects from remote would know only the broadcast rpc_addresses which are different.Can we have the IP/hostname that every C* node binds to exposed in a system table? system.peers table contains that information, but it doesn't contain that information for the local node.So can we have broadcast_address and rpc_address added to the system.local table?</description>
+      <version>2.0.16,2.1.6,2.2.0rc1</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.data.serialization.2.0.db.RowMutation.bin</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-6-28 01:00:00" id="9504" opendate="2015-5-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Odd performance numbers comparing 2.0.15 and 2.1+</summary>
+      <description>I've been doing some basic performance testing of batch commitlog on 2.0.15, 2.1-head, and 2.2.-head. I have been seeing very odd results where 2.0.15 performance is incredibly high, suspiciously so, when compared to 2.1 or 2.2.Example graph:http://cstar.datastax.com/graph?stats=2ea11748-0562-11e5-9045-42010af0688f&amp;metric=op_rate&amp;operation=1_write&amp;smoothing=1&amp;show_aggregates=true&amp;xmin=0&amp;xmax=1570.36&amp;ymin=0&amp;ymax=127509.8I'm using the following yaml options:commitlog_sync: batchcommitlog_sync_batch_window_in_ms: 50commitlog_sync_period_in_ms: nullconcurrent_writes: 64I am able to reproduce this on two separate clusters, physical hardware, with SSDs. I have not been able to reproduce this on gce, or a physical cluster I have access to with HDD. I can reproduce this consistently, with different stress options, and with higher data load on the nodes. I can also reproduce this myself on these machines, without using the C* perf tool to set up the cluster and perform the operations.When running 2.0.15 batch commitlog vs periodic, I do see a difference as expected:http://cstar.datastax.com/graph?stats=4ae77aac-056f-11e5-8344-42010af0688f&amp;metric=op_rate&amp;operation=1_write&amp;smoothing=1&amp;show_aggregates=true&amp;xmin=0&amp;xmax=68.09&amp;ymin=0&amp;ymax=166966.8I am using the newest stress code on trunk. What should I be looking for to explain the anomalous performance here?</description>
+      <version>2.1.6,2.2.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  <bug fixdate="2015-4-28 01:00:00" id="10406" opendate="2015-9-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool supports to rebuild from specific ranges.</summary>
+      <description>Add the 'nodetool rebuildrange' command, so that if `nodetool rebuild` failed, we do not need to rebuild all the ranges, and can just rebuild those failed ones.Should be easily ported to all versions.</description>
+      <version>3.6</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-4-12 01:00:00" id="10853" opendate="2015-12-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>deb package migration to dh_python2</summary>
+      <description>I'm working on a deb job in jenkins, and I had forgotten to open a bug for this. There is no urgent need, since python-support is in Jessie, but this package is currently in transition to be removed.http://deb.li/dhs2pDuring deb build:dh_pysupport: This program is deprecated, you should use dh_python2 instead. Migration guide: http://deb.li/dhs2p</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.rules</file>
+      <file type="M">src.java.org.apache.cassandra.utils.Interval.java</file>
+      <file type="M">debian.control</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-3-29 01:00:00" id="11096" opendate="2016-1-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade netty to &gt;= 4.0.34</summary>
+      <description>Amongst other things, the native protocol will not bind ipv6 easily (see CASSANDRA-11047) until we upgrade.</description>
+      <version>3.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.netty-all-4.0.23.Final.jar</file>
+      <file type="M">lib.licenses.netty-all-4.0.23.Final.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-9 01:00:00" id="11137" opendate="2016-2-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JSON datetime formatting needs timezone</summary>
+      <description>The JSON date time string representation lacks the timezone information:cqlsh:events&gt; select toJson(created_at) AS created_at from event_by_user_timestamp ; created_at--------------------------- "2016-01-04 16:05:47.123"(1 rows)vs.cqlsh:events&gt; select created_at FROM event_by_user_timestamp ; created_at-------------------------- 2016-01-04 15:05:47+0000(1 rows)cqlsh:events&gt;To make things even more complicated the JSON timestamp is not returned in UTC.At the moment DateType picks this formatting string "yyyy-MM-dd HH:mm:ss.SSS". Shouldn't we somehow make this configurable by users or at a minimum add the timezone?</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.TimestampSerializer.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-3-22 01:00:00" id="11208" opendate="2016-2-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paging is broken for IN queries</summary>
+      <description>If the number of selected row is greater than the page size, C* will return some duplicates.The problem can be reproduced with the java driver using the following code: session = cluster.connect(); session.execute("CREATE KEYSPACE IF NOT EXISTS test WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : '1'}"); session.execute("USE test"); session.execute("DROP TABLE IF EXISTS test"); session.execute("CREATE TABLE test (rc int, pk int, PRIMARY KEY (pk))"); for (int i = 0; i &lt; 5; i++) session.execute("INSERT INTO test (pk, rc) VALUES (?, ?);", i, i); ResultSet rs = session.execute(session.newSimpleStatement("SELECT * FROM test WHERE pk IN (1, 2, 3)").setFetchSize(2));</description>
+      <version>None</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.PagingState.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-4-7 01:00:00" id="11310" opendate="2016-3-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow filtering on clustering columns for queries without secondary indexes</summary>
+      <description>Since CASSANDRA-6377 queries without index filtering non-primary key columns are fully supported.It makes sense to also support filtering on clustering-columns.CREATE TABLE emp_table2 (empID int,firstname text,lastname text,b_mon text,b_day text,b_yr text,PRIMARY KEY (empID, b_yr, b_mon, b_day));SELECT b_mon,b_day,b_yr,firstname,lastname FROM emp_table2WHERE b_mon='oct' ALLOW FILTERING;</description>
+      <version>3.6</version>
+      <fixedVersion>Feature/2iIndex,Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.FrozenCollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.StatementRestrictions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.ClusteringColumnRestrictions.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-3-21 01:00:00" id="11392" opendate="2016-3-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add auto import java.util for UDF code block</summary>
+      <description>Right now, when creating Java source code for UDF, since we cannot define import, we need to use fully qualified class name, ex:CREATE FUNCTION toSet(li list&lt;text&gt;)CALLED ON NULL INPUTRETURNS textLANGUAGE javaAS $$ java.util.Set&lt;String&gt; set = new java.util.HashSet(); for(String txt: list) { set.add(txt); } return set;$$;Classes from java.util package are so commonly used that it makes developer life easier to import automatically java.util.* in the JavaUDF base class so that developers don't need to use FQCN for common classes. The only drawback I can see is the risk of class name clash but since:1. it is not allow to create new class2. classes that can be used in UDF are restricted I don't see serious clash name issues eithersnazy WDYT ?</description>
+      <version>3.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.UFTest.java</file>
+      <file type="M">src.resources.org.apache.cassandra.cql3.functions.JavaSourceUDF.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-4-24 01:00:00" id="11428" opendate="2016-3-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Eliminate Allocations</summary>
+      <description>Linking relevant issues under this master ticket. For small changes I'd like to test and commit these in bulk</description>
+      <version>3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.DataType.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.CBUtil.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.ColumnDefinition.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-25 01:00:00" id="11437" opendate="2016-3-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make number of cores used by cqlsh COPY visible to testing code</summary>
+      <description>As per this conversation with Stefania:https://github.com/riptano/cassandra-dtest/pull/869#issuecomment-200597829we don't currently have a way to verify that the test environment variable CQLSH_COPY_TEST_NUM_CORES actually affects the behavior of COPY in the intended way. If this were added, we could make our tests of the one-core edge case a little stricter.</description>
+      <version>3.6</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-4-1 01:00:00" id="11474" opendate="2016-4-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM should use regular inserts for single statement batches</summary>
+      <description>I haven't reproduced it with a test yet but, from code inspection, if CQL rows are larger than batch_size_fail_threshold_in_kb and this parameter cannot be changed, then data import will fail.Users can control the batch size by setting MAXBATCHSIZE.If a batch contains a single statement, there is no need to use a batch and we should use normal inserts instead or, alternatively, we should skip the batch size check for unlogged batches with only one statement.</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-5 01:00:00" id="11507" opendate="2016-4-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool proxyhistograms is missing CAS stats</summary>
+      <description>At the moment only writes/reads are shown. Attached patch adds CASRead/CASWrite and ViewWrite.Github branch here: https://github.com/chbatey/cassandra-1/tree/cas-metrics-in-proxystats</description>
+      <version>3.6</version>
+      <fixedVersion>Feature/LightweightTransactions,Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.nodetool.ProxyHistograms.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-6 01:00:00" id="11510" opendate="2016-4-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clustering key and secondary index</summary>
+      <description>I noticed the following change in behavior while migrating from 2.0.11: Elements of the clustering key seems to not be secondary indexable anymore.Using this table:CREATE TABLE table1 ( name text, class int, inter text, power int, PRIMARY KEY (name, class, inter)) WITH CLUSTERING ORDER BY (class DESC, inter ASC);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',1, 'int1',13);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',2, 'int1',18);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',3, 'int1',37);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',4, 'int1',49);In version 2.0.11, I used to have a secondary index on inter, that allowed me to make fast queries on the table:CREATE INDEX table1_inter ON table1 (inter);SELECT * FROM table1 where name='R1' AND class&gt;0 AND class&lt;4 AND inter='int1' ALLOW FILTERING;While testing on 3.3.0, I get the following message:Clustering column "inter" cannot be restricted (preceding column "class" is restricted by a non-EQ relation)It seems to only be considered as a key and the index and ALLOW FILTERING are not taken into account anymore (as it was in 2.0.11).I found the following workaround: Duplicate the column inter as a regular column, and simply query it with the secondary index and no ALLOW FILTERING. It looks like the behavior I would anticipate and do not understand why it does not work on inter only because it is a clustering key. The only answer on the ml evokes a bug.</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Feature/2iIndex,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectSingleColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.StatementRestrictions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSet.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-4-6 01:00:00" id="11515" opendate="2016-4-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* won&amp;#39;t launch with whitespace in path on Windows</summary>
+      <description>In a directory named 'test space', I see the following on launch:Error: Could not find or load main class space\cassandra.logs.gc.log</description>
+      <version>2.2.6,3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-4-12 01:00:00" id="11549" opendate="2016-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM ignores NULL values in conversion</summary>
+      <description>COPY FROM fails to import empty values. For example:$ cat test.csva,10,20b,30,c,50,60$ cqlshcqlsh&gt; create keyspace if not exists test with replication = {'class': 'SimpleStrategy', 'replication_factor':1};cqlsh&gt; create table if not exists test.test (t text primary key, i1 int, i2 int);cqlsh&gt; copy test.test (t,i1,i2) from 'test.csv';Imports:select * from test.test"; t | i1 | i2---+----+---- a | 10 | 20 c | 50 | 60(2 rows)and generates a ParseError - invalid literal for int() with base 10: '', given up without retries for the row with an empty value.It should import the empty value as a null and there should be no error:cqlsh&gt; select * from test.test"; t | i1 | i2---+----+------ a | 10 | 20 c | 50 | 60 b | 30 | null(3 rows)</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-5-13 01:00:00" id="11567" opendate="2016-4-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update netty version</summary>
+      <description>Mainly for prereq to CASSANDRA-11421. Netty 4.0.34 -&gt; 4.0.36.</description>
+      <version>3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.netty-all-4.0.34.Final.jar</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-14 01:00:00" id="11574" opendate="2016-4-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>clqsh: COPY FROM throws TypeError with Cython extensions enabled</summary>
+      <description>Any COPY FROM command in cqlsh is throwing the following error:"get_num_processes() takes no keyword arguments"Example command: COPY inboxdata (to_user_id,to_user_network,created_time,attachments,from_user_id,from_user_name,from_user_network,id,message,to_user_name,updated_time) FROM 'inbox.csv';Similar commands worked parfectly in the previous versions such as 3.0.4</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-5-19 01:00:00" id="11602" opendate="2016-4-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Materialized View Does Not Have Static Columns</summary>
+      <description>CREATE TABLE "team" (teamname text, manager text, location text static, PRIMARY KEY ((teamname), manager));INSERT INTO team (teamname, manager, location) VALUES ('Red Bull1', 'Ricciardo11', 'Australian');INSERT INTO team (teamname, manager, location) VALUES ('Red Bull2', 'Ricciardo12', 'Australian');INSERT INTO team (teamname, manager, location) VALUES ('Red Bull2', 'Ricciardo13', 'Australian');select * From team;CREATE MATERIALIZED VIEW IF NOT EXISTS "teamMV" AS SELECT "teamname", "manager", "location" FROM "team" WHERE "teamname" IS NOT NULL AND "manager" is NOT NULL AND "location" is NOT NULL PRIMARY KEY("manager", "teamname"); select * from "teamMV";The teamMV does not have "location" column. Static columns are not getting created in MV.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Feature/MaterializedViews,Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateViewStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-5-19 01:00:00" id="11613" opendate="2016-4-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in upgrade_tests.cql_tests.TestCQLNodes2RF1_2_2_HEAD_UpTo_Trunk.more_user_types_test</summary>
+      <description>example failure:http://cassci.datastax.com/job/upgrade_tests-all-custom_branch_runs/8/testReport/upgrade_tests.cql_tests/TestCQLNodes2RF1_2_2_HEAD_UpTo_Trunk/more_user_types_testFailed on CassCI build upgrade_tests-all-custom_branch_runs #8</description>
+      <version>3.6</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaMigrator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.UserType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.SetType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.MapType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ListType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AbstractType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-4-22 01:00:00" id="11631" opendate="2016-4-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY FROM fails for null values with non-prepared statements</summary>
+      <description>cqlsh's COPY FROM ... WITH PREPAREDSTATEMENTS = False fails if the row contains null values. Reason is that the ','.join(r) in make_non_prepared_batch_statement doesn't seem to handle None, which results in this error message.Failed to import 1 rows: TypeError - sequence item 2: expected string, NoneType found, given up without retriesAttached patch should fix the problem.</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-26 01:00:00" id="11654" opendate="2016-4-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstabledump is not able to properly print out SSTable that may contain historical (but "shadowed") row tombstone</summary>
+      <description>It is pretty trivial to reproduce. Here are the steps I used (on a single node C* 3.x cluster):echo "CREATE KEYSPACE IF NOT EXISTS testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'};" | cqlshecho "CREATE TABLE IF NOT EXISTS testks.testcf ( k int, c text, val0_int int, PRIMARY KEY (k, c) );" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int) VALUES (1, 'c1', 100);" | cqlshecho "DELETE FROM testks.testcf where k=1 and c='c1';" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int) VALUES (1, 'c1', 100);" | cqlshnodetool flush testks testcfecho "SELECT * FROM testks.testcf;" | cqlshThe last step from above will confirm that there is one live row in the testks.testcf table. However, if you now go to the actual SSTable file directory and run sstabledump like the following, you will see the row is still marked as deleted and no row content is shown:$ sstabledump ma-1-big-Data.db[ { "partition" : { "key" : [ "1" ], "position" : 0 }, "rows" : [ { "type" : "row", "position" : 18, "clustering" : [ "c1" ], "liveness_info" : { "tstamp" : 1461633248542342 }, "deletion_info" : { "deletion_time" : 1461633248212499, "tstamp" : 1461633248 } } ] }]This is reproduced in both latest 3.0.5 and 3.6-snapshot (i.e. trunk as of Apr 25, 2016).Looks like only row tombstone is affecting sstabledump. If you generate cell tombstones, even if you delete all non-PK &amp; non-static columns in the row, as long as there is no explicit row delete (so the clustering is still considered alive), sstabledump will work just fine, see the following example steps:echo "CREATE KEYSPACE IF NOT EXISTS testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'};" | cqlshecho "CREATE TABLE IF NOT EXISTS testks.testcf ( k int, c text, val0_int int, val1_int int, PRIMARY KEY (k, c) );" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int, val1_int) VALUES (1, 'c1', 100, 200);" | cqlshecho "DELETE val0_int, val1_int FROM testks.testcf where k=1 and c='c1';" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int, val1_int) VALUES (1, 'c1', 300, 400);" | cqlshnodetool flush testks testcfecho "select * from testks.testcf;" | cqlsh$ sstabledump ma-1-big-Data.db[ { "partition" : { "key" : [ "1" ], "position" : 0 }, "rows" : [ { "type" : "row", "position" : 18, "clustering" : [ "c1" ], "liveness_info" : { "tstamp" : 1461634633566479 }, "cells" : [ { "name" : "val0_int", "value" : "300" }, { "name" : "val1_int", "value" : "400" } ] } ] }]</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.JsonTransformer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2015-3-2 01:00:00" id="8888" opendate="2015-3-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compress only inter-dc traffic by default</summary>
+      <description>Internode compression increases GC load, and can cause high CPU utilization for high throughput use cases. Very rarely are customers restricted by intra-DC or cross-DC network bandwidth. I'de rather we optimize for the 75% of cases where internode compression isn't needed and then selectively enable it for customers where it would provide a benefit. Currently I'm advising all field consultants disable compression by default.</description>
+      <version>3.6</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-3-12 01:00:00" id="8958" opendate="2015-3-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add client to cqlsh SHOW_SESSION</summary>
+      <description>Once the python driver supports it, https://datastax-oss.atlassian.net/browse/PYTHON-235, add the client to cqlsh SHOW_SESSION as done in this commit:https://github.com/apache/cassandra/commit/249f79d3718fa05347d60e09f9d3fa15059bd3d3Also, update the bundled python driver.</description>
+      <version>3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.tracing.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-3-21 01:00:00" id="9220" opendate="2015-4-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hostname verification for node-to-node encryption</summary>
+      <description>This patch will will introduce a new ssl server option: require_endpoint_verification. Setting it will enable hostname verification for inter-node SSL communication. This is necessary to prevent man-in-the-middle attacks when building a trust chain against a common CA. See here for background details. Clusters that solely rely on importing all node certificates into each trust store (as described here) are not effected. Clusters that use the same common CA to sign node certificates are potentially affected. In case the CA signing process will allow other parties to generate certs for different purposes, those certificates could in turn be used for MITM attacks. The provided patch will allow to enable hostname verification to make sure not only to check if the cert is valid but also if it has been created for the host that we're about to connect.Corresponding dtest: Test for CASSANDRA-9220Related patches from the client perspective: Java, Python</description>
+      <version>3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.security.SSLFactory.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.EncryptionOptions.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+</bugrepository>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="5428" opendate="2013-4-5 00:00:00" fixdate="2013-12-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL3 don&amp;#39;t validate that collections haven&amp;#39;t more than 64K elements</summary>
+      <description>This is somewhat similar to CASSANDRA-5355 but with a twist. When we serialize collections, not only does the size of the elements is limited to 64K, but the number of elements is too because it is also an unsigned short.Now the same argument than in CASSANDRA-5355 that collections are "places to denormalize small amounts of data" is true here too. So the fact that collections are limited to 64K elements is something I could live with. However, we don't validate that no more than 64K elements are inserted. And in fact, we can't validate it if the elements are added one by one.So in practice, you can insert more than 64K elements, but if you try to read it, you will only get back some subset of the collection. And the number of elements returned will correspond to the 2 last bytes of the real size (so a collection of 65536 elements will be returned as 1 element). Imo, that's more problematic.So since unfortunately we can't validate this at insertion, I suggest that as a first step we: document that limitation (in http://cassandra.apache.org/doc/cql3/CQL.html typically) when we read a collection that has &gt; 64K elements, we detect it and when serializing that for the client, we: return as much as we can, i.e. the 64K first ones log a warning that something is wrong On the longer term, for 2.0, maybe we should just change the serialization format and use an int for the collection size, using an unsigned short was probably misguided. Of course that changes said serialization format so we have to bump the native protocol version for that (and thus can't do that in 1.2).</description>
+      <version>1.2.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.SetType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.MapType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ListType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.CollectionType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5598" opendate="2013-5-29 00:00:00" fixdate="2013-11-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Need invalid exception when submitting a prepared statement with too many markers</summary>
+      <description>Binary protocol uses a short value so this places a limit of 16K on the number of bound variable, would be nice to see an InvalidException at prepared time if statement contains more markers than supported (thank you to pcmanus pointing this out on IRC channel). Currently, no error is given until you try to execute the query and get the following (which is misleading because the bound # is much smaller than the limit):com.datastax.driver.core.exceptions.InvalidQueryException: there were 135000 markers in CQL but 3928 bound variables</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5750" opendate="2013-7-12 00:00:00" fixdate="2013-11-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CLI can show bad DESCRIBE for CQL3 CF if given the CF explicitly</summary>
+      <description>The CLI omits CQL3 tables if you do a regular describe command. It also emits a nice warning about it. However, if you do a describe with an explicit CF name, it does something a bit unintuitive:[default@ryan] describe r1;WARNING: CQL3 tables are intentionally omitted from 'describe' output.See https://issues.apache.org/jira/browse/CASSANDRA-4377 for details. ColumnFamily: r1 Key Validation Class: org.apache.cassandra.db.marshal.Int32Type Default column value validator: org.apache.cassandra.db.marshal.BytesType Cells sorted by: org.apache.cassandra.db.marshal.CompositeType(org.apache.cassandra.db.marshal.UTF8Type) GC grace seconds: 0 Compaction min/max thresholds: 0/0 Read repair chance: 0.0 DC Local Read repair chance: 0.0 Populate IO Cache on flush: false Replicate on write: false Caching: keys_only Bloom Filter FP chance: default Built indexes: [] Compaction Strategy: nullIn this case it emitted the WARNING message, but it still showed the table anyway, and many of the CF settings are incorrect because of this. Better to show nothing than incorrect values.</description>
+      <version>1.2.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6172" opendate="2013-10-9 00:00:00" fixdate="2013-11-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY TO command doesn&amp;#39;t escape single quote in collections</summary>
+      <description>CREATE TABLE test (key text PRIMARY KEY , testcollection set&lt;text&gt;) ;INSERT INTO test (key, testcollection ) VALUES ( 'test', {'foo''bar'});COPY test TO '/tmp/test.csv';COPY test FROM '/tmp/test.csv';Bad Request: line 1:73 mismatched character '&lt;EOF&gt;' expecting '''Aborting import at record #0 (line 1). Previously-inserted values still present.Content of generated '/tmp/test.csv':test,{'foo'bar'}Unfortunately, I didn't find workaround with any combination of COPY options</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6234" opendate="2013-10-23 00:00:00" fixdate="2013-12-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add metrics for native protocols</summary>
+      <description>It would be very useful to expose metrics related to the native protocol.Initially I have a user that would like to be able to monitor the usage of native transport threads.</description>
+      <version>1.2.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.RequestThreadPoolExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6268" opendate="2013-10-29 00:00:00" fixdate="2013-12-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Poor performance of Hadoop if any DC is using VNodes</summary>
+      <description>Some customers are complaining about huge number of splits in Hadoop caused by VNodes. Disabling vnodes only in Hadoop DC does not fix it. Splits are generated from the results of describe_ring, which returns a huge number of ranges anyways, and doesn't take into account that there will be huge number of consecutive ranges residing on the nodes we'd like the M/R job to be run.The proposed fix:1. allows for specifying the DC(s) the Hadoop job should be run in (in DSE - defaults to all Hadoop DCs)2. merges consecutive ranges before generating Hadoop splits, so we don't have artificial range splitting caused by vnodes in the other DCsFor non-DSE users this feature is turned off by default and doesn't change the old behaviour.</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.AbstractColumnFamilyInputFormat.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Constants.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.CfDef.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Cassandra.java</file>
+      <file type="M">interface.cassandra.thrift</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6386" opendate="2013-11-20 00:00:00" fixdate="2013-11-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>FD mean calculation performance improvement</summary>
+      <description>CPU profiling in #6127 found the o.a.c.gms.arrrivalWindow.mean() calculation taking the most cpu time during steady state gossip.cpu usage can be a limiting factor when starting &gt; 500 nodes concurrently, which customers sometimes do (though we suggest starting nodes 2 or 3 minutes apart).</description>
+      <version>1.2.13,2.0.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.BoundedStatsDequeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.dht.BootStrapperTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.BoundedStatsDeque.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.IFailureDetector.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6409" opendate="2013-11-27 00:00:00" fixdate="2013-11-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gossip performance improvement at node startup</summary>
+      <description>With large clusters (&gt; 500 nodes) and num_tokens &gt; 255 we sometimes see a node have trouble starting up. CPU usage for one thread is pegged.We see this concurrent with Gossip flaps on the node trying to learn the ring topology. Other nodes on the ring, that are already at steady state do not seem to suffer. It is the node joining the large ring that has trouble.</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6415" opendate="2013-11-27 00:00:00" fixdate="2013-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Snapshot repair blocks for ever if something happens to the "I made my snapshot" response</summary>
+      <description>The "snapshotLatch.await();" can be waiting for ever and block all repair operations indefinitely if something happens that another node doesn't respond. public void makeSnapshots(Collection&lt;InetAddress&gt; endpoints) { try { snapshotLatch = new CountDownLatch(endpoints.size()); IAsyncCallback callback = new IAsyncCallback() { public boolean isLatencyForSnitch() { return false; } public void response(MessageIn msg) { RepairJob.this.snapshotLatch.countDown(); } }; for (InetAddress endpoint : endpoints) MessagingService.instance().sendRR(new SnapshotCommand(tablename, cfname, sessionName, false).createMessage(), endpoint, callback); snapshotLatch.await(); snapshotLatch = null; } catch (InterruptedException e) { throw new RuntimeException(e); } }</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.SnapshotVerbHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6481" opendate="2013-12-12 00:00:00" fixdate="2013-12-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog endpoint candidates should be picked randomly, not sorted by proximity</summary>
+      <description>Batchlog endpoint candidates should be picked randomly, not sorted by proximity. I'll be lazy and just copy-paste some lines from IRC:&amp;#91;20:23:27&amp;#93; rbranson: is there an issue where batch logs tend to get written to a subset of the nodes?&amp;#91;20:28:04&amp;#93; rbranson: I mean all the write batches are going thru 10% of the nodes&amp;#91;20:28:16&amp;#93; rbranson: it means writes won't scale linearly w/the cluster sizeAttaching a trivial patch.</description>
+      <version>1.2.13,2.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

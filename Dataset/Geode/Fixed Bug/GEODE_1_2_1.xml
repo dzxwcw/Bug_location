@@ -1,0 +1,946 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="GEODE">
+  <bug id="3522" opendate="2017-8-25 00:00:00" fixdate="2017-8-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>puts via a load need to update AEQ and data region under a single lock (to prevent bucket movement during processing)</summary>
+      <description>New entries created via a loader can miss creating their lucene index if the primary is moved between adding the entry to the AEQ and into the localRegion.handleWANEvent needs to be executed under the same lock held for putting a new entry into the data region.</description>
+      <version>1.2.0,1.2.1,1.3.0</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-lucene.src.test.java.org.apache.geode.cache.lucene.LuceneIndexMaintenanceIntegrationTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.DistributedRegion.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.BucketRegion.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3685" opendate="2017-9-22 00:00:00" fixdate="2017-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>MBean wrappers are not always applied correctly</summary>
+      <description>Under certain conditions, MBean wrappers are not applied correctly.</description>
+      <version>1.1.0,1.1.1,1.2.0,1.2.1</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.test.java.org.apache.geode.management.internal.cli.commands.StopServerAcceptanceTest.java</file>
+      <file type="M">geode-web.src.test.java.org.apache.geode.management.internal.web.shell.HttpOperationInvokerSecurityTest.java</file>
+      <file type="M">geode-junit.src.main.java.org.apache.geode.test.junit.rules.gfsh.GfshRule.java</file>
+      <file type="M">geode-junit.src.main.java.org.apache.geode.test.junit.rules.gfsh.GfshExecution.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.web.shell.HttpOperationInvoker.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.web.http.support.SimpleHttpRequester.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.web.controllers.ShellCommandsController.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.web.controllers.AbstractMultiPartCommandsController.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.web.controllers.AbstractCommandsController.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.ManagementAgent.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3695" opendate="2017-9-25 00:00:00" fixdate="2017-10-25 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Remove unused protobuf messages from new protocol</summary>
+      <description>In the interest of clarity and to avoid confusion, remove any unused protobuf messages/handlers from the new protocol code (e.g., create/destroy region messages). We'll add these back as we implement the messages.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-protobuf.src.main.proto.region.API.proto</file>
+      <file type="M">geode-protobuf.src.main.proto.server.API.proto</file>
+      <file type="M">geode-protobuf.src.main.proto.clientProtocol.proto</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.protocol.protobuf.utilities.ProtobufUtilities.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.MessageExecutionContext.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3701" opendate="2017-9-25 00:00:00" fixdate="2017-10-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve docs on hash index performance</summary>
+      <description>Stronger language is warranted for hash indexes.In a simple test, there was an order of magnitude difference in load and GII performance between the two types of indexes.Range:Client: Loaded 2,000,000 entries in 20,487 msServer 1 Size: 1,272,322,680 bytesServer 2: GIIed in 12,523 msServer 2 Size: 1,272,088,544 bytesHash:Client: Loaded 2,000,000 entries in 257,016 msServer 1 Size: 1,228,010,280 bytesServer 2: GIIed in 218,983 msServer 2 Size: 1,228,161,664 bytesSo, the difference in size was ~45MB, but the difference in time was an order of magnitude.Better wording suggested for file developing/query_index/creating_hash_indexes.html:Using hash index will degrade put performance and recovery time substantially. If memory is not a concern, it is recommended that you use range index.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0,1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.query.index.creating.hash.indexes.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3702" opendate="2017-9-25 00:00:00" fixdate="2017-9-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>New framework for concurrency testing</summary>
+      <description>From the mailing list discussion:I'd like to propose two things:1) We introduce a framework for writing unit tests of code that issupposed to be thread safe. This framework should let a developereasily write a test with multiple things going on in parallel. Theframework can then take that code and try to run it with differentthread interleavings.Here's an example of what this could look like:@RunWith(ConcurrentTestRunner.class)public class AtomicIntegerTest { @Test public void parallelIncrementReturns2(ParallelExecutor executor) throws ExecutionException, InterruptedException { AtomicInteger atomicInteger = new AtomicInteger(); executor.inParallel(() -&gt; atomicInteger.incrementAndGet()); executor.inParallel(() -&gt; atomicInteger.incrementAndGet()); executor.execute(); assertEquals(2, atomicInteger.get()); }2) We implement this framework initially using Java Pathfinder, butallow for other methods of testing the code to be plugged in forexample just running the test in the loop. Java pathfinder is coolbecause it can run the code with different interleavings but it doeshave some serious limitations.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">settings.gradle</file>
+      <file type="M">gradle.rat.gradle</file>
+      <file type="M">geode-core.src.test.resources.org.apache.geode.codeAnalysis.sanctionedDataSerializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.FilterProfile.java</file>
+      <file type="M">geode-core.build.gradle</file>
+      <file type="M">build.gradle</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3703" opendate="2017-9-25 00:00:00" fixdate="2017-10-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>rename JAR resource to DEPLOY</summary>
+      <description>We currently have a JAR resource introduced with finer grained security (not released yet). Since the idea behind this resource is to control who has authorization to deploy jar files to the geode cluster, I think a better name for this resource would be DEPLOY.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.managing.security.implementing.authorization.html.md.erb</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.security.TestCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.security.ResourcePermission.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.UndeployCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.DestroyFunctionCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.DeployCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateAsyncEventQueueCommand.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3704" opendate="2017-9-26 00:00:00" fixdate="2017-9-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CI Failure: CommandOverHttpDUnitTest fails</summary>
+      <description>org.apache.geode.management.internal.cli.commands.CommandOverHttpDUnitTest &gt; org.apache.geode.management.internal.cli.commands.FunctionCommandsDUnitTest.testExecuteFunctionOnRegionWithCustomResultCollector@org.apache.geode.management.internal.cli.commands.CommandOverHttpDUnitTest FAILED java.lang.AssertionError at org.junit.Assert.fail(Assert.java:86) at org.junit.Assert.assertTrue(Assert.java:41) at org.junit.Assert.assertTrue(Assert.java:52) at org.apache.geode.management.internal.cli.commands.FunctionCommandsDUnitTest.testExecuteFunctionOnRegionWithCustomResultCollector(FunctionCommandsDUnitTest.java:200)org.apache.geode.management.internal.cli.commands.CommandOverHttpDUnitTest &gt; org.apache.geode.management.internal.cli.commands.FunctionCommandsDUnitTest.testExecuteFunctionOnMembersWithArgsAndCustomResultCollector@org.apache.geode.management.internal.cli.commands.CommandOverHttpDUnitTest FAILED java.lang.AssertionError at org.junit.Assert.fail(Assert.java:86) at org.junit.Assert.assertTrue(Assert.java:41) at org.junit.Assert.assertTrue(Assert.java:52) at org.apache.geode.management.internal.cli.commands.FunctionCommandsDUnitTest.testExecuteFunctionOnMembersWithArgsAndCustomResultCollector(FunctionCommandsDUnitTest.java:423)org.apache.geode.management.internal.cli.commands.CommandOverHttpDUnitTest &gt; org.apache.geode.management.internal.cli.commands.FunctionCommandsDUnitTest.testExecuteFunctionOnMembersWithArgs@org.apache.geode.management.internal.cli.commands.CommandOverHttpDUnitTest FAILED java.lang.AssertionError at org.junit.Assert.fail(Assert.java:86) at org.junit.Assert.assertTrue(Assert.java:41) at org.junit.Assert.assertTrue(Assert.java:52) at org.apache.geode.management.internal.cli.commands.FunctionCommandsDUnitTest.testExecuteFunctionOnMembersWithArgs(FunctionCommandsDUnitTest.java:385)</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.ExecuteFunctionCommand.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3705" opendate="2017-9-26 00:00:00" fixdate="2017-10-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Refactor Authentication request to be processed as a "normal" protobuf message</summary>
+      <description>Refactor authentication and Authorization for the new protocol to process the AuthenticationRequest as a "normal" protobuf message.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.acceptance.LocatorConnectionDUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.ProtobufTestExecutionContext.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.ProtobufStreamProcessorTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.ProtobufShiroAuthenticatorJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.RemoveRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.PutRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.PutAllRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetRegionRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetRegionNamesRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetAvailableServersOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetAllRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.EncodingTypeToSerializationTypeTranslatorJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.ProtobufProtocolServiceJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.AuthorizationIntegrationTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.AuthenticationIntegrationTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.InternalLocator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.tcpserver.TcpServer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.AcceptorImpl.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ClientProtocolProcessor.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ClientProtocolService.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ClientProtocolServiceLoader.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.GenericProtocolServerConnection.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ServerConnectionFactory.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.TcpServerFactory.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.cache.tier.sockets.ClientProtocolMessageHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.cache.tier.sockets.MessageExecutionContext.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.operations.OperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.ProtobufCachePipeline.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.ProtobufLocatorPipeline.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.ProtobufProtocolService.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.EncodingTypeTranslator.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.Failure.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.OperationContext.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.GetAllRequestOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.GetAvailableServersOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.GetRegionNamesRequestOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.GetRegionRequestOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.GetRequestOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.PutAllRequestOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.PutRequestOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.operations.RemoveRequestOperationHandler.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.ProtobufOpsProcessor.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.ProtobufSerializationService.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.ProtobufStreamProcessor.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.ProtocolErrorCode.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.registry.OperationContextRegistry.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.Result.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.security.Authenticator.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.security.Authorizer.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.security.InvalidConfigAuthenticator.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.security.NoOpAuthenticator.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.security.NoOpAuthorizer.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.security.ProtobufShiroAuthenticator.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.security.ProtobufShiroAuthorizer.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.statistics.NoOpStatistics.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.statistics.ProtobufClientStatistics.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.statistics.ProtobufClientStatisticsImpl.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.Success.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.utilities.ProtobufResponseUtilities.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.utilities.ProtobufUtilities.java</file>
+      <file type="M">geode-protobuf.src.main.proto.clientProtocol.proto</file>
+      <file type="M">geode-protobuf.src.main.resources.META-INF.services.org.apache.geode.internal.cache.tier.sockets.ClientProtocolService</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.cache.tier.sockets.GenericProtocolServerConnectionTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.acceptance.CacheConnectionJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.acceptance.CacheOperationsJUnitTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3707" opendate="2017-9-26 00:00:00" fixdate="2017-9-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Join queries with two join conditions return duplicate results when executed with indexes</summary>
+      <description>Acceptance: the test below must return the same number of resultsCustomer.javapublic static class Customer implements Serializable { public int pkid; public int id; public int joinId; public String name; public Map&lt;String, Customer&gt; nested = new HashMap&lt;String, Customer&gt;(); public Customer(int pkid, int id) { this.pkid = pkid; this.id = id; this.joinId = id; this.name = "name" + pkid; } public Customer(int pkid, int id, int joinId) { this.pkid = pkid; this.id = id; this.joinId = joinId; this.name = "name" + pkid; } public String toString() { return "Customer pkid = " + pkid + ", id: " + id + " name:" + name; } }Test.java@Testpublic void testJoinTwoRegions(/*String queryString, int resultSize*/) throws Exception { Cache cache = getCache(); Region region1 = cache.createRegionFactory().setDataPolicy(DataPolicy.REPLICATE).create("region1"); Region region2 = cache.createRegionFactory().setDataPolicy(DataPolicy.REPLICATE).create("region2"); for (int i = 1; i &lt; 11; i++) { region1.put(i, new EquiJoinIntegrationTest.Customer(i, i, i)); if(i == 1 || i == 4 || i == 7 || i == 10){ region2.put(i, new EquiJoinIntegrationTest.Customer(1, 1, 1)); }else { region2.put(i, new EquiJoinIntegrationTest.Customer(i % 5, i, i % 3)); } String queryString = "&lt;trace&gt;select STA.id as STACID, STA.pkid as STAacctNum, STC.id as STCCID, STC.pkid as STCacctNum from /region1 STA, /region2 STC where STA.pkid = 1 AND STA.joinId = STC.joinId or STA.id = STC.id"; int resultSize = 1; QueryService queryService = cache.getQueryService(); SelectResults results = (SelectResults) queryService.newQuery(queryString).execute(); int resultSizeWithoutIndex = results.size(); queryService.createIndex("pkidregion1", "p.pkid", "/region1 p"); queryService.createIndex("pkidregion2", "p.pkid", "/region2 p"); queryService.createIndex("indexIDRegion2","p.id", "/region2 p"); queryService.createIndex("indexIDRegion1","p.id", "/region1 p"); queryService.createIndex("joinIdregion1", "p.joinId", "/region1 p"); queryService.createIndex("joinIdregion2", "p.joinId", "/region2 p"); queryService.createIndex("nameIndex", "p.name", "/region2 p"); results = (SelectResults) queryService.newQuery(queryString).execute(); int resultSizeWithIndex = results.size(); assertEquals(resultSizeWithIndex, resultSizeWithoutIndex);}</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.query.internal.DerivedInfo.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3722" opendate="2017-9-28 00:00:00" fixdate="2017-10-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gfsh search lucene command has a typo: queryStrings</summary>
+      <description>The gfsh command search lucene takes a query string as a parameter. Unfortunately, that parameter is named queryStrings (plural). It should be queryString</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.tools.modules.lucene.integration.html.md.erb</file>
+      <file type="M">geode-lucene.src.main.java.org.apache.geode.cache.lucene.internal.cli.LuceneIndexCommands.java</file>
+      <file type="M">geode-lucene.src.main.java.org.apache.geode.cache.lucene.internal.cli.LuceneCliStrings.java</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.search.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3739" opendate="2017-10-3 00:00:00" fixdate="2017-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Amend current protocol Username / password to mimic the current SecurityManager implementation</summary>
+      <description>The current implementation of the simple username password authentication has a very specific message. The SimpleUsernamePassword authentication class then processes that messages and populates very specific properties and passes that through to the SecurityManager.Given that the securityManager implementation is custom this approach is very limiting. The new implementation would need to better mimic the generic properties that are passed through without having to manually set any properties.A suggestion is to use a more generic Properties-based authenticator, that will take the properties that a client sets and pass them through directly to the SecurityManager without interfering with the message other than deserializing it from a hash into properties.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.statistics.NoOpProtobufStatistics.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.ProtobufStreamProcessorTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.ProtobufSimpleAuthenticatorJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.RemoveRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.PutRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.PutAllRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetRegionRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetRegionNamesRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.operations.GetAllRequestOperationHandlerJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.AuthorizationIntegrationTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.AuthenticationIntegrationTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.acceptance.CacheOperationsJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.acceptance.CacheMaxConnectionJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.acceptance.CacheConnectionTimeoutJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.acceptance.CacheConnectionJUnitTest.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.cache.tier.sockets.GenericProtocolServerConnectionTest.java</file>
+      <file type="M">geode-protobuf.src.main.resources.META-INF.services.org.apache.geode.security.internal.server.Authenticator</file>
+      <file type="M">geode-protobuf.src.main.proto.clientProtocol.proto</file>
+      <file type="M">geode-protobuf.src.main.proto.authentication.API.proto</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.statistics.ProtobufClientStatistics.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.ProtobufSimpleAuthorizer.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.ProtobufSimpleAuthenticator.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.ProtobufOpsProcessor.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.ProtobufProtocolService.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.ProtobufCachePipeline.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.cache.tier.sockets.MessageExecutionContext.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.security.internal.server.package.html</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.security.internal.server.NoOpAuthorizer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.security.internal.server.NoOpAuthenticator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.security.internal.server.Authorizer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.security.internal.server.Authenticator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ServerConnectionFactory.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ClientProtocolStatistics.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ClientProtocolService.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.ClientProtocolProcessor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3740" opendate="2017-10-3 00:00:00" fixdate="2017-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document CachePerfStats diskTasksWaiting statistic</summary>
+      <description>This statistic does not appear in the documentation, and it should.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.reference.statistics.list.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3742" opendate="2017-10-3 00:00:00" fixdate="2017-10-3 01:00:00" resolution="Duplicate">
+    <buginformation>
+      <summary>CI failure: DeltaPropagationDUnitTest.testBug40165ClientReconnects FAILED with no queus server is available</summary>
+      <description>org.apache.geode.internal.cache.DeltaPropagationDUnitTest &gt; testBug40165ClientReconnects FAILED org.apache.geode.cache.NoSubscriptionServersAvailableException: org.apache.geode.cache.NoSubscriptionServersAvailableException: Could not initialize a primary queue on startup. No queue servers available. at org.apache.geode.cache.client.internal.QueueManagerImpl.getAllConnections(QueueManagerImpl.java:190) at org.apache.geode.cache.client.internal.OpExecutorImpl.executeOnQueuesAndReturnPrimaryResult(OpExecutorImpl.java:540) at org.apache.geode.cache.client.internal.PoolImpl.executeOnQueuesAndReturnPrimaryResult(PoolImpl.java:842) at org.apache.geode.cache.client.internal.RegisterInterestOp.execute(RegisterInterestOp.java:58) at org.apache.geode.cache.client.internal.ServerRegionProxy.registerInterest(ServerRegionProxy.java:359) at org.apache.geode.internal.cache.LocalRegion.processSingleInterest(LocalRegion.java:3734) at org.apache.geode.internal.cache.LocalRegion.registerInterest(LocalRegion.java:3823) at org.apache.geode.internal.cache.LocalRegion.registerInterest(LocalRegion.java:3625) at org.apache.geode.internal.cache.LocalRegion.registerInterest(LocalRegion.java:3620) at org.apache.geode.internal.cache.LocalRegion.registerInterest(LocalRegion.java:3615) at org.apache.geode.internal.cache.DeltaPropagationDUnitTest.createDurableCacheClient(DeltaPropagationDUnitTest.java:1372) at org.apache.geode.internal.cache.DeltaPropagationDUnitTest.testBug40165ClientReconnects(DeltaPropagationDUnitTest.java:698) Caused by: org.apache.geode.cache.NoSubscriptionServersAvailableException: Could not initialize a primary queue on startup. No queue servers available. at org.apache.geode.cache.client.internal.QueueManagerImpl.initializeConnections(QueueManagerImpl.java:592) at org.apache.geode.cache.client.internal.QueueManagerImpl.start(QueueManagerImpl.java:303) at org.apache.geode.cache.client.internal.PoolImpl.start(PoolImpl.java:346) at org.apache.geode.cache.client.internal.PoolImpl.finishCreate(PoolImpl.java:172) at org.apache.geode.cache.client.internal.PoolImpl.create(PoolImpl.java:158) at org.apache.geode.internal.cache.PoolFactoryImpl.create(PoolFactoryImpl.java:338) at org.apache.geode.internal.cache.DeltaPropagationDUnitTest.createDurableCacheClient(DeltaPropagationDUnitTest.java:1362) ... 1 more</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.i18n.LocalizedStrings.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.CacheClientUpdater.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.CacheClientNotifier.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3744" opendate="2017-10-4 00:00:00" fixdate="2017-10-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Local region on a peer node that does not host the transaction should not involve in the transaction</summary>
+      <description>Currently, if a peer N1 initiate a transaction, and the transaction is hosted on another peer N2, it can do operation on a local region within the transaction. If the N2 also has a local region has the same name, the transaction will forward the operation onto transaction host (N2), Product should throw exception if this is situation is detected.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.PeerTXStateStub.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3747" opendate="2017-10-4 00:00:00" fixdate="2017-10-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve DistributedTest framework with SharedErrorCollector rule</summary>
+      <description>Improve the DistributedTest framework with the following changes: SharedErrorCollector to enable asynchronous assertions within every DUnit JVM</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-junit.src.main.java.org.apache.geode.test.junit.rules.serializable.SerializableExternalResource.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.rules.tests.SharedCountersDistributedTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.rules.SharedCountersRule.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.rules.RemoteInvoker.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.rules.DistributedUseJacksonForJsonPathRule.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.rules.DistributedRestoreSystemProperties.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.rules.DistributedDisconnectRule.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.cache.rules.CacheRule.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3750" opendate="2017-10-4 00:00:00" fixdate="2017-10-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Adding logging of exception messages to InternalDistributedMember in case of reconnect failure</summary>
+      <description>The exceptions are swallowed when reconnecting. logging out the exception on warning level if they occur.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.InternalDistributedSystem.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3760" opendate="2017-10-5 00:00:00" fixdate="2017-10-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>uncaught exception in shunned member removal thread</summary>
+      <description>This was hit in GemFire 8 but it applies to GEODE[severe 2017/09/17 15:35:02.030 tz &lt;Removing shunned GemFire node xyz tid=0x242a9] Uncaught exception in thread Thread[Removing shunned GemFire node xyz Reader Threads]com.gemstone.gemfire.distributed.DistributedSystemDisconnectedException: Channel closed, caused by com.gemstone.gemfire.ForcedDisconnectException: This member has been forced out of the distributed system by xyz. Please consult GemFire logs to find the reason. (GMS shun) at com.gemstone.gemfire.distributed.internal.membership.jgroup.JGroupMembershipManager.requestMemberRemoval(JGroupMembershipManager.java:2842) at com.gemstone.gemfire.distributed.internal.membership.jgroup.JGroupMembershipManager$1.run(JGroupMembershipManager.java:1938)Caused by: com.gemstone.gemfire.ForcedDisconnectException: This member has been forced out of the distributed system by xyz. Please consult GemFire logs to find the reason. (GMS shun) at com.gemstone.org.jgroups.protocols.pbcast.GMS.installView(GMS.java:1264) at com.gemstone.org.jgroups.protocols.pbcast.GMS.installView(GMS.java:1192) at com.gemstone.org.jgroups.protocols.pbcast.ParticipantGmsImpl.handleViewChange(ParticipantGmsImpl.java:261) at com.gemstone.org.jgroups.protocols.pbcast.GMS.up(GMS.java:1625) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.VIEW_SYNC.handleView(VIEW_SYNC.java:252) at com.gemstone.org.jgroups.protocols.VIEW_SYNC.up(VIEW_SYNC.java:177) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.AUTH.up(AUTH.java:189) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.GemFireTimeSync.up(GemFireTimeSync.java:282) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.FRAG2.up(FRAG2.java:259) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.pbcast.STABLE.up(STABLE.java:274) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.UNICAST.up(UNICAST.java:318) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.pbcast.NAKACK.up(NAKACK.java:629) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.VERIFY_SUSPECT.up(VERIFY_SUSPECT.java:215) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.FD_SOCK.up(FD_SOCK.java:569) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.FD.up(FD.java:447) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.Discovery.up(Discovery.java:265) at com.gemstone.org.jgroups.stack.Protocol.passUp(Protocol.java:768) at com.gemstone.org.jgroups.protocols.TP.handleIncomingMessage(TP.java:1198) at com.gemstone.org.jgroups.protocols.TP.handleIncomingPacket(TP.java:1110) at com.gemstone.org.jgroups.protocols.TP.receive(TP.java:1009) at com.gemstone.org.jgroups.protocols.UDP$UcastReceiver.run(UDP.java:1403) at java.lang.Thread.run(Thread.java:745)</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.membership.gms.mgr.GMSMembershipManager.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.membership.gms.membership.GMSJoinLeave.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3761" opendate="2017-10-5 00:00:00" fixdate="2017-10-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document the deprecation of manual start of gateway senders</summary>
+      <description>Document that doing a manual start of gateway senders is deprecated.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.start.html.md.erb</file>
+      <file type="M">geode-docs.topologies.and.comm.multi.site.configuration.setting.up.a.multisite.system.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.create.html.md.erb</file>
+      <file type="M">geode-docs.reference.topics.gfe.cache.xml.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3762" opendate="2017-10-5 00:00:00" fixdate="2017-10-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide: Clarify cluster config docs around gfsh limitations</summary>
+      <description>Incomplete gfsh help "worries customers," who think they can't "do anything with functions/loaders/writers." Also that they "didn't know they could use a combination of xml + java api + gfsh. Which is partially on them but could possibly be more called out in the docs."</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.configuring.running.default.file.specs.html.md.erb</file>
+      <file type="M">geode-docs.configuring.cluster.config.gfsh.persist.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.quick.ref.commands.by.area.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.import.html.md.erb</file>
+      <file type="M">geode-docs.configuring.cluster.config.export-import.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3764" opendate="2017-10-5 00:00:00" fixdate="2017-10-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>idle expiration will happen even if the entry has been accessed on a replicate</summary>
+      <description>Because idle expiration is currently always based on if the entry has been accessed on the local node it is possible that entries will idle expire even if they were accessed recently.Since reads are only sent to one member, the last access time is only updated on that member. The expiration action itself is distributed so if any member was not read from recently, it will cause the entry to be expired on the entire cluster.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-docs.developing.management.all.region.types.chapter.overview.html.md.erb</file>
+      <file type="M">geode-docs.developing.expiration.how.expiration.works.html.md.erb</file>
+      <file type="M">geode-docs.developing.expiration.configuring.data.expiration.html.md.erb</file>
+      <file type="M">geode-docs.developing.expiration.chapter.overview.html.md.erb</file>
+      <file type="M">geode-core.src.test.resources.org.apache.geode.codeAnalysis.sanctionedDataSerializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.Version.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.lang.SystemPropertyHelper.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.DSFIDFactory.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.DataSerializableFixedID.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryOffHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsRegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryOffHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsLRURegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryOffHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskRegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryOffHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VMStatsDiskLRURegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.DistributedRegion.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.EntryExpiryTask.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.ExpiryTask.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.InternalRegion.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.LeafRegionEntry.cpp</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.LocalRegion.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.RegionEntry.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryOffHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskLRURegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryOffHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsDiskRegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryOffHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryOffHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryOffHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryOffHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryOffHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsLRURegionEntryOffHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryHeapIntKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryHeapLongKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryHeapObjectKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryHeapStringKey1.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryHeapStringKey2.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryHeapUUIDKey.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.VersionedStatsRegionEntryOffHeapIntKey.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3827" opendate="2017-10-12 00:00:00" fixdate="2017-10-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SecurityManager is leaked from one Cache to another</summary>
+      <description>After creating and closing Cache, the SecurityManager is visible to the next Cache created. This only happens if CacheServer.setSecurityManager is called, not if the class is specified via property. This is causing failure of some integration tests we'd like to add.I've created a minimal working example, also visible on branch SecurityManager-integration-test of https://github.com/galen-pivotal/geodepackage org.apache.geode.security;import static org.apache.geode.distributed.ConfigurationProperties.LOCATORS;import static org.apache.geode.distributed.ConfigurationProperties.MCAST_PORT;import static org.apache.geode.distributed.ConfigurationProperties.SECURITY_MANAGER;import static org.assertj.core.api.Assertions.assertThat;import java.util.Properties;import org.junit.Test;import org.apache.geode.cache.CacheFactory;import org.apache.geode.examples.SimpleSecurityManager;import org.apache.geode.internal.cache.InternalCache;import org.apache.geode.internal.security.SecurityService;/** * This test verifies that when a SecurityManager is set, it does not persist between Cache * creations. * * We had seen this issue, and it broke integration tests. */public class SecurityManagerPersistenceIntegrationTest { private static final Properties defaultProperties; static { Properties properties = new Properties(); properties.setProperty(MCAST_PORT, "0"); properties.setProperty(LOCATORS, ""); defaultProperties = properties; } @Test public void doesNotPersistWhenSetViaCacheFactoryJavaApi() { CacheFactory firstCacheFactory = new CacheFactory(new Properties(defaultProperties)); SecurityManager securityManager = new SimpleSecurityManager(); firstCacheFactory.setSecurityManager(securityManager); InternalCache firstCache = (InternalCache) firstCacheFactory.create(); firstCache.close(); CacheFactory cacheFactory = new CacheFactory(new Properties(defaultProperties)); try (InternalCache cache = (InternalCache) cacheFactory.create()) { assertCacheHasNoSecurity(cache); } } @Test public void doesNotPersistWhenSetWithProperty() { Properties properties = new Properties(defaultProperties); properties.setProperty(SECURITY_MANAGER, SimpleSecurityManager.class.getName()); CacheFactory firstCacheFactory = new CacheFactory(properties); InternalCache firstCache = (InternalCache) firstCacheFactory.create(); firstCache.close(); // Make sure we're using a fresh CacheFactory, so the test is valid. CacheFactory cacheFactory = new CacheFactory(new Properties(defaultProperties)); try (InternalCache cache = (InternalCache) cacheFactory.create()) { assertCacheHasNoSecurity(cache); } } private void assertCacheHasNoSecurity(InternalCache cache) { SecurityService securityService = cache.getSecurityService(); assertThat(securityService.isIntegratedSecurity()).isFalse(); assertThat(securityService.isClientSecurityRequired()).isFalse(); assertThat(securityService.isPeerSecurityRequired()).isFalse(); // We expect null if it's not set, but there could be a default security manager if // implementation details change. if (securityService.getSecurityManager() != null) { assertThat(securityService.getSecurityManager()) .describedAs("Security manager is not the same as the previously existing Cache") .isNotInstanceOf(SpySecurityManager.class); } }}</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.CacheConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3828" opendate="2017-10-12 00:00:00" fixdate="2017-10-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve test coverage of clients when using delta</summary>
+      <description>Need new test that covers the following: verify that empty (ie proxy) clients do not receive do not receive delta updates</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.LocalRegion.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3829" opendate="2017-10-12 00:00:00" fixdate="2017-10-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve test coverage of client registerInterest during failover</summary>
+      <description>Need new tests that cover the following: verify that registered interest carries over when client fails over to another server verify that server metadata is correct for clients that register interest event after failover</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.CacheClientProxy.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.CacheServerImpl.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.AbstractCacheServer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.xmlcache.CacheServerCreation.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.InternalAcceptor.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.AcceptorImpl.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.Acceptor.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.InternalCacheServer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.admin.remote.RemoteBridgeServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3834" opendate="2017-10-13 00:00:00" fixdate="2017-2-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BackupJUnitTest should use TemporaryFolder</summary>
+      <description>BackupJUnitTest should use TemporaryFolder instead of System.getProperty("java.io.tmpdir").</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.backup.ReplicateBackupPrepareAndFinishMsgDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.backup.PartitionedBackupPrepareAndFinishMsgDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.backup.BackupPrepareAndFinishMsgDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.backup.BackupIntegrationTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3864" opendate="2017-10-18 00:00:00" fixdate="2017-11-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include the Protobuf message definitions in the release artifact</summary>
+      <description>In order for clients to be developed in languages not currently supported by Geode, the Protobuf message definition files need to be included in the release artifact.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-protobuf.build.gradle</file>
+      <file type="M">geode-assembly.build.gradle</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3867" opendate="2017-10-18 00:00:00" fixdate="2017-10-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>mutual SSL authentication with a bad client cert is not being tested</summary>
+      <description>While checking out the client/server mutual authentication implementation I couldn't find a test that showed a server rejecting a client that is not trusted. We should add a test for that.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.cache.client.internal.SSLNoClientAuthDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.cache.client.internal.CacheServerSSLConnectionDUnitTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3869" opendate="2017-10-18 00:00:00" fixdate="2017-12-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Refactor eviction code</summary>
+      <description>Refactor eviction: repackage internal.cache.lru as internal.cache.eviction &amp;#91;1&amp;#93; remove collision between interfaces LRUClockNode and RegionEntry &amp;#91;2&amp;#93;&amp;#91;1&amp;#93; I want to repackage org.apache.geode.internal.cache.lru as org.apache.geode.internal.cache.eviction to prepare for renaming LRU classes to be Eviction classes.&amp;#91;2&amp;#93; both interfaces define `void setRecentlyUsed();` &amp;#8211; both of which are implemented by region entries</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.eviction.LRUListWithSyncSortingIntegrationTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.eviction.LRUListWithAsyncSortingTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.eviction.AbstractEvictionListTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.eviction.LRUListWithSyncSorting.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.eviction.LRUListWithAsyncSorting.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.eviction.AbstractEvictionList.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3873" opendate="2017-10-19 00:00:00" fixdate="2017-10-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide: Drop-down menu for earlier versions doesn&amp;#39;t work</summary>
+      <description>The User Guide header contains a drop-down menu showing earlier versions of the manual, but the links don't work. Also, the drop-down for v1.1 doesn't have a link for the newer version, 1.2.This is both a currently broken implementation and a future maintenance headache.Since all (currently 3) versions are accessible from the Geode website's Docs page, let's just eliminate the version drop-down menu altogether.</description>
+      <version>None</version>
+      <fixedVersion>1.1.0,1.2.1,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-book.config.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3875" opendate="2017-10-19 00:00:00" fixdate="2017-2-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gfsh command to create jndi binding</summary>
+      <description>In cache.xml user can specify jndi binding like so: &lt;jndi-bindings&gt; &lt;jndi-binding jndi-name="DemoDatasource" type="SimpleDataSource" jdbc-driver-class="org.postgresql.Driver" user-name="gpadmin" password="changeme" connection-url="jdbc:postgresql://localhost:5432/gemfire_db"&gt; &lt;/jndi-binding&gt; &lt;/jndi-bindings&gt;A user should be able to create a datasource using the gfsh command create jndi-binding &lt;options&gt; Then a datasource will be created with the supplied options and the binding will be created without the user having to restart the existing server(s)Please look at Geode's schema for a list of attributes that can be set: https://github.com/apache/geode-site/blob/master/website/content/schema/cache/cache-1.0.xsd#L1331</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.CreateDefinedIndexesCommandDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.CreateAsyncEventQueueCommandDUnitTest.java</file>
+      <file type="M">geode-core.src.main.resources.org.apache.geode.internal.sanctioned-geode-core-serializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.configuration.domain.Configuration.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CommandAvailabilityIndicator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.jndi.JNDIInvoker.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.datasource.TranxPoolCacheImpl.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.datasource.ManagedPoolCacheImpl.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.datasource.ConfiguredDataSourceProperties.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.datasource.AbstractPoolCache.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.CreateJndiBindingCommandTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateJndiBindingCommand.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3876" opendate="2017-10-19 00:00:00" fixdate="2017-2-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gfsh command for custom expiry</summary>
+      <description>When creating or altering a region the ability to add custom expiration is missing.It would be great to have something like this:alter/create region --name=regioName [--entry-idle-time-custom-expiry=customExpiryImplementationClassName]If the class implementing custom expiry also implements Declarable, we should add support for passing parameters to the init method.alter/create region --name=regionName --entry-idle-time-custom-expiry=CustomExpiryImplementation{'k':'v','k2':'v2'}The two options for custom expiry are:--entry-idle-time-custom-expiry=value--entry-time-to-live-custom-expiry=value</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.create.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.alter.html.md.erb</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.GfshParserConverterTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.functions.ExpirationAttrsTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.converters.EnumConverter.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.ExpirationAction.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.GfshParserAutoCompletionTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.CreateRegionCommandTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.AlterRegionCommandTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.AlterRegionCommandDUnitTest.java</file>
+      <file type="M">geode-core.src.main.resources.org.apache.geode.internal.sanctioned-geode-core-serializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.redis.internal.RegionProvider.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.i18n.CliStrings.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.RegionFunctionArgs.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.RegionCreateFunction.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.RegionAlterFunction.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateRegionCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.AlterRegionCommand.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="41" opendate="2015-5-27 00:00:00" fixdate="2015-6-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dummy feature for gitflow validation</summary>
+      <description>Dummy feature for gitflow validation</description>
+      <version>None</version>
+      <fixedVersion>1.0.0-incubating.M1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">COMPILING.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4132" opendate="2017-12-20 00:00:00" fixdate="2017-12-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Locator does not respond to handshake with new protocol</summary>
+      <description>The new client protocol has a handshake message and a handshake response. However, the locator is currently not returning a response; it is expecting the client to immediately send a GetAvailableServers message.The locator should be consistent with the server and send handshake response.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.TestExecutionContext.java</file>
+      <file type="M">geode-protobuf.src.test.java.org.apache.geode.internal.protocol.protobuf.v1.acceptance.LocatorConnectionDUnitTest.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.v1.ProtobufProtocolService.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.v1.ProtobufLocatorPipeline.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.v1.ProtobufCachePipeline.java</file>
+      <file type="M">geode-protobuf.src.main.java.org.apache.geode.internal.protocol.protobuf.v1.operations.GetAvailableServersOperationHandler.java</file>
+      <file type="M">geode-experimental-driver.src.main.java.org.apache.geode.experimental.driver.ProtobufDriver.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.client.protocol.ClientProtocolService.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.tcpserver.TcpServer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.InternalLocator.java</file>
+      <file type="M">geode-client-protocol.src.main.java.org.apache.geode.internal.protocol.MessageExecutionContext.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4175" opendate="2017-12-29 00:00:00" fixdate="2017-12-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide: gfsh doc example for creating a hash index does not include --type=hash option</summary>
+      <description>On the following page: http://geode.apache.org/docs/guide/13/developing/query_index/creating_hash_indexes.htmlthe gfsh example should include '--type=hash' in the command line.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.query.index.creating.hash.indexes.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4176" opendate="2018-1-2 00:00:00" fixdate="2018-1-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>locator creates "locator0view.dat" file when started with port 0</summary>
+      <description>The locator was modified some time ago to allow unit tests to start it with port 0 so that it will do a wildcard bind. When that was done the startup sequence wasn't changed to allow the peer-to-peer TcpHandler to know the bound port number &amp; so it creates its persistent view file with port 0 instead of the bound port number. It's possible that if such a file is left around a subsequent test that starts a locator with port 0 will pick up an old locator0view.dat file and attempt to join a distributed system that no longer exists.The startup sequence needs to be modified to allow the handlers to know the bound port number when they are initialized.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.junit.rules.LocatorStarterRule.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.standalone.DUnitLauncher.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.LocatorJUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.membership.MembershipJUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.membership.gms.locator.GMSLocatorRecoveryJUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.InternalLocatorIntegrationTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.DistributionLocator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.LocatorLauncher.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.Locator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.tcpserver.TcpServer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.membership.MemberServices.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.membership.MemberFactory.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.membership.gms.locator.GMSLocator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.membership.gms.GMSMemberFactory.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.InternalLocator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.InternalDistributedSystem.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4312" opendate="2018-1-18 00:00:00" fixdate="2018-1-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CI failure: org.apache.geode.cache30.CacheXml80DUnitTest &gt; testPartitionedRegionAttributesForCoLocation3 FAILED</summary>
+      <description>Test produces this:Suspicious strings were written to the log during this run.Fix the strings or use IgnoredException.addIgnoredException to ignore.-----------------------------------------------------------------------Found suspect string in log4j at line 157[error 2018/01/17 03:31:42.318 UTC &lt;ResourceManagerRecoveryThread 0&gt; tid=0x2c6] Unexpected exception during bucket recoveryjava.lang.IllegalStateException: Region specified in 'colocated-with' (Customer) for region /Order does not exist. It should be created before setting 'colocated-with' attribute for this region. at org.apache.geode.internal.cache.ColocationHelper.getColocatedRegion(ColocationHelper.java:94) at org.apache.geode.internal.cache.ColocationHelper.getLeaderRegion(ColocationHelper.java:455) at org.apache.geode.internal.cache.partitioned.PartitionedRegionRebalanceOp.&lt;init&gt;(PartitionedRegionRebalanceOp.java:134) at org.apache.geode.internal.cache.partitioned.PartitionedRegionRebalanceOp.&lt;init&gt;(PartitionedRegionRebalanceOp.java:114) at org.apache.geode.internal.cache.PRHARedundancyProvider$3.run2(PRHARedundancyProvider.java:1568) at org.apache.geode.internal.cache.partitioned.RecoveryRunnable.run(RecoveryRunnable.java:61) at org.apache.geode.internal.OneTaskOnlyExecutor$DelegatingRunnable.run(OneTaskOnlyExecutor.java:134) at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) at java.util.concurrent.FutureTask.run(FutureTask.java:266) at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$201(ScheduledThreadPoolExecutor.java:180) at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:293) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) at java.lang.Thread.run(Thread.java:748)The relevant section of the log is this:[info 2018/01/17 03:31:42.248 UTC &lt;Test worker&gt; tid=0x16] Initializing region __PR[info 2018/01/17 03:31:42.248 UTC &lt;Test worker&gt; tid=0x16] Initialization of region __PR completed[info 2018/01/17 03:31:42.249 UTC &lt;Test worker&gt; tid=0x16] Partitioned Region /Customer is born with prId=4 ident:#Customer[info 2018/01/17 03:31:42.271 UTC &lt;Test worker&gt; tid=0x16] Partitioned Region /Order is born with prId=5 ident:#Order[info 2018/01/17 03:31:42.314 UTC &lt;Test worker&gt; tid=0x16] GemFireCache[id = 1650399312; isClosing = true; isShutDownAll = false; created = Wed Jan 17 03:31:41 UTC 2018; server = false; copyOnRead = false; lockLease = 120; lockTimeout = 60]: Now closing.[error 2018/01/17 03:31:42.318 UTC &lt;ResourceManagerRecoveryThread 0&gt; tid=0x2c6] Unexpected exception during bucket recoveryjava.lang.IllegalStateException: Region specified in 'colocated-with' (Customer) for region /Order does not exist. It should be created before setting 'colocated-with' attribute for this region. at org.apache.geode.internal.cache.ColocationHelper.getColocatedRegion(ColocationHelper.java:94) at org.apache.geode.internal.cache.ColocationHelper.getLeaderRegion(ColocationHelper.java:455) at org.apache.geode.internal.cache.partitioned.PartitionedRegionRebalanceOp.&lt;init&gt;(PartitionedRegionRebalanceOp.java:134) at org.apache.geode.internal.cache.partitioned.PartitionedRegionRebalanceOp.&lt;init&gt;(PartitionedRegionRebalanceOp.java:114) at org.apache.geode.internal.cache.PRHARedundancyProvider$3.run2(PRHARedundancyProvider.java:1568) at org.apache.geode.internal.cache.partitioned.RecoveryRunnable.run(RecoveryRunnable.java:61) at org.apache.geode.internal.OneTaskOnlyExecutor$DelegatingRunnable.run(OneTaskOnlyExecutor.java:134) at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) at java.util.concurrent.FutureTask.run(FutureTask.java:266) at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$201(ScheduledThreadPoolExecutor.java:180) at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:293) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) at java.lang.Thread.run(Thread.java:748)It looks like the test is actually running quickly enough that the cache starts up and shuts down before the ResourceManager can initialize correctly.</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.cache.internal.JUnit4CacheTestCase.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.cache30.CacheXmlTestCase.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.cache30.CacheXml70DUnitTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4316" opendate="2018-1-18 00:00:00" fixdate="2018-1-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add tests for jar deployment to check for server restarting</summary>
+      <description>Check whether a function undeploy works correctly when a server is restarted</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.DeployWithGroupsDUnitTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4317" opendate="2018-1-18 00:00:00" fixdate="2018-1-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add error handling to the experimental ProtobufDriver&amp;#39;s Region implementation</summary>
+      <description>The experimental Protobuf driver is not checking for error responses from the server.  For instance, a put() operation with a malformed JSON document will appear to succeed even though the server rejected the value.</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-experimental-driver.src.test.java.org.apache.geode.experimental.driver.RegionIntegrationTest.java</file>
+      <file type="M">geode-experimental-driver.src.test.java.org.apache.geode.experimental.driver.DriverConnectionTest.java</file>
+      <file type="M">geode-experimental-driver.src.main.java.org.apache.geode.experimental.driver.ProtobufRegion.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5029" opendate="2018-4-6 00:00:00" fixdate="2018-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve docs for query timeout and low memory due to a query</summary>
+      <description>The section labeled "Monitoring Queries for Low Memory" can use a bit of improvement. Separate the section into 2 sections: Queries and low memory Query timeout Make the prose clear that this is not just about monitoring, but about action that is taken (exceptions thrown) for queries.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.query.additional.advanced.querying.html.md.erb</file>
+      <file type="M">geode-docs.developing.querying.basics.monitor.queries.for.low.memory.html.md.erb</file>
+      <file type="M">geode-book.master.middleman.source.subnavs.geode-subnav.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="503" opendate="2015-10-27 00:00:00" fixdate="2015-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Geode can leak SSL keystore password via the log file</summary>
+      <description>KeyStore password can be leaked via the log file, as this may get printed and is unintended. This could cause a security issue for some users by leaking information that could allow access to the keystore holding the SSL certificate used to validate connections between members.</description>
+      <version>None</version>
+      <fixedVersion>1.0.0-incubating.M1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">gemfire-core.src.main.java.com.gemstone.gemfire.internal.AbstractConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5032" opendate="2018-4-9 00:00:00" fixdate="2018-12-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Massage Configuration Objects for Better Intuition.</summary>
+      <description>For instance, various port fields are declared as Strings where an Integer makes more sense. This is true for many "count" fields as well.These may be best resolved via a JAXB bindings file and regenerating the POJOs from scratch. Additionally if all the minor adjustments that have been already made (removing the xsd:choice and manually enforcing it, having each item implement CacheElement and have a getId() method) can also be resolved via a bindings file, then the POJOs could be removed from the git tree and generated during the build step, if desired.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.functions.ListJndiBindingFunctionTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.functions.DestroyJndiBindingFunctionTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.DestroyIndexCommandsDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.CreateJndiBindingCommandTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.config.JAXBServiceTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.InternalConfigurationPersistenceServiceTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.CacheConfigDAODUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.cache.configuration.DeclarableTypeTest.java</file>
+      <file type="M">geode-core.src.main.resources.org.apache.geode.internal.sanctioned-geode-core-serializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.GatewayReceiverFunctionArgs.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.CreateJndiBindingFunction.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.CreateAsyncEventQueueFunction.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.ExportImportClusterConfigurationCommands.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.DestroyIndexCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.DescribeJndiBindingCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateJndiBindingCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateIndexCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateGatewayReceiverCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateAsyncEventQueueCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.SerializationRegistrationType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.PoolType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.JndiBindingsType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.DiskDirsType.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.cache.configuration.CacheConfigTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.ConfigurePDXCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.StringType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.ServerType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.RegionConfig.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.RegionAttributesType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.PdxType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.ParameterType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.InitializerType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.FunctionServiceType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.ExpirationAttributesType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.DeclarableType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.ClassWithParametersType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.CacheWriterType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.CacheTransactionManagerType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.CacheLoaderType.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.CacheConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5307" opendate="2018-6-8 00:00:00" fixdate="2018-6-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hang with servers all in waitForPrimaryMember and one server in NO_PRIMARY_HOSTING state</summary>
+      <description>I've run into a hang in a test where servers are continuously creating PRs, doing putAll ops on them and closing/local-destroying the PR. Sometimes the servers hang with any thread needing a particular bucket in waitingForPrimaryMember().This seems to happen because of this sequence of events:1. two servers create a partitioned region2. one server initiates a putAll and requests the other server manage a bucket3. the putAll server closes or locally-destroys its region4. the close() operation completes5. the other server initializes its bucket and still uses the requesting server as a primaryElector. This keeps it from deciding to volunteer to become primary.The problem is that the server that closed its region caused exceptions to be thrown in the putAll thread and abandon creation of the bucket. No-one will ever trip the switch that makes the other server become the primary for the bucket.</description>
+      <version>1.1.0,1.2.0,1.2.1,1.3.0,1.4.0,1.5.0,1.6.0</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.test.dunit.Host.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.BucketAdvisorTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.PRHARedundancyProvider.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.partitioned.RegionAdvisor.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.PartitionedRegionDataStore.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.BucketAdvisor.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.DistributionAdvisor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5308" opendate="2018-6-11 00:00:00" fixdate="2018-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide - simplify terminology: "cache transactions" can be "transactions"</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.transactions.working.with.transactions.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.run.a.cache.transaction.with.external.db.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.run.a.cache.transaction.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.monitor.troubleshoot.transactions.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.JTA.transactions.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.how.cache.transactions.work.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.data.location.cache.transactions.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.client.server.transactions.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.chapter.overview.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.cache.transaction.performance.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.cache.transactions.by.region.type.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.cache.transactions.html.md.erb</file>
+      <file type="M">geode-book.master.middleman.source.subnavs.geode-subnav.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5311" opendate="2018-6-11 00:00:00" fixdate="2018-6-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide - simplify navigation for "Client Transactions" section</summary>
+      <description>The "Client Transactions" section has short subsections which do not need entries in the left-hand navigation pane. Remove the subnav links for those subsections.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.transactions.client.server.transactions.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.cache.transactions.html.md.erb</file>
+      <file type="M">geode-book.master.middleman.source.subnavs.geode-subnav.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5313" opendate="2018-6-11 00:00:00" fixdate="2018-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide - consolidate transaction coding examples</summary>
+      <description>The examples are short, but currently housed in separate files.Merge into a single file, simplify left-hand nav.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.transactions.run.a.cache.transaction.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.JTA.transactions.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.transaction.suspend.resume.example.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.transaction.coding.examples.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.transactions.overview.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.transactional.function.example.html.md.erb</file>
+      <file type="M">geode-docs.developing.transactions.jca.adapter.example.html.md.erb</file>
+      <file type="M">geode-book.master.middleman.source.subnavs.geode-subnav.erb</file>
+      <file type="M">geode-docs.developing.transactions.working.with.transactions.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5318" opendate="2018-6-12 00:00:00" fixdate="2018-8-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>create defined index does not update cluster config if methods are invoked in the from clause</summary>
+      <description>Steps to reproduce the issue. start locator start server create region define index as "define index --name=index --region="Member.entrySet" --expression="value.getId" " create defined indexesThis is will result in a failure causing no updates to the cluster config for the newly created indexes, even though the indexes are created. So when a server is restarted , it won't recreate these indexes.Cause of the problem:We try to extract the region name to update the cluster config from the index's "from clause".We end up getting &lt;region_name&gt;.entrySet . But there are no region named as such so no updates to the cluster config. Solution  Use the fix for GEODE-2764 where we can extract the proper region name from the "from clause"problematic code:RegionConfig region = config.findRegionConfiguration(index.getFromClause());fix:String regionPath = getValidRegionName(index.getFromClause(), config);RegionConfig regionConfig = config.findRegionConfiguration(regionPath);Example:Below we can see an complete execution in gfsh which leads to this failure. Including the failure to update the config and inability of the server to recreate the index after being restarted._________________________ __ / _____/ ______/ ______/ /____/ / / / __/ /___ /_____ / _____ / / /__/ / ____/ _____/ / / / / /______/_/ /______/_/ /_/ 1.8.0-SNAPSHOTMonitor and Manage Apache Geodegfsh&gt;start locatorStarting a Geode Locator in /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/untie-happy-can.......Locator in /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/untie-happy-can on 10.0.0.40[10334] as untie-happy-can is currently online.Process ID: 29310Uptime: 4 secondsGeode Version: 1.8.0-SNAPSHOTJava Version: 1.8.0_161Log File: /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/untie-happy-can/untie-happy-can.logJVM Arguments: -Dgemfire.enable-cluster-configuration=true -Dgemfire.load-cluster-configuration-from-dir=false -Dgemfire.launcher.registerSignalHandlers=true -Djava.awt.headless=true -Dsun.rmi.dgc.server.gcInterval=9223372036854775806Class-Path: /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/lib/geode-core-1.8.0-SNAPSHOT.jar:/home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/lib/geode-dependencies.jarSuccessfully connected to: JMX Manager [host=10.0.0.40, port=1099]Cluster configuration service is up and running.gfsh&gt;start serverStarting a Geode Server in /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo......Server in /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo on 10.0.0.40[40404] as fix-vast-kilo is currently online.Process ID: 29498Uptime: 2 secondsGeode Version: 1.8.0-SNAPSHOTJava Version: 1.8.0_161Log File: /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo/fix-vast-kilo.logJVM Arguments: -Dgemfire.default.locators=10.0.0.40[10334] -Dgemfire.start-dev-rest-api=false -Dgemfire.use-cluster-configuration=true -XX:OnOutOfMemoryError=kill -KILL %p -Dgemfire.launcher.registerSignalHandlers=true -Djava.awt.headless=true -Dsun.rmi.dgc.server.gcInterval=9223372036854775806Class-Path: /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/lib/geode-core-1.8.0-SNAPSHOT.jar:/home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/lib/geode-dependencies.jargfsh&gt;create region --name=Member --type=PARTITION Member | Status------------- | -------------------------------------------fix-vast-kilo | Region "/Member" created on "fix-vast-kilo"gfsh&gt;define index --name=memberPartyIdIndex --expression="value.getPartyId" --region="/Member.entrySet"Index successfully defined with following detailsName : memberPartyIdIndexExpression : value.getPartyIdRegionPath : /Member.entrySetgfsh&gt;create defined indexes Member | Status | Message--------------------------------------- | ------ | --------------------------------10.0.0.40(fix-vast-kilo:29498)&lt;v1&gt;:1025 | OK | Created index memberPartyIdIndexfailed to update cluster config for cluster. Reason: RegionConfig is nullgfsh&gt;list indexes Member Name | Member ID | Region Path | Name | Type | Indexed Expression | From Clause | Valid Index------------- | --------------------------------------- | ----------- | ------------------ | ----- | ------------------ | ---------------- | -----------fix-vast-kilo | 10.0.0.40(fix-vast-kilo:29498)&lt;v1&gt;:1025 | /Member | memberPartyIdIndex | RANGE | value.getPartyId | /Member.entrySet | truegfsh&gt;stop server --nameoptional --name: Member name or ID of the Cache Server in the Geode cluster.; no default valuegfsh&gt;stop server --name=fix-vast-kiloStopping Cache Server running in /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo on 10.0.0.40[40404] as fix-vast-kilo...Process ID: 29498Log File: /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo/fix-vast-kilo.log...gfsh&gt;start server --nameoptional --name: The member name to give this Cache Server in the Geode cluster.; no default valuegfsh&gt;start server --nameoptional --name: The member name to give this Cache Server in the Geode cluster.; no default valuegfsh&gt;start server --name=fix-vast-kiloStarting a Geode Server in /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo......Server in /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo on 10.0.0.40[40404] as fix-vast-kilo is currently online.Process ID: 29893Uptime: 2 secondsGeode Version: 1.8.0-SNAPSHOTJava Version: 1.8.0_161Log File: /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/bin/fix-vast-kilo/fix-vast-kilo.logJVM Arguments: -Dgemfire.default.locators=10.0.0.40[10334] -Dgemfire.start-dev-rest-api=false -Dgemfire.use-cluster-configuration=true -XX:OnOutOfMemoryError=kill -KILL %p -Dgemfire.launcher.registerSignalHandlers=true -Djava.awt.headless=true -Dsun.rmi.dgc.server.gcInterval=9223372036854775806Class-Path: /home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/lib/geode-core-1.8.0-SNAPSHOT.jar:/home/nabarun/Documents/codeWork/dev2/gemfire/open/geode-assembly/build/install/apache-geode/lib/geode-dependencies.jargfsh&gt;list regionList of regions---------------Membergfsh&gt;list indexesNo Indexes Found</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-wan.src.test.java.org.apache.geode.management.internal.configuration.ClusterConfigurationIndexWithFromClauseDUnitTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateDefinedIndexesCommand.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

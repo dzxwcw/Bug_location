@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="12765" opendate="2016-10-10 00:00:00" fixdate="2016-10-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSTable ignored incorrectly with partition level tombstone</summary>
+      <description>CREATE TABLE test.payload( bucket_id TEXT, name TEXT, data TEXT, PRIMARY KEY (bucket_id, name));insert into test.payload (bucket_id, name, data) values ('8772618c9009cf8f5a5e0c18', 'test', 'hello');Flush nodes (nodetool flush)insert into test.payload (bucket_id, name, data) values ('8772618c9009cf8f5a5e0c19', 'test2', 'hello');delete from test.payload where bucket_id = '8772618c9009cf8f5a5e0c18';Flush nodes (nodetool flush)select * from test.payload where bucket_id = '8772618c9009cf8f5a5e0c18' and name = 'test';Expected 0 rows but get 1 row back.</description>
+      <version>2.1.17,2.2.9,3.0.10,3.10,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.CollationController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12856" opendate="2016-10-28 00:00:00" fixdate="2016-1-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>dtest failure in replication_test.SnitchConfigurationUpdateTest.test_cannot_restart_with_different_rack</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-2.1_novnode_dtest/280/testReport/replication_test/SnitchConfigurationUpdateTest/test_cannot_restart_with_different_rackError MessageProblem stopping node node1Stacktrace File "/usr/lib/python2.7/unittest/case.py", line 329, in run testMethod() File "/home/automaton/cassandra-dtest/replication_test.py", line 630, in test_cannot_restart_with_different_rack node1.stop(wait_other_notice=True) File "/usr/local/lib/python2.7/dist-packages/ccmlib/node.py", line 727, in stop raise NodeError("Problem stopping node %s" % self.name)</description>
+      <version>2.1.17,2.2.9,3.0.11,3.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CustomTThreadPoolServer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12959" opendate="2016-11-27 00:00:00" fixdate="2016-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>copy from csv import wrong values with udt having set when fields are not specified in correct order in csv</summary>
+      <description>create KEYSPACE test WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1};CREATE TYPE test.my_udt ( first_field text, second_field frozen&lt;set&lt;text&gt;&gt;);CREATE TABLE test.test ( key text, value my_udt, PRIMARY KEY (key));The following works as expected : INSERT INTO test.test (key , value ) VALUES ( 'key1', {second_field: {'test1', 'test2'}, first_field: 'first_field'}); key | value-----+--------------------------------------------------------------- key1 | {first_field: 'first_field', second_field: {'test1', 'test2'}}but when inserted using a .csv the result is wrong:"key1","{second_field: {'test1', 'test2'}, first_field: 'first_field'}"COPY test.test FROM '~/test.csv'; key | value-----+--------------------------------------------------------------------- key1 | {first_field: '{''test1'', ''test2''}', second_field: {'irst_fiel'}}it works as expected if the keys are in order: "key1","{first_field: 'first_field', second_field: {'test1', 'test2'}}")</description>
+      <version>2.1.17,2.2.9,3.0.11,3.10</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13017" opendate="2016-12-7 00:00:00" fixdate="2016-1-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DISTINCT queries on partition keys and static column might not return all the results</summary>
+      <description>In 2.1 and 2.2, a DISTINCT query on partition keys and static columns might not return all the data if some rows have no data and the static columns have also no values.The problem can be reproduced using the Java driver with the following code: session = cluster.connect(); session.execute("CREATE KEYSPACE IF NOT EXISTS test WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor' : '1'}"); session.execute("USE test"); session.execute("DROP TABLE IF EXISTS test"); session.execute("CREATE TABLE test (pk int, c int, v int, s int static, primary key(pk, c))"); PreparedStatement prepare = session.prepare("INSERT INTO test (pk, c, v, s) VALUES (?, ?, ?, ?)"); for (int i = 0; i &lt; 10; i++) for (int j = 0; j &lt; 1; j++) session.execute(prepare.bind(i, j, null, null)); for (Row row : session.execute(new SimpleStatement("SELECT DISTINCT token(pk), pk, s FROM test").setFetchSize(2))) { System.out.println(row); }</description>
+      <version>2.1.17,2.2.9</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.QueryPagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeSliceQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13114" opendate="2017-1-9 00:00:00" fixdate="2017-2-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade netty to 4.0.44 to fix memory leak with client encryption</summary>
+      <description>https://issues.apache.org/jira/browse/CASSANDRA-12032 updated netty for Cassandra 3.8, but this wasn't backported. Netty 4.0.23, which ships with Cassandra 3.0.x, has some serious bugs around memory handling for SSL connections.It would be nice if both were updated to 4.0.42, a version released this year.4.0.23 makes it impossible for me to run SSL, because nodes run out of memory every ~30 minutes. This was fixed in 4.0.27.</description>
+      <version>2.1.17,2.2.9,3.0.11,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Message.java</file>
+      <file type="M">lib.netty-all-4.0.23.Final.jar</file>
+      <file type="M">lib.licenses.netty-all-4.0.23.Final.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

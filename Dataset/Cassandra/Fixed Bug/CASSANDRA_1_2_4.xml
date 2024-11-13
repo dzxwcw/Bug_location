@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="3783" opendate="2012-1-25 00:00:00" fixdate="2012-4-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add &amp;#39;null&amp;#39; support to CQL 3.0</summary>
+      <description>Dense composite supports adding records where only a prefix of all the component specifying the key is defined. In other words, with:CREATE TABLE connections ( userid int, ip text, port int, protocol text, time timestamp, PRIMARY KEY (userid, ip, port, protocol)) WITH COMPACT STORAGEyou can insertINSERT INTO connections (userid, ip, port, time) VALUES (2, '192.168.0.1', 80, 123456789);You cannot however select that column specifically (i.e, without selecting column (2, '192.168.0.1', 80, 'http') for instance).This ticket proposes to allow that though 'null', i.e. to allowSELECT * FROM connections WHERE userid = 2 AND ip = '192.168.0.1' AND port = 80 AND protocol = null;It would then also make sense to support:INSERT INTO connections (userid, ip, port, protocol, time) VALUES (2, '192.168.0.1', 80, null, 123456789);as an equivalent to the insert query above.</description>
+      <version>1.2.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.Term.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Sets.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Maps.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Constants.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5036" opendate="2012-12-6 00:00:00" fixdate="2012-3-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Wrong description of &amp;#39;setstreamthroughput&amp;#39; option</summary>
+      <description>There is a typo in description of 'setstreamthroughput' option. It is measured in megabits per second. Page with wrong description:http://www.datastax.com/docs/1.1/references/nodetool#nodetool-setstreamthroughputPage with right description:http://www.datastax.com/docs/1.1/configuration/node_configuration#stream-throughput-outbound-megabits-per-secAlso I want to discuss possibility to reduce default value for this option. I think that 400 Mbs is too high for common cases. Preface:This option is used only in case streams. There are two cases when streams are actual. They are rebuilding of a node and repair process. Let's skip first case and will talk only about the second. Let's imagine that we have replication factor 3.Cross-datacenter connectivity case: When we start repair process it will borrow all network channel. Let's do some calculations. You start repair on an one node, e.g. 5 node (3 remote and 2 local) should send us some data. Note that 3 of them are from remote datacenter. So 400 * 3 = 1,2 Gbs we should receive through WAN. I'm sure that it's too high.I suggest to make it 2 times less.</description>
+      <version>1.2.4</version>
+      <fixedVersion>Legacy/DocumentationandWebsite,Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5164" opendate="2013-1-15 00:00:00" fixdate="2013-3-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Invalid streamId in cql binary protocol when using invalid CL</summary>
+      <description>Execute a query using invalid CL (0x100 for example)The response comes but does not use the request streamId (always 0).</description>
+      <version>1.2.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.messages.ErrorMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Message.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5179" opendate="2013-1-22 00:00:00" fixdate="2013-3-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hinted handoff sends over 1000 rows for one column change</summary>
+      <description>We have a small test environment with two datacenters (DC1 and DC2) running on Windows 7 laptops.Both datacenters have one node. We use network topology strategy to replicate all data to both datacenters.We started with empty db. 1. Created a keyspace with strategy options &amp;#91;DC1:1, DC2:1&amp;#93;2. Added one row to a column family with CLI to DC1. Change was replicated to DC2.3. Disconnected network cable from DC2.4. Gossiper noticed, that other DC is dead.5. Added another row to DC1.6. Reconnected cable on DC2.7. DC1 started hinted handoff for DC2.8. Hinted handoff is finished with message: "Finished hinted handoff of 1969 rows to endpoint &lt;DC2 ip&gt;"We repeated test with same results on Linux cluster with Cassandra 1.2.0. On Cassandra 1.1.5 Linux cluster, only one row was sent to endpoint. "Finished hinted handoff of 1 rows to endpoint &lt;DC2 ip&gt;"</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5302" opendate="2013-3-1 00:00:00" fixdate="2013-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix nodetool ring and status output format for IPv6 addresses</summary>
+      <description>My pedantic nature can't stand having unaligned columns in nodetool outputs, which happens when IP addresses are IPv6 ones:michal@aperture$ nodetool -h myhost statusDatacenter: DC1==================Status=Up/Down|/ State=Normal/Leaving/Joining/Moving-- Address Load Owns (effective) Host ID Token RackUN 2001:3c27:21:166:0:1:2:7 331.65 GB 100,0% d557fb83-72f2-4e92-9f26-de6c788aada5 85070591730234615865843651857942052864 rack2UN 2001:3c27:21:166:0:1:1:7 328.8 GB 100,0% 0461a4bf-97a6-447d-9d06-3b42ad1f702c 0 rack1I'm attaching a patch that fixes this problem for nodetool status / ring commands. It does it by picking first item in nodes list (for nodetool ring it's first node in general, for nodetool status it's first node in each DC) and uses its length as a field length for output.It bases on assumptions that it's imppossible to have 0 nodes in cluster/DC and the lenghts of addresses are "similar". The alternative I'm considering too is finding the longest address - it will be 100% accurate.</description>
+      <version>1.2.4</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5341" opendate="2013-3-13 00:00:00" fixdate="2013-4-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Select writetime Exception when data doesn&amp;#39;t exist</summary>
+      <description>Hi,When I try do to a “select writetime” on a empty column, I have an Exception. For example : Create table test (id int, value int, value2 int, primary key (id)); INSERT INTO test (id, value ) VALUES ( 1,100) ;select * from test where id =1; ==&gt; id | value | value2--------------- 1 | 100 | null It’s working.select WRITETIME(value) from test where id =1; ==&gt; writetime(value)------------------ 1363184789539000It’s workingselect WRITETIME(value2) from test where id =1; ==&gt;TSocket read 0 bytesI have an Exception.</description>
+      <version>1.2.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.Selection.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5352" opendate="2013-3-15 00:00:00" fixdate="2013-3-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PreparedStatements get mixed up between Keyspaces</summary>
+      <description>I found this behavior while running the same application using two different keyspaces connected to the same node.The prepared statements uses the keyspace that was set while the statement was perpared (public final CFDefinition cfDef).When reusing the Statement only the cql-query is used to create a key and the keyspace is ignored. When the same query is prepared and used for two different Keyspaces the wrong keyspace can be used.The fix is not to ignore the keyspace when reusing the statement.</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5354" opendate="2013-3-18 00:00:00" fixdate="2013-3-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CL regression in the presence of bootstrapping nodes</summary>
+      <description>It looks like CASSANDRA-4858 broke CASSANDRA-833 again; pendingEndpoints is not provided to or accounted by blockFor.</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.WriteResponseHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.DatacenterSyncWriteResponseHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractWriteResponseHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5355" opendate="2013-3-18 00:00:00" fixdate="2013-3-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Collection values size is not validated.</summary>
+      <description>Collections values are currently limited to 64K because the serialized form used uses shorts to encode the elements length (and for sets elements and key map, because they are part of the internal column name that is itself limited to 64K).However, there is no check on the collection elements size currently so we don't refuse values &gt; 64K (except for sets elements and map keys because we check internal column name sizes), even though they can't be decoded correctly client side.</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.SetType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.MapType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ListType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.CollectionType.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Sets.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Maps.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5362" opendate="2013-3-19 00:00:00" fixdate="2013-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Transposed KS/CF arguments</summary>
+      <description>ReproductionUsing https://github.com/joaquincasares/java-driver's integrationtests branch, run `mvn test` from the root directory.IssueThe test will fail due to https://github.com/joaquincasares/java-driver/blob/integrationtests/driver-core/src/main/java/com/datastax/driver/core/ResultSetFuture.java being swapped here:case ALREADY_EXISTS: org.apache.cassandra.exceptions.AlreadyExistsException aee = (org.apache.cassandra.exceptions.AlreadyExistsException)te; return new AlreadyExistsException(aee.ksName, aee.cfName);ErrorrepeatSchemaDefinition(com.datastax.driver.core.ExceptionsTest) Time elapsed: 0.501 sec &lt;&lt;&lt; FAILURE!org.junit.ComparisonFailure: expected:&lt;Table repeatschema[ks.repeatschemacf] already exists&gt; but was:&lt;Table repeatschema[cf.repeatschemaks] already exists&gt;</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5364" opendate="2013-3-20 00:00:00" fixdate="2013-3-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Guava should be bumped to 13.0.1 in maven dependency declaration.</summary>
+      <description>Otherwise following error accours because generated pom says 12.0 and RateLimiter was introduced by 13.0java.lang.NoClassDefFoundError: com/google/common/util/concurrent/RateLimiter        at org.apache.cassandra.db.HintedHandOffManager.deliverHintsToEndpointInternal(HintedHandOffManager.java:316)        at org.apache.cassandra.db.HintedHandOffManager.deliverHintsToEndpoint(HintedHandOffManager.java:252)        at org.apache.cassandra.db.HintedHandOffManager.access$300(HintedHandOffManager.java:89)        at org.apache.cassandra.db.HintedHandOffManager$4.runMayThrow(HintedHandOffManager.java:459)        at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28)        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1146)        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)        at java.lang.Thread.run(Thread.java:679)Caused by: java.lang.ClassNotFoundException: com.google.common.util.concurrent.RateLimiter        at java.net.URLClassLoader$1.run(URLClassLoader.java:217)        at java.security.AccessController.doPrivileged(Native Method)        at java.net.URLClassLoader.findClass(URLClassLoader.java:205)        at java.lang.ClassLoader.loadClass(ClassLoader.java:321)        at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:294)        at java.lang.ClassLoader.loadClass(ClassLoader.java:266)</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5366" opendate="2013-3-20 00:00:00" fixdate="2013-3-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>UpgradeSSTables Optimisation</summary>
+      <description>Currently, if you run upgradesstables, cassandra will run through every single SSTable within the scope of the request. Where we have some large tables, an upgrade on a single sstable can take hours, even if its already sat on the same version.After upgrading to a new cassandra version, it would be ideal to be able to upgrade only sstables not sat in the latest version, as it seems like it just needs to do a massive amount of disk IO, with nothing being achieved at the end of it.Maybe its worth putting an option onto the nodetool command, or creating a new command for this type of upgrade</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5372" opendate="2013-3-21 00:00:00" fixdate="2013-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Broken default values for min/max timestamp</summary>
+      <description>When the SStableMetadata are not present (or are too hold), the default for the min and max timestamp used is not always correct. Namely, the default (i.e. when we don't know anything) for the min timestamp should be MIN_VALUE and the max timestamp should be MAX_VALUE.And there is 2 places where we need to apply those default: if the metadata is an old one that don't have the info if we don't have any metadata component at allThe only default that is correct is the case fixed by CASSANDRA-5153, but even then it missed a number of occurrences of the problem.</description>
+      <version>1.1.11,1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableMetadata.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5391" opendate="2013-3-27 00:00:00" fixdate="2013-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SSL problems with inter-DC communication</summary>
+      <description>I get SSL and snappy compression errors in multiple datacenter setup.The setup is simple: 3 nodes in AWS east, 3 nodes in Rackspace. I use slightly modified Ec2MultiRegionSnitch in Rackspace (I just added a regex able to parse the Rackspace/Openstack availability zone which happens to be in unusual format).During nodetool rebuild tests I managed to (consistently) trigger the following error:2013-03-19 12:42:16.059+0100 [Thread-13] [DEBUG] IncomingTcpConnection.java(79) org.apache.cassandra.net.IncomingTcpConnection: IOException reading from socket; closingjava.io.IOException: FAILED_TO_UNCOMPRESS(5) at org.xerial.snappy.SnappyNative.throw_error(SnappyNative.java:78) at org.xerial.snappy.SnappyNative.rawUncompress(Native Method) at org.xerial.snappy.Snappy.rawUncompress(Snappy.java:391) at org.apache.cassandra.io.compress.SnappyCompressor.uncompress(SnappyCompressor.java:93) at org.apache.cassandra.streaming.compress.CompressedInputStream.decompress(CompressedInputStream.java:101) at org.apache.cassandra.streaming.compress.CompressedInputStream.read(CompressedInputStream.java:79) at java.io.DataInputStream.readUnsignedShort(DataInputStream.java:337) at org.apache.cassandra.utils.BytesReadTracker.readUnsignedShort(BytesReadTracker.java:140) at org.apache.cassandra.utils.ByteBufferUtil.readShortLength(ByteBufferUtil.java:361) at org.apache.cassandra.utils.ByteBufferUtil.readWithShortLength(ByteBufferUtil.java:371) at org.apache.cassandra.streaming.IncomingStreamReader.streamIn(IncomingStreamReader.java:160) at org.apache.cassandra.streaming.IncomingStreamReader.read(IncomingStreamReader.java:122) at org.apache.cassandra.net.IncomingTcpConnection.stream(IncomingTcpConnection.java:226) at org.apache.cassandra.net.IncomingTcpConnection.handleStream(IncomingTcpConnection.java:166) at org.apache.cassandra.net.IncomingTcpConnection.run(IncomingTcpConnection.java:66)The exception is raised during DB file download. What is strange is the following: the exception is raised only when rebuildig from AWS into Rackspace the exception is raised only when all nodes are up and running in AWS (all 3). In other words, if I bootstrap from one or two nodes in AWS, the command succeeds.Packet-level inspection revealed malformed packets on both ends of communication (the packet is considered malformed on the machine it originates on).Further investigation raised two more concerns: We managed to get another stacktrace when testing the scenario. The exception was raised only once during the tests and was raised when I throttled the inter-datacenter bandwidth to 1Mbps.java.lang.RuntimeException: javax.net.ssl.SSLException: bad record MAC at com.google.common.base.Throwables.propagate(Throwables.java:160) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:32) at java.lang.Thread.run(Thread.java:662)Caused by: javax.net.ssl.SSLException: bad record MAC at com.sun.net.ssl.internal.ssl.Alerts.getSSLException(Alerts.java:190) at com.sun.net.ssl.internal.ssl.SSLSocketImpl.fatal(SSLSocketImpl.java:1649) at com.sun.net.ssl.internal.ssl.SSLSocketImpl.fatal(SSLSocketImpl.java:1607) at com.sun.net.ssl.internal.ssl.SSLSocketImpl.readRecord(SSLSocketImpl.java:859) at com.sun.net.ssl.internal.ssl.SSLSocketImpl.readDataRecord(SSLSocketImpl.java:755) at com.sun.net.ssl.internal.ssl.AppInputStream.read(AppInputStream.java:75) at org.apache.cassandra.streaming.compress.CompressedInputStream$Reader.runMayThrow(CompressedInputStream.java:151) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) ... 1 moreThis is pure SSL error with no snappy interference. I managed to trigger the exception during nodetool repair tests when replacing dead node with a new one on the aws side, which means the problem is not restricted to the one-way scenario only.2013-03-27 14:06:03.033+0100 [Thread-137] [INFO] StreamInSession.java(136) org.apache.cassandra.streaming.StreamInSession: Streaming of file /path/to/cassandra/data/ks/cf/ks-cf-ib-2-Data.db sections=3 progress=0/20513 - 0% for org.apache.cassandra.streaming.StreamInSession@14450ae7 failed: requesting a retry.2013-03-27 14:06:03.033+0100 [Thread-138] [DEBUG] FileUtils.java(110) org.apache.cassandra.io.util.FileUtils: Deleting ks-cf-tmp-ib-98-Data.db2013-03-27 14:06:03.033+0100 [Thread-138] [DEBUG] FileUtils.java(110) org.apache.cassandra.io.util.FileUtils: Deleting ks-cf-tmp-ib-98-Filter.db2013-03-27 14:06:03.034+0100 [Thread-138] [DEBUG] FileUtils.java(110) org.apache.cassandra.io.util.FileUtils: Deleting ks-cf-tmp-ib-98-TOC.txt2013-03-27 14:06:03.034+0100 [Thread-137] [DEBUG] IncomingTcpConnection.java(91) org.apache.cassandra.net.IncomingTcpConnection: IOException reading from socket; closingjava.io.IOException: FAILED_TO_UNCOMPRESS(5) at org.xerial.snappy.SnappyNative.throw_error(SnappyNative.java:78) at org.xerial.snappy.SnappyNative.rawUncompress(Native Method) at org.xerial.snappy.Snappy.rawUncompress(Snappy.java:391) at org.apache.cassandra.io.compress.SnappyCompressor.uncompress(SnappyCompressor.java:93) at org.apache.cassandra.streaming.compress.CompressedInputStream.decompress(CompressedInputStream.java:101) at org.apache.cassandra.streaming.compress.CompressedInputStream.read(CompressedInputStream.java:79) at java.io.DataInputStream.readUnsignedShort(DataInputStream.java:320) at org.apache.cassandra.utils.BytesReadTracker.readUnsignedShort(BytesReadTracker.java:140) at org.apache.cassandra.utils.ByteBufferUtil.readShortLength(ByteBufferUtil.java:361) at org.apache.cassandra.utils.ByteBufferUtil.readWithShortLength(ByteBufferUtil.java:371) at org.apache.cassandra.streaming.IncomingStreamReader.streamIn(IncomingStreamReader.java:160) at org.apache.cassandra.streaming.IncomingStreamReader.read(IncomingStreamReader.java:122) at org.apache.cassandra.net.IncomingTcpConnection.stream(IncomingTcpConnection.java:238) at org.apache.cassandra.net.IncomingTcpConnection.handleStream(IncomingTcpConnection.java:178) at org.apache.cassandra.net.IncomingTcpConnection.run(IncomingTcpConnection.java:78)</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.compress.CompressedFileStreamTask.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5395" opendate="2013-3-27 00:00:00" fixdate="2013-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compaction doesn&amp;#39;t remove index entries as designed</summary>
+      <description>PerColumnIndexUpdater ignores updates where the new value is a tombstone. It should still remove the index entry on oldColumn.(Note that this will not affect user-visible correctness, since KeysSearcher/CompositeSearcher will issue deletes against stale index entries, but having more stale entries than we "should" could affect performance.)</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.CompactionsPurgeTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.PrecompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.ParallelCompactionIterable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5407" opendate="2013-3-31 00:00:00" fixdate="2013-4-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair exception when getPositionsForRanges returns empty iterator</summary>
+      <description>CASSANDRA-5250 broke repair, this re-adds the code from CASSANDRA-5249</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableReaderTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableBoundedScanner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5413" opendate="2013-4-2 00:00:00" fixdate="2013-4-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh returns map entries in wrong order</summary>
+      <description>The elements in the map &lt;timeuuid,decimal&gt; are returned in cqlsh in an order that is neither sorted by name, value or timestamp.Below is output from cqlsh and cassandra cli. (looks a bit messy here, I have attached a text file without word wrapping)cqlsh:iBidTest&gt; select * from lots ; event_id | lot_id | bids_accepted | bids_details | bids_temp | minimum | number | title-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------- a4a70900-24e1-11df-8924-001ff3591711 | 1 | null | null | null | 200 | 2 | New lot 2 a4a70900-24e1-11df-8924-001ff3591711 | 3 | null | null | {8b457e90-9ae2-11e2-9bcb-a1f164a2d4a3: 1000, 9606ca50-9ae2-11e2-9bcb-a1f164a2d4a3: 650, 908fb640-9ae2-11e2-9bcb-a1f164a2d4a3: 600, 7d930650-9ae2-11e2-9bcb-a1f164a2d4a3: 500, a1ef7f10-9ae2-11e2-9bcb-a1f164a2d4a3: 1250, 9aedd360-9ae2-11e2-9bcb-a1f164a2d4a3: 950} | 100 | 1 | New lot 1&amp;#91;default@ibidtest&amp;#93; get lots&amp;#91;a4a70900-24e1-11df-8924-001ff3591711&amp;#93;;=&gt; (column=1:, value=, timestamp=1364829909818000)=&gt; (column=1:minimum, value=0000000000c8, timestamp=1364829397026000)=&gt; (column=1:number, value=32, timestamp=1364829909818000)=&gt; (column=1:title, value=4e6577206c6f742032, timestamp=1364829397026000)=&gt; (column=3:, value=, timestamp=1364830894466000)=&gt; (column=3:bids_temp:7d9306509ae211e29bcba1f164a2d4a3, value=0000000001f4, timestamp=1364830833463000)=&gt; (column=3:bids_temp:8b457e909ae211e29bcba1f164a2d4a3, value=0000000003e8, timestamp=1364830856441000)=&gt; (column=3:bids_temp:908fb6409ae211e29bcba1f164a2d4a3, value=000000000258, timestamp=1364830865317000)=&gt; (column=3:bids_temp:9606ca509ae211e29bcba1f164a2d4a3, value=00000000028a, timestamp=1364830874485000)=&gt; (column=3:bids_temp:9aedd3609ae211e29bcba1f164a2d4a3, value=0000000003b6, timestamp=1364830882711000)=&gt; (column=3:bids_temp:a1ef7f109ae211e29bcba1f164a2d4a3, value=0000000004e2, timestamp=1364830894466000)=&gt; (column=3:minimum, value=0000000064, timestamp=1364829412417000)=&gt; (column=3:number, value=31, timestamp=1364829852020000)=&gt; (column=3:title, value=4e6577206c6f742031, timestamp=1364829412417000)Returned 14 results.Elapsed time: 130 msec(s).</description>
+      <version>1.2.4</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5415" opendate="2013-4-2 00:00:00" fixdate="2013-4-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batch with timestamp failed</summary>
+      <description>When I create a prepared statement with the following CQL3 using Thrift protocol:BEGIN BATCH USING TIMESTAMP &lt;number&gt;&lt;some INSERT INTO or UPDATE statements ....&gt;APPLY BATCHand execute this statement in a loop, I randomly get the error:InvalidRequestException(why:Timestamp must be set either on BATCH or individual statements)All statements inside the batch have no individual USING TIMESTAMP.</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5423" opendate="2013-4-3 00:00:00" fixdate="2013-4-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PasswordAuthenticator is incompatible with various Cassandra clients</summary>
+      <description>Evidently with the old authenticator it was allowed to set keyspace, and then login. With the org.apache.cassandra.auth.PasswordAuthenticator you have to login and then setkeyspaceFor backwards compatibility it would be good to allow setting before login, and perform the actual operation/validation later after the login.</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5425" opendate="2013-4-3 00:00:00" fixdate="2013-4-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>disablebinary nodetool command</summary>
+      <description>The following commands are available via `nodetool`: disablehandoff - Disable the future hints storing on the current node disablegossip - Disable gossip (effectively marking the node dead) disablethrift - Disable thrift serverIs it possible to get disablebinary added to help with the testing of binary client drivers?</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5431" opendate="2013-4-5 00:00:00" fixdate="2013-4-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-shuffle with JMX usernames and passwords</summary>
+      <description>Unlike nodetool, cassandra-shuffle doesn't allow passing in a JMX username and password. This stops those who want to switch to vnodes from doing so if JMX access requires a username and a password.Patch to follow.</description>
+      <version>1.2.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.Shuffle.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.AbstractJmxClient.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

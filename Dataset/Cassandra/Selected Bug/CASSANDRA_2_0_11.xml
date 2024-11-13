@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2013-9-21 01:00:00" id="6075" opendate="2013-9-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The token function should allow column identifiers in the correct order only</summary>
+      <description>Given the following table:CREATE TABLE t1 (a int, b text, PRIMARY KEY ((a, b)));The following request returns an error in cqlsh as literal arguments order is incorrect:SELECT * FROM t1 WHERE token(a, b) &gt; token('s', 1);Bad Request: Type error: 's' cannot be passed as argument 0 of function token of type intBut surprisingly if we provide the column identifier arguments in the wrong order no error is returned:SELECT * FROM t1 WHERE token(a, b) &gt; token(1, 'a'); // correct order is validSELECT * FROM t1 WHERE token(b, a) &gt; token(1, 'a'); // incorrect order is valid as well</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.SelectWithTokenFunctionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2013-10-2 01:00:00" id="6430" opendate="2013-12-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DELETE with IF &lt;field&gt;=&lt;value&gt; clause doesn&amp;#39;t work properly if more then one row are going to be deleted</summary>
+      <description>CREATE TABLE test(key int, sub_key int, value text, PRIMARY KEY(key, sub_key) );INSERT INTO test(key, sub_key, value) VALUES(1,1, '1.1');INSERT INTO test(key, sub_key, value) VALUES(1,2, '1.2');INSERT INTO test(key, sub_key, value) VALUES(1,3, '1.3');SELECT * from test; key | sub_key | value----------------- 1 | 1 | 1.1 1 | 2 | 1.2 1 | 3 | 1.3DELETE FROM test WHERE key=1 IF value='1.2'; &amp;#91;applied&amp;#93;----------- False &lt;=============== I guess second row should be removedSELECT * from test; key | sub_key | value----------------- 1 | 1 | 1.1 1 | 2 | 1.2 1 | 3 | 1.3(3 rows) DELETE FROM test WHERE key=1;SELECT * from test;(0 rows) &lt;=========== all rows were removed: OK</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DeleteStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-17 01:00:00" id="6602" opendate="2014-1-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Compaction improvements to optimize time series data</summary>
+      <description>There are some unique characteristics of many/most time series use cases that both provide challenges, as well as provide unique opportunities for optimizations.One of the major challenges is in compaction. The existing compaction strategies will tend to re-compact data on disk at least a few times over the lifespan of each data point, greatly increasing the cpu and IO costs of that write.Compaction exists to1) ensure that there aren't too many files on disk2) ensure that data that should be contiguous (part of the same partition) is laid out contiguously3) deleting data due to ttls or tombstonesThe special characteristics of time series data allow us to optimize away all three.Time series data1) tends to be delivered in time order, with relatively constrained exceptions2) often has a pre-determined and fixed expiration date3) Never gets deleted prior to TTL4) Has relatively predictable ingestion ratesNote that I filed CASSANDRA-5561 and this ticket potentially replaces or lowers the need for it. In that ticket, jbellis reasonably asks, how that compaction strategy is better than disabling compaction.Taking that to heart, here is a compaction-strategy-less approach that could be extremely efficient for time-series use cases that follow the above pattern.(For context, I'm thinking of an example use case involving lots of streams of time-series data with a 5GB per day ingestion rate, and a 1000 day retention with TTL, resulting in an eventual steady state of 5TB per node)1) You have an extremely large memtable (preferably off heap, if/when doable) for the table, and that memtable is sized to be able to hold a lengthy window of time. A typical period might be one day. At the end of that period, you flush the contents of the memtable to an sstable and move to the next one. This is basically identical to current behaviour, but with thresholds adjusted so that you can ensure flushing at predictable intervals. (Open question is whether predictable intervals is actually necessary, or whether just waiting until the huge memtable is nearly full is sufficient)2) Combine the behaviour with CASSANDRA-5228 so that sstables will be efficiently dropped once all of the columns have. (Another side note, it might be valuable to have a modified version of CASSANDRA-3974 that doesn't bother storing per-column TTL since it is required that all columns have the same TTL)3) Be able to mark column families as read/write only (no explicit deletes), so no tombstones.4) Optionally add back an additional type of delete that would delete all data earlier than a particular timestamp, resulting in immediate dropping of obsoleted sstables.The result is that for in-order delivered data, Every cell will be laid out optimally on disk on the first pass, and over the course of 1000 days and 5TB of data, there will "only" be 1000 5GB sstables, so the number of filehandles will be reasonable.For exceptions (out-of-order delivery), most cases will be caught by the extended (24 hour+) memtable flush times and merged correctly automatically. For those that were slightly askew at flush time, or were delivered so far out of order that they go in the wrong sstable, there is relatively low overhead to reading from two sstables for a time slice, instead of one, and that overhead would be incurred relatively rarely unless out-of-order delivery was the common case, in which case, this strategy should not be used.Another possible optimization to address out-of-order would be to maintain more than one time-centric memtables in memory at a time (e.g. two 12 hour ones), and then you always insert into whichever one of the two "owns" the appropriate range of time. By delaying flushing the ahead one until we are ready to roll writes over to a third one, we are able to avoid any fragmentation as long as all deliveries come in no more than 12 hours late (in this example, presumably tunable).Anything that triggers compactions will have to be looked at, since there won't be any. The one concern I have is the ramificaiton of repair. Initially, at least, I think it would be acceptable to just write one sstable per repair and not bother trying to merge it with other sstables.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2014-8-1 01:00:00" id="7479" opendate="2014-7-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Consistency level ANY does not send Commit to all endpoints for LOCAL_SERIAL</summary>
+      <description>If the consistency level is ANY and using LOCAL_SERIAL, the Commit is only send to all local endpoints. Commit needs to be sent to all endpoints in all DCs.</description>
+      <version>2.0.11</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-8-20 01:00:00" id="7802" opendate="2014-8-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Need to export JVM_OPTS from init.d script</summary>
+      <description>Since 2.0, the init.d script was refactored and requires JVM variables to be exported for them to actually be picked up and used. In this case, JVM_OPTS never gets exported, so user defined variables from /etc/default/cassandra are never applied.This also affects the latest 2.1 rc, and I assume all previous versions.Pull request: https://github.com/apache/cassandra/pull/42Diff: https://github.com/apache/cassandra/pull/42.diffPatch: https://github.com/apache/cassandra/pull/42.patch</description>
+      <version>2.0.11,2.1.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-8-26 01:00:00" id="7831" opendate="2014-8-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>recreating a counter column after dropping it leaves in unusable state</summary>
+      <description>create table counter_bug (t int, c counter, primary key (t));update counter_bug set c = c +1 where t = 1;select * from counter_bug ; t | c--+-- 1 | 1(1 rows)alter table counter_bug drop c;alter table counter_bug add c counter;update counter_bug set c = c +1 where t = 1;select * from counter_bug;(0 rows)update counter_bug set c = c +1 where t = 2;select * from counter_bug;(0 rows)</description>
+      <version>2.0.11,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-26 01:00:00" id="7833" opendate="2014-8-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Collection types validation is incomplete</summary>
+      <description>The collection types will complain if a value has less values than advertised, or if some of those values don't validate, but it does check that there is no remaining bytes after the collection. One consequence is that if you prepare INSERT INTO t(k, s) VALUES (0, ?) where s is a set, and you pass a map value (with the same type for keys and values than the set), then no error will be issued.</description>
+      <version>2.0.11</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.serializers.SetSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.MapSerializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.ListSerializer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-30 01:00:00" id="7851" opendate="2014-8-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* PID file should be readable by mere users</summary>
+      <description>automaton@i-175d594e9:~$ service cassandra status * Cassandra is not runningautomaton@i-175d594e9:~$ sudo service cassandra status * Cassandra is runningautomaton@i-175d594e9:~$ ls -la /var/run/cassandra/ls: cannot open directory /var/run/cassandra/: Permission deniedautomaton@i-175d594e9:~$ sudo ls -la /var/run/cassandra/total 4drwxr-x--- 2 cassandra cassandra 60 Aug 30 01:21 .drwxr-xr-x 15 root root 700 Aug 30 01:21 ..-rw-r--r-- 1 cassandra cassandra 4 Aug 30 01:21 cassandra.pid</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-2 01:00:00" id="7864" opendate="2014-9-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repair should do less work when RF=1</summary>
+      <description>When the total RF for a keyspace is &lt;= 1, repair still calculates neighbors for each range and does some unneccessary work. We could short-circuit this earlier.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-10-17 01:00:00" id="7956" opendate="2014-9-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"nodetool compactionhistory" crashes because of low heap size (GC overhead limit exceeded)</summary>
+      <description>]# nodetool compactionhistoryCompaction History:Exception in thread "main" java.lang.OutOfMemoryError: GC overhead limit exceeded at java.io.ObjectStreamClass.newInstance(ObjectStreamClass.java:967) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1782) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.readObject(ObjectInputStream.java:370) at java.util.HashMap.readObject(HashMap.java:1180) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1017) at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:1893) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1798) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.defaultReadFields(ObjectInputStream.java:1990) at java.io.ObjectInputStream.defaultReadObject(ObjectInputStream.java:500) at javax.management.openmbean.TabularDataSupport.readObject(TabularDataSupport.java:912) at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.lang.reflect.Method.invoke(Method.java:606) at java.io.ObjectStreamClass.invokeReadObject(ObjectStreamClass.java:1017) at java.io.ObjectInputStream.readSerialData(ObjectInputStream.java:1893) at java.io.ObjectInputStream.readOrdinaryObject(ObjectInputStream.java:1798) at java.io.ObjectInputStream.readObject0(ObjectInputStream.java:1350) at java.io.ObjectInputStream.readObject(ObjectInputStream.java:370) at sun.rmi.server.UnicastRef.unmarshalValue(UnicastRef.java:325) at sun.rmi.server.UnicastRef.invoke(UnicastRef.java:174) at com.sun.jmx.remote.internal.PRef.invoke(Unknown Source) at javax.management.remote.rmi.RMIConnectionImpl_Stub.getAttribute(Unknown Source) at javax.management.remote.rmi.RMIConnector$RemoteMBeanServerConnection.getAttribute(RMIConnector.java:906) at javax.management.MBeanServerInvocationHandler.invoke(MBeanServerInvocationHandler.java:267) at com.sun.proxy.$Proxy3.getCompactionHistory(Unknown Source)nodetool starts with -Xmx32m. This seems to be not enough at least in my case to show the history. I am not sure what would the appropriate amount be but increasing it to 128m definitely solves the problem. Output from modified nodetool attached.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.nodetool</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-9-17 01:00:00" id="7967" opendate="2014-9-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Include schema_triggers CF in readable system resources</summary>
+      <description>SCHEMA_TRIGGERS_CF is missing from readable system resources.This makes tools, which attempt to read schema information, fail when authorization is enabled.Patch attached.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-9-19 01:00:00" id="7977" opendate="2014-9-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow invalidating permissions cache</summary>
+      <description>After CASSANDRA-7968 we should also allow invalidating the cache.</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.auth.AuthMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.auth.Auth.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-23 01:00:00" id="7993" opendate="2014-9-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fat client nodes dont schedule schema pull on connect</summary>
+      <description>So they cannot connect for a long time</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-10-29 01:00:00" id="8021" opendate="2014-9-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve cqlsh autocomplete for alter keyspace</summary>
+      <description>Cqlsh autocomplete stops giving suggestions for the statementALTER KEYSPACE k WITH REPLICATION { 'class' : 'SimpleStrategy', 'replication_factor' : 1'}; after the word "WITH".</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-10-10 01:00:00" id="8101" opendate="2014-10-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Invalid ASCII and UTF-8 chars not rejected in CQL string literals</summary>
+      <description>When processing CQL string literals, we ultimately use String.getBytes(Charset), which has the following note:This method always replaces malformed-input and unmappable-character sequences with this charset's default replacement byte array. The CharsetEncoder class should be used when more control over the encoding process is required.So, if we insert a non-ASCII character into an ascii string literal, it will be replaced with a ? char. Something similar happens for UTF-8.For example:cqlsh:ks1&gt; create table badstrings (a int primary key, b ascii);cqlsh:ks1&gt; insert into badstrings (a, b) VALUES ( 0, 'ΎΔδϠ');cqlsh:ks1&gt; select * from badstrings; a | b---+------ 0 | ????</description>
+      <version>2.0.11,2.1.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.CBUtil.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AsciiType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  <bug fixdate="2016-3-16 01:00:00" id="13053" opendate="2016-12-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>GRANT/REVOKE on table without keyspace performs permissions check incorrectly</summary>
+      <description>When a GRANT or REVOKE statement is executed on a table without specifying the keyspace, we attempt to use the client session's keyspace to qualify the resource. This is done when validating the statement, which occurs after checking that the user executing the statement has sufficient permissions. This means that the permissions checking uses an incorrect resource, namely a table with a null keyspace. If that user is a superuser, then no error is encountered as superuser privs implicitly grants all permissions. If the user is not a superuser, then the GRANT or REVOKE fails with an ugly error, regardless of which keyspace the client session is bound to:Unauthorized: Error from server: code=2100 [Unauthorized] message="User admin has no AUTHORIZE permission on &lt;table null.t1&gt; or any of its parents"</description>
+      <version>2.2.10,3.0.13,3.11.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.PermissionsManagementStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-17 01:00:00" id="13130" opendate="2017-1-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Strange result of several list updates in a single request</summary>
+      <description>Let's assume that we have a row with the 'listColumn' column and value {1,2,3,4}.For me it looks logical to expect that the following two pieces of code will ends up with the same result but it isn't so.Code1:UPDATE t SET listColumn[2] = 7, listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,7,8,4}Code2:UPDATE t SET listColumn[2] = 7 WHERE id = 1;UPDATE t SET listColumn[2] = 8 WHERE id = 1;Expected result: listColumn={1,2,8,4} Actual result: listColumn={1,2,8,4}So the question is why Code1 and Code2 give different results?Looks like Code1 should give the same result as Code2.</description>
+      <version>2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Lists.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2017-3-27 01:00:00" id="13274" opendate="2017-2-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix code to not exchange schema across major versions</summary>
+      <description>A rolling upgrade from 3.* to 4.0 (messaging version 11) unveils a regression caused by CASSANDRA-11128.Generally, we store all possible options/attributes including the default values in the schema. This causes (expected) schema-version-mismatches during rolling upgrades and therefore we prevent schema pulls/pushes in this situation, which has been broken by CASSANDRA-11128.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-3-16 01:00:00" id="13340" opendate="2017-3-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bugs handling range tombstones in the sstable iterators</summary>
+      <description>There is 2 bugs in the way sstable iterators handle range tombstones: empty range tombstones can be returned due to a strict comparison that shouldn't be. the sstable reversed iterator can actually return completely bogus results when range tombstones are spanning multiple index blocks.The 2 bugs are admittedly separate but as they both impact the same area of code and are both range tombstones related, I suggest just fixing both here (unless something really really mind).Marking the ticket critical mostly for the 2nd bug: it can truly make use return bad results on reverse queries.</description>
+      <version>3.0.13,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.DeleteTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnfilteredDeserializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableReversedIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableIterator.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ClusteringPrefix.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-4-4 01:00:00" id="13410" opendate="2017-4-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool upgradesstables/scrub/compact ignores system tables</summary>
+      <description>CASSANDRA-11627 changed the behavior of nodetool commands that work across all keyspaces. Sometimes it's OK (not compacting system.peers when you call compact probably isn't going to anger anyone), but sometimes it's not (disableautocompaction, flush, upgradesstables, etc).</description>
+      <version>3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

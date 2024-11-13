@@ -1,0 +1,492 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10010" opendate="2015-8-6 00:00:00" fixdate="2015-1-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paging on DISTINCT queries repeats result when first row in partition changes</summary>
+      <description>When paging, we always check new pages to see if they start with the same row that the previous page ended with, and if so, we trim that row to avoid duplicates. With DISTINCT queries, we only fetch the first row in each partition. If that row happens to change (it's deleted, or another row is inserted at the front of the partition) in between fetching the two pages, our check for a matching row will fail, resulting in a duplicate row being returned.It seems like the correct fix is to handle DISTINCT queries specially and only check to see if the partition key matches the last returned one instead checking that the rows match.</description>
+      <version>2.2.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.RangeSliceQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10371" opendate="2015-9-18 00:00:00" fixdate="2015-2-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Decommissioned nodes can remain in gossip</summary>
+      <description>This may apply to other dead states as well. Dead states should be expired after 3 days. In the case of decom we attach a timestamp to let the other nodes know when it should be expired. It has been observed that sometimes a subset of nodes in the cluster never expire the state, and through heap analysis of these nodes it is revealed that the epstate.isAlive check returns true when it should return false, which would allow the state to be evicted. This may have been affected by CASSANDRA-8336.</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10512" opendate="2015-10-13 00:00:00" fixdate="2015-2-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>We do not save an upsampled index summaries</summary>
+      <description>If we downsample an index summary, we overwrite the existing summary, despite downsampling being inexpensive. However on upsampling (which is expensive) we do not, so that on restart all of our index summaries are the smallest they have ever been adjusted to.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableReaderTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.SegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.MmappedSegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10733" opendate="2015-11-19 00:00:00" fixdate="2015-2-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Inconsistencies in CQLSH auto-complete</summary>
+      <description>Auto-complete in cqlsh does not work correctly on some commands. We see some inconsistent behaviour when completing part of the statement and hitting the tab key.Works correctlyAuto-complete on 'desc table ', 'desc function ' and 'desc type ' works correctly. We see a list of all tables (or functions, types) in the current keyspace plus a list of all available keyspaces followed by a full stop (e.g. system.)cqlsh:fxaggr&gt; desc TABLE minutedata system_distributed.; rawtickdatabylp system_traces.&lt;enter&gt; rawtickdatabysymbol tickdatadaydata system. fxaggr. system_auth. Fix required'desc aggregate ' displays the aggregates in the current keyspace (in this case, only 1, called 'average') but does not display a list of available keyspaces. It only displays the current keyspace, with no following full stop.cqlsh:fxaggr&gt; desc aggregate ; &lt;enter&gt; average fxaggrWorks correctlyAuto-complete on 'desc table &lt;keyspace&gt;. ' and 'desc type &lt;keyspace&gt;.' works correctly. We see a list of all tables (or types) in the current keyspacecqlsh:fxaggr&gt; desc table fxaggr.daydata rawtickdatabylp tickdataminutedata rawtickdatabysymbol Fix requiredAuto-complete on 'desc function &lt;keyspace&gt;. ' and 'desc aggregate &lt;keyspace&gt;.' works inconsistently. In a keyspace with 2 functions, both beginning with the letters 'avg', if I type 'desc function &lt;keyspace&gt;' and hit tab, auto-complete will result in this: 'desc function fxaggr.avg ' and will not display the matching functions. If I type 'desc function &lt;keyspace&gt;.' (note the trailing full stop) and hit tab, auto-complete will work correctly:cqlsh:fxaggr&gt; desc function fxaggr.avgavgfinal avgstate If I type 'desc aggregate &lt;keyspace&gt;' and hit tab, auto-complete returns 'desc aggregate &lt;keyspace&gt; ' (it adds a space) and does not show me the list of available aggregates. If I type 'desc aggregate &lt;keyspace&gt;.' (note the trailing full stop) and hit tab, auto-complete will work correctly.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.test.test.keyspace.init.cql</file>
+      <file type="M">pylib.cqlshlib.test.test.cqlsh.completion.py</file>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10748" opendate="2015-11-22 00:00:00" fixdate="2015-3-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>UTF8Validator.validate() wrong ??</summary>
+      <description>The switch-statement in UTF8Validator.validate() can never go into case TWO_80 as the assignment state = State.TWO_80; in line 75 is dead.I assume that the TWO_80 case is completely superfluous - but would like to have a 2nd opinion on this./cc carlyeks (CASSANDRA-4495)</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.serializers.UTF8Serializer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10809" opendate="2015-12-2 00:00:00" fixdate="2015-3-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Create a -D option to prevent gossip startup</summary>
+      <description>In CASSANDRA-6961 we changed how join_ring=false works, to great benefit. However, sometimes you need to a node to come up, but not interact with other nodes whatsoever - for example if you have a schema problem, it will still pull the schema from another node because they still gossip even though we're in a dead state.We can add a way to restore the previous behavior by simply adding something like -Dcassandra.start_gossip=false.In the meantime we can workaround by setting listen_address to localhost, but that's kind of a pain.</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10840" opendate="2015-12-10 00:00:00" fixdate="2015-2-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replacing an aggregate with a new version doesn&amp;#39;t reset INITCOND</summary>
+      <description>use simplex; CREATE FUNCTION state_group_and_sum(state map&lt;int, int&gt;, star_rating int) CALLED ON NULL INPUT RETURNS map&lt;int, int&gt; LANGUAGE java AS 'if (state.get(star_rating) == null) state.put(star_rating, 1); else state.put(star_rating, ((Integer) state.get(star_rating)) + 1); return state;'; CREATE FUNCTION percent_stars(state map&lt;int,int&gt;) RETURNS NULL ON NULL INPUT RETURNS map&lt;int, int&gt; LANGUAGE java AS $$Integer sum = 0; for(Object k : state.keySet()) { sum = sum + (Integer) state.get((Integer) k);}java.util.Map&lt;Integer, Integer&gt; results = new java.util.HashMap&lt;Integer, Integer&gt;();for(Object k : state.keySet()) { results.put((Integer) k, ((Integer) state.get((Integer) k))*100 / sum);}return results;$$;CREATE OR REPLACE AGGREGATE group_and_sum(int) SFUNC state_group_and_sum STYPE map&lt;int, int&gt; FINALFUNC percent_stars INITCOND {}1. View the aggregatesselect * from system.schema_aggregates;2. Now updateCREATE OR REPLACE AGGREGATE group_and_sum(int) SFUNC state_group_and_sum STYPE map&lt;int, int&gt; FINALFUNC percent_stars INITCOND NULL3. View the aggregatesselect * from system.schema_aggregates;Expected result: The update should have made initcond nullActual result: The update did not touch INITCOND.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AggregationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaTables.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10888" opendate="2015-12-17 00:00:00" fixdate="2015-2-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tombstone error warning does not log partition key</summary>
+      <description>Log partition key if read fails due to the ERROR threshold on read tombstoned cells.Right now I can specify a warning and an error threshold for C* when reading from a partition with many tombstones.If the query reads more than the “warning threshold” then C* writes a warning to the log with the partition key.But if a query reads more than the “error threshold” then C* aborts the query and writes to the log – but not the partition key, this time. What I am missing is: Could C* also please write the partition key in case of query abort due to tombstones?</description>
+      <version>2.1.14,2.2.6</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11037" opendate="2016-1-20 00:00:00" fixdate="2016-2-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh bash script cannot be called through symlink</summary>
+      <description>cqlsh bash script cannot be called through a symlink</description>
+      <version>2.2.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11041" opendate="2016-1-20 00:00:00" fixdate="2016-2-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make it clear what timestamp_resolution is used for with DTCS</summary>
+      <description>We have had a few cases lately where users misunderstand what timestamp_resolution does, we should; make the option not autocomplete in cqlsh update documentation log a warning</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.DateTieredCompactionStrategyOptions.java</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11053" opendate="2016-1-21 00:00:00" fixdate="2016-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY FROM on large datasets: fix progress report and optimize performance part 4</summary>
+      <description>DescriptionRunning COPY from on a large dataset (20G divided in 20M records) revealed two issues: The progress report is incorrect, it is very slow until almost the end of the test at which point it catches up extremely quickly. The performance in rows per second is similar to running smaller tests with a smaller cluster locally (approx 35,000 rows per second). As a comparison, cassandra-stress manages 50,000 rows per second under the same set-up, therefore resulting 1.5 times faster.See attached file copy_from_large_benchmark.txt for the benchmark details.Doc-impacting changes to COPY FROM options A new option was added: PREPAREDSTATEMENTS - it indicates if prepared statements should be used; it defaults to true. The default value of CHUNKSIZE changed from 1000 to 5000. The default value of MINBATCHSIZE changed from 2 to 10.</description>
+      <version>2.1.14,2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.setup.py</file>
+      <file type="M">pylib.cqlshlib.util.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11093" opendate="2016-1-29 00:00:00" fixdate="2016-3-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>processs restarts are failing becase native port and jmx ports are in use</summary>
+      <description>A process restart should automatically take care of this. But it is not and it is a problem.The ports are are considered in use even if the process has quit/died/killed but the socket is in a TIME_WAIT state in the TCP FSM (http://tcpipguide.com/free/t_TCPOperationalOverviewandtheTCPFiniteStateMachineF-2.htm).tcp 0 0 127.0.0.1:7199 0.0.0.0:* LISTEN 30099/javatcp 0 0 192.168.1.2:9160 0.0.0.0:* LISTEN 30099/javatcp 0 0 10.130.128.131:58263 10.130.128.131:9042 TIME_WAIT -tcp 0 0 10.130.128.131:58262 10.130.128.131:9042 TIME_WAIT -tcp 0 0 ::ffff:10.130.128.131:9042 :::* LISTEN 30099/javatcp 0 0 ::ffff:10.130.128.131:9042 ::ffff:10.130.128.131:57191 ESTABLISHED 30099/javatcp 0 0 ::ffff:10.130.128.131:9042 ::ffff:10.130.128.131:57190 ESTABLISHED 30099/javatcp 0 0 ::ffff:10.130.128.131:9042 ::ffff:10.176.70.226:37105 ESTABLISHED 30099/javatcp 0 0 ::ffff:127.0.0.1:42562 ::ffff:127.0.0.1:7199 TIME_WAIT -tcp 0 0 ::ffff:10.130.128.131:57190 ::ffff:10.130.128.131:9042 ESTABLISHED 30138/javatcp 0 0 ::ffff:10.130.128.131:57198 ::ffff:10.130.128.131:9042 ESTABLISHED 30138/javatcp 0 0 ::ffff:10.130.128.131:9042 ::ffff:10.176.70.226:37106 ESTABLISHED 30099/javatcp 0 0 ::ffff:10.130.128.131:57197 ::ffff:10.130.128.131:9042 ESTABLISHED 30138/javatcp 0 0 ::ffff:10.130.128.131:57191 ::ffff:10.130.128.131:9042 ESTABLISHED 30138/javatcp 0 0 ::ffff:10.130.128.131:9042 ::ffff:10.130.128.131:57198 ESTABLISHED 30099/javatcp 0 0 ::ffff:10.130.128.131:9042 ::ffff:10.130.128.131:57197 ESTABLISHED 30099/javatcp 0 0 ::ffff:127.0.0.1:42567 ::ffff:127.0.0.1:7199 TIME_WAIT -I had to write a restart handler that does a netstat call and looks to make sure all the TIME_WAIT states exhaust before starting the node back up. This happened on 26 of the 56 when a rolling restart was performed. The issue was mostly around JMX port 7199. There was another rollling restart done on the 26 nodes to remediate the JMX ports issue in that restart one node had the issue where port 9042 was considered used after the restart and the process died after a bit of time.What needs to be done for port the native port 9042 and JMX port 7199 is to create the underlying TCP socket with SO_REUSEADDR. This eases the restriction and allows the port to be bound by process even if there are sockets open to that port in the TCP FSM, as long as there is no other process listening on that port. There is a Java method available to set this option in java.net.Socket https://docs.oracle.com/javase/7/docs/api/java/net/Socket.html#setReuseAddress%28boolean%29.native port 9042: https://github.com/apache/cassandra/blob/4a0d1caa262af3b6f2b6d329e45766b4df845a88/tools/stress/src/org/apache/cassandra/stress/settings/SettingsPort.java#L38JMX port 7199: https://github.com/apache/cassandra/blob/4a0d1caa262af3b6f2b6d329e45766b4df845a88/tools/stress/src/org/apache/cassandra/stress/settings/SettingsPort.java#L40Looking in the code itself this option is being set on thrift (9160 (default)) and internode communication ports, uncrypted (7000 (default)) and SSL encrypted (7001 (default)) .https://github.com/apache/cassandra/search?utf8=%E2%9C%93&amp;q=setReuseAddressThis needs to be set to native and jmx ports as well.References:https://unix.stackexchange.com/questions/258379/when-is-a-port-considered-being-used/258380?noredirect=1https://stackoverflow.com/questions/23531558/allow-restarting-java-application-with-jmx-monitoring-enabled-immediatelyhttps://docs.oracle.com/javase/8/docs/technotes/guides/rmi/socketfactory/https://github.com/apache/cassandra/search?utf8=%E2%9C%93&amp;q=setReuseAddresshttps://docs.oracle.com/javase/7/docs/api/java/net/Socket.html#setReuseAddress%28boolean%293https://github.com/apache/cassandra/blob/4a0d1caa262af3b6f2b6d329e45766b4df845a88/tools/stress/src/org/apache/cassandra/stress/settings/SettingsPort.java#L38https://github.com/apache/cassandra/blob/4a0d1caa262af3b6f2b6d329e45766b4df845a88/tools/stress/src/org/apache/cassandra/stress/settings/SettingsPort.java#L40</description>
+      <version>None</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.RMIServerSocketFactoryImpl.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11146" opendate="2016-2-10 00:00:00" fixdate="2016-2-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Adding field to UDT definition breaks SELECT JSON</summary>
+      <description>CREATE TYPE test_type ( i int);CREATE TABLE test_table ( id int PRIMARY KEY, model frozen&lt;test_type&gt;);INSERT INTO test_table JSON '{"id": 1, "model": {"i": 123}}';SELECT JSON * FROM test_table;successALTER TYPE test_type ADD b boolean;SELECT JSON * FROM test_table;errorServerError: &lt;ErrorMessage code=0000 [Server error] message="java.lang.ArrayIndexOutOfBoundsException: 1"&gt;</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.UserType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11172" opendate="2016-2-15 00:00:00" fixdate="2016-2-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Infinite loop bug adding high-level SSTableReader in compaction</summary>
+      <description>Observed that after a large repair on LCS that sometimes the system will enter an infinite loop with vast amounts of logs lines recording, "Adding high-level (L${LEVEL}) SSTableReader(path='${TABLE}') to candidates"This results in an outage of the node and eventual crashing. The log spam quickly rotates out possibly useful earlier debugging.</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11179" opendate="2016-2-17 00:00:00" fixdate="2016-3-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Parallel cleanup can lead to disk space exhaustion</summary>
+      <description>In CASSANDRA-5547, we made cleanup (among other things) run in parallel across multiple sstables. There have been reports on IRC of this leading to disk space exhaustion, because multiple sstables are (almost entirely) rewritten at the same time. This seems particularly problematic because cleanup is frequently run after a cluster is expanded due to low disk space.I'm not really familiar with how we perform free disk space checks now, but it sounds like we can make some improvements here. It would be good to reduce the concurrency of cleanup operations if there isn't enough free disk space to support this.</description>
+      <version>2.1.14,2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Tools,Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ScrubTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.LeveledCompactionStrategyTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.CleanupTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11196" opendate="2016-2-19 00:00:00" fixdate="2016-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>tuple_notation_test upgrade tests flaps</summary>
+      <description>tuple_notation_test in the upgrade_tests.cql_tests module flaps on a number of different upgrade paths. Here are some of the tests that flap:upgrade_tests/cql_tests.py:TestCQLNodes2RF1_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes2RF1_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_1_UpTo_2_2_HEAD.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_2_HEAD_UpTo_Trunk.tuple_notation_testupgrade_tests/cql_tests.py:TestCQLNodes3RF3_2_2_HEAD_UpTo_Trunk.tuple_notation_testHere's an example failure:http://cassci.datastax.com/job/upgrade_tests-all/9/testReport/upgrade_tests.cql_tests/TestCQLNodes2RF1_2_1_UpTo_2_2_HEAD/tuple_notation_test/All the failures I've seen fail with this error:&lt;ErrorMessage code=0000 [Server error] message="java.lang.IndexOutOfBoundsException"&gt;</description>
+      <version>2.2.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSetTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSet.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11210" opendate="2016-2-23 00:00:00" fixdate="2016-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unresolved hostname in replace address</summary>
+      <description>If you provide a hostname which could not be resolved by DNS, it leads to replace args being ignored. If you provide an IP which is not in the cluster, it does the right thing and complain.</description>
+      <version>2.2.6,3.0.5,3.5,3.11.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11215" opendate="2016-2-23 00:00:00" fixdate="2016-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reference leak with parallel repairs on the same table</summary>
+      <description>When starting multiple repairs on the same table Cassandra starts to log about reference leak as:ERROR [Reference-Reaper:1] 2016-02-23 15:02:05,516 Ref.java:187 - LEAK DETECTED: a reference (org.apache.cassandra.utils.concurrent.Ref$State@5213f926) to class org.apache.cassandra.io.sstable.format.SSTableReader$InstanceTidier@605893242:.../testrepair/standard1-dcf311a0da3411e5a5c0c1a39c091431/la-30-big was not released before the reference was garbage collectedReproducible with:ccm create repairtest -v 2.2.5 -n 3ccm startccm stress write n=1000000 -schema replication(strategy=SimpleStrategy,factor=3) keyspace=testrepair# And then perform two repairs concurrently with:ccm node1 nodetool repair testrepairI know that starting multiple repairs in parallel on the same table isn't very wise, but this shouldn't result in reference leaks.</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11217" opendate="2016-2-23 00:00:00" fixdate="2016-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Only log yaml config once, at startup</summary>
+      <description>CASSANDRA-6456 introduced a feature where the yaml is dumped in the log. At startup this is a nice feature, but I see that it’s actually triggered every time it handshakes with a node and fails to connect and the node happens to be a seed (see here). Calling DD.getseeds() calls the SeedProvider, and if you happen to use SimpleSeedProvider it will reload the yaml config, and once again dump it out to the log.It's debatable if DD.getseeds() should trigger a reload (which I added in CASSANDRA-5459) or whether reloading the seeds should be a different method (it probably should), but we shouldn't keep logging the yaml config on every connection failure to a seed.</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Core,Local/Config</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.YamlConfigurationLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11301" opendate="2016-3-3 00:00:00" fixdate="2016-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Non-obsoleting compaction operations over compressed files can impose rate limit on normal reads</summary>
+      <description>Broken by CASSANDRA-9240; the rate limiting reader passes the ICompressedFile interface to its parent, which uses this to attach an "owner" - which means the reader gets recycled on close, i.e. pooled, for normal use. If the compaction were to replace the sstable there would be no problem, which is presumably why this hasn't been encountered frequently. However validation compactions on long lived sstables would permit these rate limited readers to accumulate.</description>
+      <version>2.2.6</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.compress.CompressedRandomAccessReaderTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressedThrottledReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressedRandomAccessReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11302" opendate="2016-3-4 00:00:00" fixdate="2016-3-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Invalid time unit conversion causing write timeouts</summary>
+      <description>We've been debugging a write timeout that we saw after upgrading from the 2.0.x release line, with our particular workload. Details of that process can be found in this thread:https://www.mail-archive.com/user@cassandra.apache.org/msg46064.htmlAfter bisecting various patch release versions, and then commits, on the 2.1.x release line we've identified version 2.1.5 and this commit as the point where the timeouts first start appearing:https://github.com/apache/cassandra/commit/828496492c51d7437b690999205ecc941f41a0a9After examining the commit we believe this line was a typo:https://github.com/apache/cassandra/commit/828496492c51d7437b690999205ecc941f41a0a9#diff-c7ef124561c4cde1c906f28ad3883a88L467as it doesn't properly convert the timeout value from milliseconds to nanoseconds.After testing with the attached patch applied, we do not see timeouts on version 2.1.5 nor against 2.2.5 when we bring the patch forward. While we've tested our workload against this and we are fairly confident in the patch, we are not experts with the code base so we would prefer additional review.</description>
+      <version>2.1.14,2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.OutboundTcpConnection.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11344" opendate="2016-3-11 00:00:00" fixdate="2016-3-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix bloom filter sizing with LCS</summary>
+      <description>Since CASSANDRA-7272 we most often over allocate the bloom filter size with LCS</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.writers.MaxSSTableSizeWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11373" opendate="2016-3-17 00:00:00" fixdate="2016-3-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cancelled compaction leading to infinite loop in compaction strategy getNextBackgroundTask</summary>
+      <description>Our test is basically running nodetool repair on specific keyspaces (such as keyspace1) and the test is also triggering nodetool compact keyspace1 standard1 in the background. And so it looks like running major compactions &amp; repairs lead to that issue when using LCS.Below is an excerpt from the thread dump (the rest is attached)"CompactionExecutor:2" #33 daemon prio=1 os_prio=4 tid=0x00007f5363e64f10 nid=0x3c4e waiting for monitor entry [0x00007f53340d8000] java.lang.Thread.State: BLOCKED (on object monitor) at org.apache.cassandra.db.compaction.CompactionStrategyManager.handleNotification(CompactionStrategyManager.java:252) - waiting to lock &lt;0x00000006c9362c80&gt; (a org.apache.cassandra.db.compaction.CompactionStrategyManager) at org.apache.cassandra.db.lifecycle.Tracker.notifySSTableRepairedStatusChanged(Tracker.java:434) at org.apache.cassandra.db.compaction.CompactionManager.performAnticompaction(CompactionManager.java:550) at org.apache.cassandra.db.compaction.CompactionManager$7.runMayThrow(CompactionManager.java:465) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) at java.util.concurrent.FutureTask.run(FutureTask.java:266) at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) at java.util.concurrent.FutureTask.run(FutureTask.java:266) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617) at java.lang.Thread.run(Thread.java:745) Locked ownable synchronizers: - &lt;0x00000006c9362ca8&gt; (a java.util.concurrent.ThreadPoolExecutor$Worker)"CompactionExecutor:1" #32 daemon prio=1 os_prio=4 tid=0x00007f5363e618b0 nid=0x3c4d runnable [0x00007f5334119000] java.lang.Thread.State: RUNNABLE at com.google.common.collect.Iterators$7.computeNext(Iterators.java:650) at com.google.common.collect.AbstractIterator.tryToComputeNext(AbstractIterator.java:143) at com.google.common.collect.AbstractIterator.hasNext(AbstractIterator.java:138) at com.google.common.collect.Iterators.addAll(Iterators.java:361) at com.google.common.collect.Iterables.addAll(Iterables.java:354) at org.apache.cassandra.db.compaction.LeveledManifest.getCandidatesFor(LeveledManifest.java:589) at org.apache.cassandra.db.compaction.LeveledManifest.getCompactionCandidates(LeveledManifest.java:349) - locked &lt;0x00000006d0f7a6a8&gt; (a org.apache.cassandra.db.compaction.LeveledManifest) at org.apache.cassandra.db.compaction.LeveledCompactionStrategy.getNextBackgroundTask(LeveledCompactionStrategy.java:98) - locked &lt;0x00000006d0f7a568&gt; (a org.apache.cassandra.db.compaction.LeveledCompactionStrategy) at org.apache.cassandra.db.compaction.CompactionStrategyManager.getNextBackgroundTask(CompactionStrategyManager.java:95) - locked &lt;0x00000006c9362c80&gt; (a org.apache.cassandra.db.compaction.CompactionStrategyManager) at org.apache.cassandra.db.compaction.CompactionManager$BackgroundCompactionCandidate.run(CompactionManager.java:257) at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) at java.util.concurrent.FutureTask.run(FutureTask.java:266) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617) at java.lang.Thread.run(Thread.java:745)CPU usage is at 100%top -p 15386top - 12:12:40 up 1:28, 1 user, load average: 1.08, 1.11, 1.16Tasks: 1 total, 0 running, 1 sleeping, 0 stopped, 0 zombie%Cpu(s): 0.3 us, 0.0 sy, 12.4 ni, 87.2 id, 0.0 wa, 0.0 hi, 0.0 si, 0.0 stKiB Mem: 16433792 total, 8947336 used, 7486456 free, 89552 buffersKiB Swap: 0 total, 0 used, 0 free. 3326796 cached Mem PID USER PR NI VIRT RES SHR S %CPU %MEM TIME+ COMMAND15386 automat+ 20 0 7891448 5.004g 290184 S 102.9 31.9 80:07.06 javattop shows that the compaction thread consumes all the CPU$ java -jar sjk.jar ttop -p 15386Monitoring threads ...2016-03-17T12:17:13.514+0000 Process summary process cpu=126.34% application cpu=102.81% (user=102.46% sys=0.35%) other: cpu=23.53% heap allocation rate 375mb/s[000002] user= 0.00% sys= 0.00% alloc= 0b/s - Reference Handler[000003] user= 0.00% sys= 0.00% alloc= 0b/s - Finalizer[000005] user= 0.00% sys= 0.00% alloc= 0b/s - Signal Dispatcher[000012] user= 0.00% sys= 0.00% alloc= 0b/s - RMI TCP Accept-7199[000013] user= 0.00% sys= 0.00% alloc= 0b/s - RMI TCP Accept-0[000015] user= 0.00% sys= 0.00% alloc= 476b/s - AsyncAppender-Worker-ASYNCDEBUGLOG[000016] user= 0.00% sys= 0.05% alloc= 1070b/s - ScheduledTasks:1[000017] user= 0.00% sys= 0.00% alloc= 33b/s - EXPIRING-MAP-REAPER:1[000018] user= 0.00% sys= 0.02% alloc= 1932b/s - Background_Reporter:1[000022] user= 0.00% sys= 0.00% alloc= 0b/s - MemtablePostFlush:1[000023] user= 0.00% sys= 0.00% alloc= 0b/s - MemtableReclaimMemory:1[000026] user= 0.00% sys= 0.00% alloc= 0b/s - SlabPoolCleaner[000027] user= 0.00% sys= 0.00% alloc= 0b/s - PERIODIC-COMMIT-LOG-SYNCER[000028] user= 0.00% sys= 0.00% alloc= 0b/s - COMMIT-LOG-ALLOCATOR[000029] user= 0.00% sys= 0.01% alloc= 7086b/s - OptionalTasks:1[000030] user= 0.00% sys= 0.00% alloc= 0b/s - Reference-Reaper:1[000031] user= 0.00% sys= 0.00% alloc= 0b/s - Strong-Reference-Leak-Detector:1[000032] user=99.45% sys= 0.07% alloc= 374mb/s - CompactionExecutor:1[000033] user= 0.00% sys= 0.00% alloc= 0b/s - CompactionExecutor:2[000036] user= 0.00% sys= 0.00% alloc= 0b/s - NonPeriodicTasks:1[000037] user= 0.00% sys= 0.00% alloc= 0b/s - LocalPool-Cleaner:1[000041] user= 0.00% sys= 0.00% alloc= 0b/s - IndexSummaryManager:1[000043] user= 0.00% sys= 0.01% alloc= 2705b/s - GossipTasks:1[000044] user= 0.00% sys= 0.00% alloc= 0b/s - ACCEPT-/10.200.182.146[000045] user= 0.00% sys= 0.01% alloc= 2283b/s - BatchlogTasks:1[000055] user= 0.00% sys= 0.02% alloc= 9494b/s - GossipStage:1[000056] user= 0.00% sys= 0.00% alloc= 0b/s - AntiEntropyStage:1[000057] user= 0.00% sys= 0.00% alloc= 0b/s - MigrationStage:1[000058] user= 0.00% sys= 0.00% alloc= 0b/s - MiscStage:1[000067] user= 0.00% sys= 0.02% alloc= 2445b/s - MessagingService-Incoming-/10.200.182.144[000068] user= 0.00% sys= 0.01% alloc= 968b/s - MessagingService-Outgoing-/10.200.182.144[000069] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Outgoing-/10.200.182.144[000070] user= 0.00% sys= 0.02% alloc= 512b/s - MessagingService-Outgoing-/10.200.182.144[000072] user= 0.00% sys= 0.00% alloc= 0b/s - NanoTimeToCurrentTimeMillis updater[000073] user= 0.00% sys= 0.02% alloc= 3113b/s - MessagingService-Incoming-/10.200.182.144[000074] user= 0.00% sys= 0.00% alloc= 0b/s - PendingRangeCalculator:1[000075] user= 0.00% sys= 0.41% alloc= 66kb/s - SharedPool-Worker-1[000076] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-2[000077] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-3[000078] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-4[000079] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-5[000080] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-6[000081] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-7[000082] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-8[000084] user= 0.00% sys= 0.00% alloc= 0b/s - Thread-2[000085] user= 0.00% sys= 0.00% alloc= 181b/s - HintsWriteExecutor:1[000091] user= 0.00% sys= 0.00% alloc= 0b/s - PO-thread-0[000092] user= 0.00% sys= 0.00% alloc= 0b/s - NodeHealthPlugin-Scheduler-thread-0[000093] user= 0.00% sys= 0.00% alloc= 0b/s - pool-10-thread-1[000094] user= 0.00% sys= 0.00% alloc= 0b/s - pool-10-thread-2[000097] user= 0.00% sys= 0.00% alloc= 0b/s - Lease RemoteMessageServer acceptor-2-1[000104] user= 0.00% sys= 0.00% alloc= 0b/s - RemoteMessageClient worker-4-1[000120] user= 0.00% sys= 0.00% alloc= 0b/s - RemoteMessageClient connection limiter - 0[000121] user= 0.00% sys= 0.00% alloc= 0b/s - threadDeathWatcher-5-1[000122] user= 0.00% sys= 0.00% alloc= 0b/s - PO-thread scheduler[000123] user= 0.00% sys= 0.00% alloc= 0b/s - JOB-TRACKER[000124] user= 0.00% sys= 0.01% alloc= 1276b/s - TASK-TRACKER[000127] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-1[000128] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-2[000129] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-3[000130] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-4[000131] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-5[000132] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-6[000133] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-7[000134] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-8[000135] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-9[000136] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-10[000137] user= 0.19% sys=-0.18% alloc= 0b/s - epollEventLoopGroup-6-11[000138] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-12[000139] user= 0.19% sys=-0.19% alloc= 0b/s - epollEventLoopGroup-6-13[000140] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-14[000141] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-15[000142] user= 0.00% sys= 0.00% alloc= 0b/s - epollEventLoopGroup-6-16[000143] user= 0.19% sys=-0.04% alloc= 13kb/s - Thread-7[000144] user= 0.00% sys= 0.00% alloc= 0b/s - taskCleanup[000145] user= 0.00% sys= 0.00% alloc= 0b/s - DseGossipStateUpdater[000146] user= 0.00% sys= 0.00% alloc= 0b/s - DestroyJavaVM[000149] user= 0.00% sys= 0.00% alloc= 0b/s - Thread-10[000150] user= 0.00% sys= 0.00% alloc= 0b/s - Thread-11[000151] user= 0.00% sys= 0.00% alloc= 0b/s - Directory/File cleanup thread[000153] user= 0.00% sys= 0.00% alloc= 0b/s - pool-15-thread-1[000190] user= 0.00% sys= 0.00% alloc= 0b/s - pool-18-thread-1[000215] user= 0.00% sys= 0.00% alloc= 0b/s - pool-10-thread-3[000217] user= 0.00% sys= 0.00% alloc= 0b/s - RMI Scheduler(0)[000220] user= 0.00% sys= 0.00% alloc= 0b/s - RMI TCP Connection(335)-10.200.182.146[000222] user= 0.00% sys= 0.00% alloc= 0b/s - pool-10-thread-4[000223] user= 0.00% sys= 0.00% alloc= 0b/s - taskCleanup[000224] user= 0.00% sys= 0.00% alloc= 0b/s - Thread-69[000225] user= 0.00% sys= 0.00% alloc= 0b/s - Thread-70[000227] user= 0.00% sys= 0.00% alloc= 0b/s - pool-19-thread-1[000254] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-9[000255] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-11[000256] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-10[000269] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-13[000270] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-12[000272] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-14[000273] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-15[000274] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-18[000275] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-19[000276] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-20[000277] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-17[000278] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-16[000279] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-22[000280] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-21[000281] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-23[000282] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-24[000283] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-25[000284] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-26[000285] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-27[000286] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-28[000287] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-29[000288] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-30[000289] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-31[000290] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-32[000296] user= 0.00% sys= 0.00% alloc= 1970b/s - pool-2-thread-1[000297] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-33[000298] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-34[000302] user= 0.00% sys= 0.01% alloc= 1576b/s - MessagingService-Incoming-/10.200.182.145[000303] user= 0.00% sys= 0.00% alloc= 451b/s - MessagingService-Outgoing-/10.200.182.145[000304] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Outgoing-/10.200.182.145[000305] user= 0.00% sys= 0.01% alloc= 206b/s - MessagingService-Outgoing-/10.200.182.145[000308] user= 0.00% sys= 0.00% alloc= 424b/s - MessagingService-Incoming-/10.200.182.145[000314] user= 0.00% sys= 0.00% alloc= 0b/s - StreamingTransferTaskTimeouts:1[000324] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Outgoing-/10.200.182.146[000325] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Outgoing-/10.200.182.146[000326] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Outgoing-/10.200.182.146[000328] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Incoming-/10.200.182.146[000329] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-35[000330] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-37[000331] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-36[000332] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-39[000333] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-38[000334] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-42[000335] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-41[000336] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-40[000337] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-46[000338] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-44[000339] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-45[000340] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-43[000341] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-47[000342] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-48[000343] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-50[000344] user= 0.00% sys= 0.00% alloc= 0b/s - SharedPool-Worker-49[000375] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:1[000376] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:2[000406] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Incoming-/10.200.182.145[000408] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Incoming-/10.200.182.146[000409] user= 0.00% sys= 0.00% alloc= 0b/s - MessagingService-Incoming-/10.200.182.144[000415] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:3[000418] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:4[000435] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:5[000438] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:6[000439] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:7[000444] user= 0.00% sys= 0.00% alloc= 0b/s - StreamConnectionEstablisher:8[000687] user= 0.00% sys= 0.00% alloc= 0b/s - JMX server connection timeout 687[000688] user= 2.44% sys= 0.16% alloc= 1380kb/s - RMI TCP Connection(401)-10.200.182.146[000694] user= 0.00% sys= 0.00% alloc= 0b/s - Attach Listener[000726] user= 0.00% sys= 0.00% alloc= 0b/s - RMI TCP Connection(400)-10.200.182.146[000743] user=-0.00% sys=-0.16% alloc=-109800b/s - MemtableFlushWriter:112[000745] user= 0.00% sys= 0.00% alloc= 0b/s - MemtableFlushWriter:113[000746] user= 0.00% sys= 0.03% alloc= 4295b/s - JMX server connection timeout 746</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.SSTableRewriterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LifecycleTransaction.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11411" opendate="2016-3-23 00:00:00" fixdate="2016-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce the amount of logging during repair</summary>
+      <description>We should move some repair logging to trace - currently this generates 13MB of logs on a vnode cluster for a single table</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11427" opendate="2016-3-24 00:00:00" fixdate="2016-5-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Range slice queries CL &gt; ONE trigger read-repair of purgeable tombstones</summary>
+      <description>Range queries will trigger read repairs for purgeable tombstones on hosts that already compacted given tombstones. Clusters with periodical jobs for scanning data ranges will likely see tombstones ressurected through RRs just to have them compacted again later at the destination host.Executing range queries (e.g. for reading token ranges) will compare the actual data instead of using digests when executed with CL &gt; ONE. Responses will be consolidated by RangeSliceResponseResolver.Reducer, where the result of RowDataResolver.resolveSuperset is used as the reference version for the results. RowDataResolver.scheduleRepairs will then send the superset to all nodes that returned a different result before. Unfortunately this does also involve cases where the superset is just made up of purgeable tombstone(s) that already have been compacted on the other nodes. In this case a read-repair will be triggered for transfering the purgeable tombstones to all other nodes nodes that returned an empty result.The issue can be reproduced with the provided dtest or manually using the following steps:create keyspace test1 with replication = { 'class' : 'SimpleStrategy', 'replication_factor' : 2 };use test1;create table test1 ( a text, b text, primary key(a, b) ) WITH compaction = {'class': 'SizeTieredCompactionStrategy', 'enabled': 'false'} AND dclocal_read_repair_chance = 0 AND gc_grace_seconds = 0;delete from test1 where a = 'a';ccm flush;ccm node2 compact;use test1;consistency all;tracing on;select * from test1;</description>
+      <version>2.2.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11451" opendate="2016-3-29 00:00:00" fixdate="2016-3-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t mark sstables as repairing when doing sub range repair</summary>
+      <description>Since CASSANDRA-10422 we don't do anticompaction when a user issues a sub range repair (-st X -et Y), but we still mark sstables as repairing.We should avoid marking them as users might want to run many sub range repair sessions in parallel. The reason we mark sstables is that we don't want another repair session to steal the sstables before we do anticompaction, and since we do no anticompaction with sub range repair we have no benefit from the marking.</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/StreamingandMessaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.ActiveRepairService.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.RepairMessageVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11467" opendate="2016-3-30 00:00:00" fixdate="2016-4-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paging loses rows in certain conditions</summary>
+      <description>The bug occurs under the following conditions: RandomPartitioner a compact storage CF querying across rows a tombstone in the first column of a row on the pagesize boundary you need to be querying at least 2*pagesize + 1 recordsAttached is a go program using gocql which reproduces the bug fairly minimally.</description>
+      <version>2.1.14,2.2.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11515" opendate="2016-4-6 00:00:00" fixdate="2016-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* won&amp;#39;t launch with whitespace in path on Windows</summary>
+      <description>In a directory named 'test space', I see the following on launch:Error: Could not find or load main class space\cassandra.logs.gc.log</description>
+      <version>2.2.6,3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11529" opendate="2016-4-7 00:00:00" fixdate="2016-4-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Checking if an unlogged batch is local is inefficient</summary>
+      <description>Based on CASSANDRA-11363 report I noticed that on CASSANDRA-9303 we introduced the following check to avoid printing a WARN in case an unlogged batch statement is local: for (IMutation im : mutations) { keySet.add(im.key()); for (ColumnFamily cf : im.getColumnFamilies()) ksCfPairs.add(String.format("%s.%s", cf.metadata().ksName, cf.metadata().cfName));++ if (localMutationsOnly)+ localMutationsOnly &amp;= isMutationLocal(localTokensByKs, im); } + // CASSANDRA-9303: If we only have local mutations we do not warn+ if (localMutationsOnly)+ return;+ NoSpamLogger.log(logger, NoSpamLogger.Level.WARN, 1, TimeUnit.MINUTES, unloggedBatchWarning, keySet.size(), keySet.size() == 1 ? "" : "s", ksCfPairs.size() == 1 ? "" : "s", ksCfPairs);The isMutationLocal check uses StorageService.instance.getLocalRanges(mutation.getKeyspaceName()), which underneaths uses AbstractReplication.getAddressRanges to calculate local ranges. Recalculating this at every unlogged batch can be pretty inefficient, so we should at the very least cache it every time the ring changes.</description>
+      <version>2.1.14,2.2.6,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6377" opendate="2013-11-19 00:00:00" fixdate="2013-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ALLOW FILTERING should allow seq scan filtering</summary>
+      <description>CREATE TABLE emp_table2 ( empID int PRIMARY KEY, firstname text, lastname text, b_mon text, b_day text, b_yr text,);INSERT INTO emp_table2 (empID,firstname,lastname,b_mon,b_day,b_yr) VALUES (100,'jane','doe','oct','31','1980');INSERT INTO emp_table2 (empID,firstname,lastname,b_mon,b_day,b_yr) VALUES (101,'john','smith','jan','01','1981');INSERT INTO emp_table2 (empID,firstname,lastname,b_mon,b_day,b_yr) VALUES (102,'mary','jones','apr','15','1982');INSERT INTO emp_table2 (empID,firstname,lastname,b_mon,b_day,b_yr) VALUES (103,'tim','best','oct','25','1982');SELECT b_mon,b_day,b_yr,firstname,lastname FROM emp_table2 WHERE b_mon='oct' ALLOW FILTERING;Bad Request: No indexed columns present in by-columns clause with Equal operator</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.index.internal.CassandraIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.index.CustomIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.UpdateTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.DeleteTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.internal.CassandraIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.RowFilter.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.index.PerRowSecondaryIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectSingleColumnRelationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectMultiColumnRelationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.UFIdentificationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.UFAuthTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.SecondaryIndexTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.FrozenCollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.index.SecondaryIndexManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.SingleColumnRelation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.StatementRestrictions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.AbstractRestriction.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7238" opendate="2014-5-14 00:00:00" fixdate="2014-2-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool Status performance is much slower with VNodes On</summary>
+      <description>Nodetool status on a 1000 Node cluster without vnodes returns in several seconds. With vnodes on (256) there are OOM errors with the default XMX of 32. Adjusting the XMX to 128 allows nodetool status to complete but the execution takes roughly 10 minutes.TestedXMX | Status32 | OOM64 | OOM: GC Overhead128 | Finishes in ~10 minutes500 | Finishes in ~10 minutes1000 | Finishes in ~10 minutes</description>
+      <version>2.1.14,2.2.6,3.0.4,3.4</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7281" opendate="2014-5-21 00:00:00" fixdate="2014-2-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SELECT on tuple relations are broken for mixed ASC/DESC clustering order</summary>
+      <description>As noted on CASSANDRA-6875, the tuple notation is broken when the clustering order mixes ASC and DESC directives because the range of data they describe don't correspond to a single continuous slice internally. To copy the example from CASSANDRA-6875:cqlsh:ks&gt; create table foo (a int, b int, c int, PRIMARY KEY (a, b, c)) WITH CLUSTERING ORDER BY (b DESC, c ASC);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 2, 0);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 1, 0);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 1, 1);cqlsh:ks&gt; INSERT INTO foo (a, b, c) VALUES (0, 0, 0);cqlsh:ks&gt; SELECT * FROM foo WHERE a=0; a | b | c---+---+--- 0 | 2 | 0 0 | 1 | 0 0 | 1 | 1 0 | 0 | 0(4 rows)cqlsh:ks&gt; SELECT * FROM foo WHERE a=0 AND (b, c) &gt; (1, 0); a | b | c---+---+--- 0 | 2 | 0(1 rows)The last query should really return (0, 2, 0) and (0, 1, 1).For that specific example we should generate 2 internal slices, but I believe that with more clustering columns we may have more slices.</description>
+      <version>2.2.6,3.0.4,3.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectMultiColumnRelationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSetTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.composites.CompositesBuilder.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.TokenRestriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.SingleColumnRestriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.RestrictionSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.Restriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.MultiColumnRestriction.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.ForwardingPrimaryKeyRestrictions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.AbstractRestriction.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9325" opendate="2015-5-7 00:00:00" fixdate="2015-3-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-stress requires keystore for SSL but provides no way to configure it</summary>
+      <description>Even though it shouldn't be required unless client certificate authentication is enabled, the stress tool is looking for a keystore in the default location of conf/.keystore with the default password of cassandra. There is no command line option to override these defaults so you have to provide a keystore that satisfies the default. It looks for conf/.keystore in the working directory, so you need to create this in the directory you are running cassandra-stress from.It doesn't really matter what's in the keystore; it just needs to exist in the expected location and have a password of cassandra.Since the keystore might be required if client certificate authentication is enabled, we need to add -transport parameters for keystore and keystore-password. Ideally, these should be optional and stress shouldn't require the keystore unless client certificate authentication is enabled on the server.In case it wasn't apparent, this is for Cassandra 2.1 and later's stress tool. I actually had even more problems getting Cassandra 2.0's stress tool working with SSL and gave up on it. We probably don't need to fix 2.0; we can just document that it doesn't support SSL and recommend using 2.1 instead.</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsTransport.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

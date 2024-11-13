@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="FLINK">
+  
+  
+  <bug fixdate="2022-8-1 01:00:00" id="28759" opendate="2022-8-1 00:00:00" resolution="Done">
+    <buginformation>
+      <summary>Enable speculative execution for in AdaptiveBatchScheduler TPC-DS e2e tests</summary>
+      <description>To verify the correctness of speculative execution, we can enabled it in AdaptiveBatchScheduler TPC-DS e2e tests, which runs a lot of different batch jobs and verifies the result.Note that we need to disable the blocklist (by setting block duration to 0) in such single machine e2e tests.</description>
+      <version>None</version>
+      <fixedVersion>1.16.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.tpcds.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2022-3-2 01:00:00" id="29852" opendate="2022-11-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Adaptive Scheduler duplicates operators for each parallel instance in the Web UI</summary>
+      <description>All the operators in the DAG are shown repeatedly</description>
+      <version>1.16.0,1.16.1</version>
+      <fixedVersion>1.17.0,1.16.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.CreatingExecutionGraph.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2022-12-2 01:00:00" id="30286" opendate="2022-12-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Run rat plugin in validate phase</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">tools.ci.compile.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2022-12-15 01:00:00" id="30424" opendate="2022-12-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add source operator restore readerState log to distinguish split is from newPartitions or split state</summary>
+      <description>When a job start firstly, we can find 'assignPartitions' from log。but if source recover from state, we can not distinguish the newPartitions is from timed discover thread or from reader task state.  We can add a helper log to distinguish and confirm the reader using split state in recover situation.  it's very useful for troubleshooting.  </description>
+      <version>1.16.0,1.15.3,1.16.1</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.SourceOperator.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2023-2-31 01:00:00" id="30838" opendate="2023-1-31 00:00:00" resolution="Done">
+    <buginformation>
+      <summary>Update documentation about the AdaptiveBatchScheduler</summary>
+      <description>Documentation is needed to update to help users how to enable the AdaptiveBatchScheduler and properly configuring it.</description>
+      <version>None</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.content.docs.deployment.speculative.execution.md</file>
+      <file type="M">docs.content.docs.deployment.elastic.scaling.md</file>
+      <file type="M">docs.content.zh.docs.deployment.speculative.execution.md</file>
+      <file type="M">docs.content.zh.docs.deployment.elastic.scaling.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-2-31 01:00:00" id="30841" opendate="2023-1-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect calc merge generate wrong plan</summary>
+      <description>currently we have a `FlinkCalcMergeRuleTest`, take one test as example: @Test def testCalcMergeWithNonDeterministicExpr1(): Unit = { val sqlQuery = "SELECT a, a1 FROM (SELECT a, random_udf(a) AS a1 FROM MyTable) t WHERE a1 &gt; 10" util.verifyRelPlan(sqlQuery) }the current final optimized plan will be wrong:Calc(select=[a, random_udf(b) AS a1], where=[(random_udf(b) &gt; 10)])+- LegacyTableSourceScan(table=[[default_catalog, default_database, MyTable, source: [TestTableSource(a, b, c)]]], fields=[a, b, c])the merged calc contains two `random_udf` call, users may encounter the result satisfied by where predicate (&gt;10) but the selected column &lt;= 10, that's counter-intuitive for usersthe expected plan is:Calc(select=[a, a1], where=[(a1 &gt; 10)])+- Calc(select=[a, random_udf(b) AS a1]) +- LegacyTableSourceScan(table=[[default_catalog, default_database, MyTable, source: [TestTableSource(a, b, c)]]], fields=[a, b, c])</description>
+      <version>1.16.1</version>
+      <fixedVersion>1.17.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.stream.sql.CalcTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.batch.sql.CalcTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.CalcTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.CalcTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.rules.FlinkStreamRuleSets.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.rules.FlinkBatchRuleSets.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-2-1 01:00:00" id="30864" opendate="2023-2-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Optional pattern at the start of a group pattern not working</summary>
+      <description>The optional pattern at the start of a group pattern turns out be "not optional", e.g.Pattern.&lt;String&gt;begin("A").next(Pattern.&lt;String&gt;begin("B").optional().next("C")).next("D")cannot match sequence "a1 c1 d1".</description>
+      <version>1.15.3,1.16.1</version>
+      <fixedVersion>1.17.0,1.15.4,1.16.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.GroupITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.main.java.org.apache.flink.cep.nfa.compiler.NFACompiler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-2-2 01:00:00" id="30876" opendate="2023-2-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix ResetTransformationProcessor don&amp;#39;t reset the transformation of ExecNode in BatchExecMultiInput.rootNode</summary>
+      <description>Now, ResetTransformationProcessor don't reset the transformation of ExecNode in BatchExecMultiInput.rootNode. This may cause error while creating StreamGraph for BatchExecMultiInput due to different id of rootNode and inputNode.</description>
+      <version>1.17.0,1.16.1</version>
+      <fixedVersion>1.17.0,1.16.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.utils.TableTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.plan.nodes.exec.processor.MultipleInputNodeCreationProcessorTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.ExecNodeBase.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecMultipleInput.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-2-6 01:00:00" id="30905" opendate="2023-2-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>doc generation fails with "concurrent map read and map write"</summary>
+      <description>We experience a build failure in master (but since it looks like a Hugo issue, I added already released version to the affected versions as well) with a concurrent map read and map write within hugo:https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=45707&amp;view=logs&amp;j=6dc02e5c-5865-5c6a-c6c5-92d598e3fc43&amp;t=ddd6d61a-af16-5d03-2b9a-76a279badf98Start building sites … fatal error: concurrent map read and map writegoroutine 233 [running]:runtime.throw(0x23054e4, 0x21) /usr/local/go/src/runtime/panic.go:1116 +0x72 fp=0xc0016ea860 sp=0xc0016ea830 pc=0x4f5ff2runtime.mapaccess1_faststr(0x1f71280, 0xc000764a20, 0xc000aa60e1, 0x18, 0xcd) /usr/local/go/src/runtime/map_faststr.go:21 +0x465 fp=0xc0016ea8d0 sp=0xc0016ea860 pc=0x4d29c5[...]</description>
+      <version>1.17.0,1.15.3,1.16.1</version>
+      <fixedVersion>1.17.0,1.15.4,1.16.2</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.ci.docs.sh</file>
+      <file type="M">.github.workflows.docs.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2023-1-8 01:00:00" id="30959" opendate="2023-2-8 00:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>Improve the documentation of UNIX_TIMESTAMP for different argument format</summary>
+      <description>When running the following pyflink program import pandas as pdfrom pyflink.datastream import StreamExecutionEnvironment, HashMapStateBackendfrom pyflink.table import StreamTableEnvironmentif __name__ == "__main__": input_data = pd.DataFrame( [ ["Alex", 100.0, "2022-01-01 08:00:00.001 +0800"], ["Emma", 400.0, "2022-01-01 00:00:00.003 +0000"], ["Alex", 200.0, "2022-01-01 08:00:00.005 +0800"], ["Emma", 300.0, "2022-01-01 00:00:00.007 +0000"], ["Jack", 500.0, "2022-01-01 08:00:00.009 +0800"], ["Alex", 450.0, "2022-01-01 00:00:00.011 +0000"], ], columns=["name", "avg_cost", "time"], ) env = StreamExecutionEnvironment.get_execution_environment() env.set_state_backend(HashMapStateBackend()) t_env = StreamTableEnvironment.create(env) input_table = t_env.from_pandas(input_data) t_env.create_temporary_view("input_table", input_table) time_format = "yyyy-MM-dd HH:mm:ss.SSS X" output_table = t_env.sql_query( f"SELECT *, UNIX_TIMESTAMP(`time`, '{time_format}') AS unix_time FROM input_table" ) output_table.execute().print()The actual output is +----+--------------------------------+--------------------------------+--------------------------------+----------------------+| op | name | avg_cost | time | unix_time |+----+--------------------------------+--------------------------------+--------------------------------+----------------------+| +I | Alex | 100.0 | 2022-01-01 08:00:00.001 +0800 | 1640995200 || +I | Emma | 400.0 | 2022-01-01 00:00:00.003 +0000 | 1640995200 || +I | Alex | 200.0 | 2022-01-01 08:00:00.005 +0800 | 1640995200 || +I | Emma | 300.0 | 2022-01-01 00:00:00.007 +0000 | 1640995200 || +I | Jack | 500.0 | 2022-01-01 08:00:00.009 +0800 | 1640995200 || +I | Alex | 450.0 | 2022-01-01 00:00:00.011 +0000 | 1640995200 |+----+--------------------------------+--------------------------------+--------------------------------+----------------------+While the expected result is+----+--------------------------------+--------------------------------+--------------------------------+----------------------+| op | name | avg_cost | time | unix_time |+----+--------------------------------+--------------------------------+--------------------------------+----------------------+| +I | Alex | 100.0 | 2022-01-01 08:00:00.001 +0800 | 1640995200 || +I | Emma | 400.0 | 2022-01-01 00:00:00.003 +0000 | 1640966400 || +I | Alex | 200.0 | 2022-01-01 08:00:00.005 +0800 | 1640995200 || +I | Emma | 300.0 | 2022-01-01 00:00:00.007 +0000 | 1640966400 || +I | Jack | 500.0 | 2022-01-01 08:00:00.009 +0800 | 1640995200 || +I | Alex | 450.0 | 2022-01-01 00:00:00.011 +0000 | 1640966400 |+----+--------------------------------+--------------------------------+--------------------------------+----------------------+ </description>
+      <version>1.16.1</version>
+      <fixedVersion>1.18.0,1.16.3,1.17.2</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.data.sql.functions.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2023-5-16 01:00:00" id="31110" opendate="2023-2-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Web UI shows "User Configuration" preserving lines and whitespaces</summary>
+      <description>Currently one can use env.getConfig().setGlobalJobParameters(...) for setting user configurations. It will also show up in the Web UI &gt; Running Jobs &gt; Job Configuration &gt; User Configuration section. This is nice so users can confirm the user configuration (key/value pair) gets populated.However, it does not preserves whitespaces and line breaks in HTML page. For example, we have some prettified JSON configuration and sometimes formatted SQL statements in those configurations, and it's showing in a compacted HTML format - not human readable original formatted string.I propose we keep the whitespaces and lines for this "User Configuration" section in the Web UI. The implementation can be as simple as adding style="white-space: pre-wrap;" to the rows in that section.</description>
+      <version>1.16.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.configuration.job-configuration.component.less</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2023-3-22 01:00:00" id="31185" opendate="2023-2-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Python BroadcastProcessFunction not support side output</summary>
+      <description/>
+      <version>1.16.1</version>
+      <fixedVersion>1.17.0,1.16.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.runtime.translators.python.PythonKeyedBroadcastStateTransformationTranslator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.runtime.translators.python.PythonBroadcastStateTransformationTranslator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.transformations.python.PythonKeyedBroadcastStateTransformation.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.transformations.python.PythonBroadcastStateTransformation.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.python.util.PythonConfigUtil.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.python.chain.PythonOperatorChainingOptimizer.java</file>
+      <file type="M">flink-python.pyflink.fn.execution.datastream.embedded.operations.py</file>
+      <file type="M">flink-python.pyflink.datastream.tests.test.data.stream.py</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-3-5 01:00:00" id="3123" opendate="2015-12-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow setting custom start-offsets for the Kafka consumer</summary>
+      <description>Currently, the Kafka consumer only allows to start reading from the earliest available offset or the current offset.Sometimes, users want to set a specific start offset themselves.</description>
+      <version>None</version>
+      <fixedVersion>1.0.0,1.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaConsumerTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaConsumerPartitionAssignmentTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.config.StartupMode.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka09ITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka08ITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka010ITCase.java</file>
+      <file type="M">docs.dev.connectors.kafka.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-3-1 01:00:00" id="31273" opendate="2023-3-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Left join with IS_NULL filter be wrongly pushed down and get wrong join results</summary>
+      <description>Left join with IS_NULL filter be wrongly pushed down and get wrong join results. The sql is:SELECT * FROM MyTable1 LEFT JOIN MyTable2 ON a1 = a2 WHERE a2 IS NULL AND a1 &lt; 10The wrongly plan is:LogicalProject(a1=[$0], b1=[$1], c1=[$2], b2=[$3], c2=[$4], a2=[$5])+- LogicalFilter(condition=[IS NULL($5)])   +- LogicalJoin(condition=[=($0, $5)], joinType=[left])      :- LogicalValues(tuples=[[]])      +- LogicalTableScan(table=[[default_catalog, default_database, MyTable2]])</description>
+      <version>1.17.0,1.16.1</version>
+      <fixedVersion>1.16.2,1.18.0,1.17.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.runtime.stream.sql.JoinITCase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.runtime.batch.sql.join.JoinITCase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.batch.sql.join.NestedLoopJoinTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.batch.sql.join.JoinTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.FlinkFilterJoinRuleTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.join.SortMergeJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.join.ShuffledHashJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.join.NestedLoopJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.join.BroadcastHashJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.plan.rules.logical.FlinkFilterJoinRuleTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.rules.logical.FlinkFilterJoinRule.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2023-3-6 01:00:00" id="31337" opendate="2023-3-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>EmbeddedDataStreamBatchTests.test_keyed_co_broadcast_side_output</summary>
+      <description>Same build, multiple times: https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=46799&amp;view=logs&amp;j=9cada3cb-c1d3-5621-16da-0f718fb86602&amp;t=c67e71ed-6451-5d26-8920-5a8cf9651901&amp;l=24566 https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=46799&amp;view=logs&amp;j=821b528f-1eed-5598-a3b4-7f748b13f261&amp;t=6bb545dd-772d-5d8c-f258-f5085fba3295&amp;l=24235 https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=46799&amp;view=logs&amp;j=e92ecf6d-e207-5a42-7ff7-528ff0c5b259&amp;t=40fc352e-9b4c-5fd8-363f-628f24b01ec2&amp;l=24545 https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=46799&amp;view=logs&amp;j=3e4dd1a2-fe2f-5e5d-a581-48087e718d53&amp;t=b4612f28-e3b5-5853-8a8b-610ae894217a&amp;l=24481 https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=46799&amp;view=logs&amp;j=bf5e383b-9fd3-5f02-ca1c-8f788e2e76d3&amp;t=85189c57-d8a0-5c9c-b61d-fc05cfac62cf&amp;l=24757Mar 04 01:21:35 pyflink/datastream/tests/test_data_stream.py:743: Mar 04 01:21:35 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ Mar 04 01:21:35 pyflink/datastream/tests/test_data_stream.py:63: in assert_equals_sortedMar 04 01:21:35 self.assertEqual(expected, actual)Mar 04 01:21:35 E AssertionError: Lists differ: ['0', '1', '2', '4', '5', '5', '6', '6'] != ['0', '1', '2', '3', '5', '5', '6', '6']Mar 04 01:21:35 E Mar 04 01:21:35 E First differing element 3:Mar 04 01:21:35 E '4'Mar 04 01:21:35 E '3'Mar 04 01:21:35 E Mar 04 01:21:35 E - ['0', '1', '2', '4', '5', '5', '6', '6']Mar 04 01:21:35 E ? ^Mar 04 01:21:35 E Mar 04 01:21:35 E + ['0', '1', '2', '3', '5', '5', '6', '6']Mar 04 01:21:35 E ?</description>
+      <version>1.17.0,1.16.1</version>
+      <fixedVersion>1.17.0,1.16.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.translators.BatchExecutionUtils.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.runtime.translators.python.PythonKeyedBroadcastStateTransformationTranslator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.operators.python.process.ExternalPythonBatchKeyedCoBroadcastProcessOperator.java</file>
+      <file type="M">flink-python.src.main.java.org.apache.flink.streaming.api.operators.python.embedded.EmbeddedPythonBatchKeyedCoBroadcastProcessOperator.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2023-7-15 01:00:00" id="31476" opendate="2023-3-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AdaptiveScheduler should take lower bound parallelism settings into account</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.DefaultVertexParallelismStoreTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.allocator.TestVertexInformation.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.allocator.SlotSharingSlotAllocatorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.VertexParallelismInformation.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.DefaultVertexParallelismStore.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.DefaultVertexParallelismInfo.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.JobGraphJobInformation.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.allocator.SlotSharingSlotAllocator.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.allocator.JobInformation.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2023-4-30 01:00:00" id="31670" opendate="2023-3-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ElasticSearch connector&amp;#39;s document was not incorrect linked to external repo</summary>
+      <description>In the doc, It still use "flink-version" for flink-connector-elastiacsearch instead of the version in the external repository.&lt;dependency&gt; &lt;groupId&gt;org.apache.flink&lt;/groupId&gt; &lt;artifactId&gt;flink-connector-elasticsearch6&lt;/artifactId&gt; &lt;version&gt;1.18-SNAPSHOT&lt;/version&gt;&lt;/dependency&gt;</description>
+      <version>1.16.1</version>
+      <fixedVersion>1.16.2,1.18.0,1.17.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.setup.docs.sh</file>
+      <file type="M">docs.data.sql.connectors.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-3-30 01:00:00" id="31672" opendate="2023-3-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Requirement validation does not take user-specified or scheduler-generated maxParallelism into account</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.JobMasterTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.JobMaster.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-6-30 01:00:00" id="31673" opendate="2023-3-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add E2E tests for flink jdbc driver</summary>
+      <description>Since jdbc driver will be used by third party projects, and we've introduced a bundled jar in flink-sql-jdbc-driver-bundle, we'd better to have e2e tests to verify and ensure it works fine (in case of the dependency management).</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-sql-gateway.src.main.java.org.apache.flink.table.gateway.SqlGateway.java</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+      <file type="M">flink-end-to-end-tests.run-nightly-tests.sh</file>
+      <file type="M">flink-end-to-end-tests.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-5-6 01:00:00" id="31743" opendate="2023-4-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid relocating the RocksDB&amp;#39;s log failure when filename exceeds 255 characters</summary>
+      <description>Since FLINK-24785 , the file name of the rocksdb LOG is generated by parsing the db path, when the db path is long and the filename exceeds 255 characters, the creation of the file will fail, so the relevant rocksdb LOG cannot be seen in the flink log dir.</description>
+      <version>1.16.1,1.15.4</version>
+      <fixedVersion>1.16.2,1.18.0,1.17.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.RocksDBStateBackendConfigTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBStateBackend.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBResourceContainer.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBKeyedStateBackendBuilder.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2023-4-11 01:00:00" id="31767" opendate="2023-4-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve the implementation for "analyze table" execution on partitioned table</summary>
+      <description>Currently, for partitioned table, the "analyze table" command will generate a separate SQL statement for each partition. When there are too many partitions, the compilation/submission/execution time will be very long. This issue aims to improve it: we can combine the sql statements for each partition into one with "union all", and just need to execution one sql.</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.api.internal.AnalyzeTableUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-6-11 01:00:00" id="31774" opendate="2023-4-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add document for delete and update statement</summary>
+      <description>I do not find the declaration about the usage of DELETE and UPDATE statement in the SQL section. </description>
+      <version>None</version>
+      <fixedVersion>1.18.0,1.17.2</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.content.docs.dev.table.sql.overview.md</file>
+      <file type="M">docs.content.zh.docs.dev.table.sql.overview.md</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2023-7-4 01:00:00" id="31996" opendate="2023-5-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Chaining operators with different max parallelism prevents rescaling</summary>
+      <description>We might chain operators with different max parallelism together if they are set to have the same parallelism initially.When we decide to rescale the JobGraph vertices (using AdaptiveScheduler), we're gapped by the lowest maxParallelism of the operator chain. This is especially visible with things like CollectSink, TwoPhaseCommitSink, CDC, and a GlobalCommiter with maxParallelism set to 1. An obvious solution would be to prevent the chaining of operators with different maxParallelism, but we need to double-check this doesn't introduce a breaking change.</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-scala.src.test.scala.org.apache.flink.streaming.api.scala.StreamingScalaAPICompletenessTest.scala</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.graph.StreamingJobGraphGeneratorTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.graph.StreamingJobGraphGenerator.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.graph.StreamGraphGenerator.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.graph.StreamGraph.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.java</file>
+      <file type="M">flink-python.pyflink.datastream.stream.execution.environment.py</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.PipelineOptions.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.pipeline.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2023-7-19 01:00:00" id="32132" opendate="2023-5-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cast function CODEGEN does not work as expected when nullOnFailure enabled</summary>
+      <description>I am trying to generate code cast string to bigint, and got generated code like:  // code placeholderif (!isNull$14) {result$15 = org.apache.flink.table.data.binary.BinaryStringDataUtil.toLong(field$13.trim());} else {result$15 = -1L;} castRuleResult$16 = result$15; castRuleResultIsNull$17 = isNull$14; } catch (java.lang.Throwable e) { castRuleResult$16 = -1L; castRuleResultIsNull$17 = true; } // --- End cast sectionout.setLong(0, castRuleResult$16); such kind of handle does not provide a perfect solution as the default value of long is set to -1L, which can be meaningful in some case. And can cause some calculation error. And I understand the cast returns a bigint not null, But since there is a exception, we should ignore the type restriction, so I suggest to modify the CodeGenUtils.rowSetField like below: // code placeholderif (fieldType.isNullable || fieldExpr.nullTerm.startsWith("castRuleResultIsNull")) { s""" |${fieldExpr.code} |if (${fieldExpr.nullTerm}) { | $setNullField; |} else { | $writeField; |} """.stripMargin} else { s""" |${fieldExpr.code} |$writeField; """.stripMargin}</description>
+      <version>1.16.1</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.calls.ScalarOperatorGens.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-8-20 01:00:00" id="32137" opendate="2023-5-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Flame graph is hard to use with many task managers</summary>
+      <description>In case there are many task managers executing the same operator, the flame graph becomes very hard to use. As you can see on the attached picture, it considers instances of the same lambda function as different classes, and their number seems to be equal to the number of task managers (i.e. each JVM gets its own "class" name, which is expected for lambdas I guess). This lambda function is deep within Flink's own call stack, so this kind of graph is inevitable regardless of the job's own logic, and there is nothing we can do at the job logic's level to fix it.This behavior makes evaluating the flame graph very hard, because all of the useful information gets "compressed" inside each "column" of the graph, and at the same time, it does not give any useful information since this is just an artifact of the class name generation in the JVM.</description>
+      <version>1.16.1</version>
+      <fixedVersion>1.19.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.ThreadInfoSampleServiceTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.webmonitor.threadinfo.VertexFlameGraphFactory.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2023-7-3 01:00:00" id="32516" opendate="2023-7-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support to parse [CREATE OR ] REPLACE TABLE AS statement</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-sql-parser.src.test.java.org.apache.flink.sql.parser.FlinkSqlParserImplTest.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.codegen.includes.parserImpls.ftl</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.codegen.data.Parser.tdd</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-7-3 01:00:00" id="32517" opendate="2023-7-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support to execute [CREATE OR] REPLACE TABLE AS statement</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.utils.OperationConverterUtils.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.operations.SqlCreateTableConverter.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.operations.converters.SqlNodeConverters.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.operations.ModifyOperationVisitor.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.api.internal.TableEnvironmentImpl.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.java.org.apache.flink.sql.parser.ddl.SqlReplaceTableAs.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2023-7-3 01:00:00" id="32519" opendate="2023-7-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add doc for [CREATE OR] REPLACE TABLE AS statement</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.content.docs.dev.table.sql.create.md</file>
+      <file type="M">docs.content.zh.docs.dev.table.sql.create.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2023-9-31 01:00:00" id="33010" opendate="2023-8-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NPE when using GREATEST() in Flink SQL</summary>
+      <description>Hi,I see NPEs in flink 1.14 and flink 1.16 when running queries with GREATEST() and timestamps. Below is an example to help in reproducing the issue.CREATE TEMPORARY VIEW Positions ASSELECTSecurityId,ccy1,CAST(publishTimestamp AS TIMESTAMP(3)) as publishTimestampFROM (VALUES(1, 'USD', '2022-01-01'),(2, 'GBP', '2022-02-02'),(3, 'GBX', '2022-03-03'),(4, 'GBX', '2022-04-4'))AS ccy(SecurityId, ccy1, publishTimestamp);CREATE TEMPORARY VIEW Benchmarks ASSELECTSecurityId,ccy1,CAST(publishTimestamp AS TIMESTAMP(3)) as publishTimestampFROM (VALUES(3, 'USD', '2023-01-01'),(4, 'GBP', '2023-02-02'),(5, 'GBX', '2023-03-03'),(6, 'GBX', '2023-04-4'))AS ccy(SecurityId, ccy1, publishTimestamp);SELECT *,GREATEST(IFNULL(Positions.publishTimestamp,CAST('1970-1-1' AS TIMESTAMP(3))),IFNULL(Benchmarks.publishTimestamp,CAST('1970-1-1' AS TIMESTAMP(3))))FROM PositionsFULL JOIN Benchmarks ON Positions.SecurityId = Benchmarks.SecurityId  Using "IF" is a workaround at the moment instead of using "GREATEST"  </description>
+      <version>1.16.1,1.16.2</version>
+      <fixedVersion>1.18.0,1.16.3,1.17.2,1.19.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.functions.GreatestLeastFunctionsITCase.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.calls.ScalarOperatorGens.scala</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

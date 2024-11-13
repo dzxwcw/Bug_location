@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="11223" opendate="2016-2-24 00:00:00" fixdate="2016-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Queries with LIMIT filtering on clustering columns can return less rows than expected</summary>
+      <description>A query like SELECT * FROM %s WHERE b = 1 LIMIT 2 ALLOW FILTERING can return less row than expected if the table has some static columns and some of the partition have no rows matching b = 1.The problem can be reproduced with the following unit test:    public void testFilteringOnClusteringColumnsWithLimitAndStaticColumns() throws Throwable    {        createTable("CREATE TABLE %s (a int, b int, s int static, c int, primary key (a, b))");        for (int i = 0; i &lt; 3; i++)        {            execute("INSERT INTO %s (a, s) VALUES (?, ?)", i, i);                for (int j = 0; j &lt; 3; j++)                    if (!(i == 0 &amp;&amp; j == 1))                        execute("INSERT INTO %s (a, b, c) VALUES (?, ?, ?)", i, j, i + j);        }        assertRows(execute("SELECT * FROM %s"),                   row(1, 0, 1, 1),                   row(1, 1, 1, 2),                   row(1, 2, 1, 3),                   row(0, 0, 0, 0),                   row(0, 2, 0, 2),                   row(2, 0, 2, 2),                   row(2, 1, 2, 3),                   row(2, 2, 2, 4));        assertRows(execute("SELECT * FROM %s WHERE b = 1 ALLOW FILTERING"),                   row(1, 1, 1, 2),                   row(2, 1, 2, 3));        assertRows(execute("SELECT * FROM %s WHERE b = 1 LIMIT 2 ALLOW FILTERING"),                   row(1, 1, 1, 2),                   row(2, 1, 2, 3)); // &lt;-------- FAIL It returns only one row because the static row of partition 0 is counted and filtered out in SELECT statement    }</description>
+      <version>2.2.11,3.0.15,3.11.1,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.NamesQueryFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ColumnCounter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamily.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.unit.org.apache.cassandra.db.PartitionRangeReadTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectLimitTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SinglePartitionReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.PartitionRangeReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ClusteringIndexNamesFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AbstractReadCommandBuilder.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13067" opendate="2016-12-21 00:00:00" fixdate="2016-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Integer overflows with file system size reported by Amazon Elastic File System (EFS)</summary>
+      <description>When not explicitly configured Cassandra uses nio.FileStore.getTotalSpace to determine the total amount of available space in order to calculate the preferred commit log size. Amazon EFS instances report a filesystem size of 8 EiB when empty. getTotalSpace causes an integer overflow (JDK-8162520) and returns a negative number, resulting in a negative preferred size and causing the checked integer to throw.Overriding commitlog_total_space_in_mb is not sufficient as DataDirectory.getAvailableSpace makes use of nio.FileStore.getUsableSpace.AMQ-6441 is a comparable issue in ActiveMQ.</description>
+      <version>2.2.11,3.0.15,3.11.1,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.FileUtils.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13592" opendate="2017-6-12 00:00:00" fixdate="2017-7-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Null Pointer exception at SELECT JSON statement</summary>
+      <description>A Nulll pointer exception appears when the commandSELECT JSON * FROM examples.basic;---MORE---&lt;Error from server: code=0000 [Server error] message="java.lang.NullPointerException"&gt;Examples.basic has the following description (DESC examples.basic;):CREATE TABLE examples.basic ( key frozen&lt;tuple&lt;uuid, int&gt;&gt; PRIMARY KEY, wert text) WITH bloom_filter_fp_chance = 0.01 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'} AND comment = '' AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'} AND compression = {'chunk_length_in_kb': '64', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'} AND crc_check_chance = 1.0 AND dclocal_read_repair_chance = 0.1 AND default_time_to_live = 0 AND gc_grace_seconds = 864000 AND max_index_interval = 2048 AND memtable_flush_period_in_ms = 0 AND min_index_interval = 128 AND read_repair_chance = 0.0 AND speculative_retry = '99PERCENTILE';The error appears after the --MORE-- line.The field "wert" has a JSON formatted string.</description>
+      <version>2.2.11,3.0.15,3.11.1,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.TupleType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.MapType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.ListType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.EmptyType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AbstractType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13646" opendate="2017-6-29 00:00:00" fixdate="2017-7-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bind parameters of collection types are not properly validated</summary>
+      <description>It looks like C* is not validating properly the bind parameters for collection types. If an element of the collection is invalid the value will not be rejected and might cause an Exception later on.The problem can be reproduced with the following test: @Test public void testInvalidQueries() throws Throwable { createTable("CREATE TABLE %s (k int PRIMARY KEY, s frozen&lt;set&lt;tuple&lt;int, text, double&gt;&gt;&gt;)"); execute("INSERT INTO %s (k, s) VALUES (0, ?)", set(tuple(1,"1",1.0,1), tuple(2,"2",2.0,2))); }The invalid Tuple will cause an "IndexOutOfBoundsException: Index: 3, Size: 3"</description>
+      <version>2.2.11,3.0.15,3.11.1,4.0-alpha1,4.0</version>
+      <fixedVersion>CQL/Interpreter</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.UserTypesTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.TupleTypeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.UserType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.TupleType.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.UserTypes.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13738" opendate="2017-8-3 00:00:00" fixdate="2017-9-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Load is over calculated after each IndexSummaryRedistribution</summary>
+      <description>For example, here is one of our cluster with about 500GB per node, but nodetool status shows far more load than it actually is and keeps increasing, restarting the process will reset the load, but keeps increasing afterwards:Status=Up/Down|/ State=Normal/Leaving/Joining/Moving-- Address Load Tokens Owns (effective) Host ID RackUN IP1***** 13.52 TB 256 100.0% c4c31e0a-3f01-49f7-8a22-33043737975d rac1UN IP2***** 14.25 TB 256 100.0% efec4980-ec9e-4424-8a21-ce7ddaf80aa0 rac1UN IP3***** 13.52 TB 256 100.0% 7dbcfdfc-9c07-4b1a-a4b9-970b715ebed8 rac1UN IP4***** 22.13 TB 256 100.0% 8879e6c4-93e3-4cc5-b957-f999c6b9b563 rac1UN IP5***** 18.02 TB 256 100.0% 4a1eaf22-4a83-4736-9e1c-12f898d685fa rac1UN IP6***** 11.68 TB 256 100.0% d633c591-28af-42cc-bc5e-47d1c8bcf50f rac1The root cause is if the SSTable index summary is redistributed (typically executes hourly), the updated SSTable size is added again.</description>
+      <version>2.2.11,3.0.15,3.11.1,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13775" opendate="2017-8-17 00:00:00" fixdate="2017-8-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CircleCI tests fail because *stress-test* isn&amp;#39;t a valid target</summary>
+      <description>stress-test was added to CircleCI in CASSANDRA-13413 (2.1+) but the target itself got introduced in CASSANDRA-11638 (3.10).</description>
+      <version>2.1.19,2.2.11,3.0.15</version>
+      <fixedVersion>Build,CI</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+      <file type="M">circle.yml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13844" opendate="2017-9-5 00:00:00" fixdate="2017-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader doesn&amp;#39;t support non default storage_port and ssl_storage_port</summary>
+      <description>Currently storage_port and ssl_storage_port are hardcoded to the defaults. The problem was already fixed in CASSANDRA-13518 for C* 3.0+, so this here is just backporting it to C* 2.1/2.2.</description>
+      <version>2.1.19,2.2.11</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

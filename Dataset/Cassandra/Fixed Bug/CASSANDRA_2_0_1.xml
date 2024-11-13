@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2524" opendate="2011-4-21 00:00:00" fixdate="2011-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use SSTableBoundedScanner for cleanup</summary>
+      <description>SSTableBoundedScanner seeks rather than scanning through rows, so it would be significantly more efficient than the existing per-key filtering that cleanup does.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.dht.Bounds.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.RowCacheTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableScanner.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2698" opendate="2011-5-24 00:00:00" fixdate="2011-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Instrument repair to be able to assess it&amp;#39;s efficiency (precision)</summary>
+      <description>Some reports indicate that repair sometime transfer huge amounts of data. One hypothesis is that the merkle tree precision may deteriorate too much at some data size. To check this hypothesis, it would be reasonably to gather statistic during the merkle tree building of how many rows each merkle tree range account for (and the size that this represent). It is probably an interesting statistic to have anyway.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.MerkleTreeTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.repair.DifferencerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.MerkleTree.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.EstimatedHistogram.java</file>
+      <file type="M">src.java.org.apache.cassandra.repair.Validator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4210" opendate="2012-5-2 00:00:00" fixdate="2012-9-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support for variadic parameters list for "in clause" in prepared cql query</summary>
+      <description>This queryselect * from Town where key in (?)only allows one parameter for '?'.This means querying for 'Paris' and 'London' can't be executed in one step with this prepared statement.Current workarounds are: either execute the prepared query 2 times with 'Paris' then 'London' or prepare a new query select * from Town where key in (?, ?) and bind the 2 parametersHaving a support for variadic parameters list with in clause could improve performance: single hop to get the data // fetching server side</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Relation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.AbstractMarker.java</file>
+      <file type="M">doc.cql3.CQL.textile</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4952" opendate="2012-11-13 00:00:00" fixdate="2012-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add blocking force compaction (and anything else) calls to NodeProbe</summary>
+      <description>There are times when I'd like to get feedback about when compactions complete. For example, if I'm deleting data from cassandra and want to know when it is 100% removed from cassandra (tombstones collected and all). This is completely trivial to implement based on the existing code (the method called by the non-blocking version returns a future, so you could just wait on that, potentially with a timeout).</description>
+      <version>1.2.10,2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5614" opendate="2013-6-5 00:00:00" fixdate="2013-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>W/O specified columns ASPCSI does not get notified of deletes</summary>
+      <description>I'm working on a secondary index implementation based on the composite index type.AbstractSimplePerColumnSecondaryIndex.java#delete is not called when CQL delete statements do not specify columns.When I specify columns it is called. Pretty sure this is a bug.Setup:cqlsh&gt; create KEYSPACE foo WITH replication = {'class': 'SimpleStrategy' , 'replication_factor': 1};cqlsh&gt; use foo;cqlsh:foo&gt; CREATE TABLE albums (artist text, album text, rating int, release int, PRIMARY KEY (artist, album));cqlsh:foo&gt; CREATE INDEX ON albums (rating);cqlsh:foo&gt; insert into albums (artist, album, rating, release) VALUES ('artist', 'album', 1, 2);Does not get called here:cqlsh:foo&gt; DELETE FROM albums where artist='artist' and album='album';cqlsh:foo&gt; insert into albums (artist, album, rating, release) VALUES ('artist', 'album', 1, 2);gets called here:cqlsh:foo&gt; DELETE rating FROM albums where artist='artist' and album='album';</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.RangeTombstone.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DeletionInfo.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.PrecompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.RangeTombstoneTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.AtomicSortedColumns.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5722" opendate="2013-7-3 00:00:00" fixdate="2013-8-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cleanup should skip sstables that don&amp;#39;t contain data outside a nodes ranges</summary>
+      <description>Right now cleanup is optimized to simply delete sstables that only contain data that doesn't belong on the node, for all other sstables though, it will read them, check each row, and write out new sstables.Cleanup could be optimized to look at an sstable and determine that all data within the sstable does belong on a node, and therefore skip re-writing that sstable. This would make cleanup essentially a noop in the case where all data on a node belongs on that node.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.CompactionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.SegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.IPartitioner.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5754" opendate="2013-7-13 00:00:00" fixdate="2013-7-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>remove unused cli option schema-mwt</summary>
+      <description>code processes schema-mwt command line option but does nothing with it... removed.</description>
+      <version>2.0.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliSessionState.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliOptions.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5796" opendate="2013-7-24 00:00:00" fixdate="2013-9-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cqlsh should return a result in the case of a CAS INSERT/UPDATE</summary>
+      <description>Right now cqlsh behave with INSERT/UPDATE...IF the same way it does for regular INSERT/UPDATE statements, that is without displaying anything if there were no error.Ideally it should display the ResultSet returned by these CAS statements as defined in CASSANDRA-5619.</description>
+      <version>2.0.1</version>
+      <fixedVersion>Feature/LightweightTransactions,Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5862" opendate="2013-8-8 00:00:00" fixdate="2013-8-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Switch to adler checksum for sstables</summary>
+      <description>Adler is significantly faster than CRC32: http://java-performance.info/java-crc32-and-adler32/(Adler is weaker for short inputs, so we should leave the commitlog alone, as it checksums each mutation individually.)</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.streaming.compress.CompressedInputStreamTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.compress.CompressedRandomAccessReaderTest.java</file>
+      <file type="M">test.data.serialization.2.0.db.RowMutation.bin</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.compress.CompressedStreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.compress.CompressedInputStream.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.Descriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressedSequentialWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressedRandomAccessReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5875" opendate="2013-8-10 00:00:00" fixdate="2013-8-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Ambiguous error message: "You must specify one and only one PRIMARY KEY"</summary>
+      <description>Minor issue, but might be beneficial for new people. I was missing a primary key but thought it meant there was more than one primary key, and was confused for a minute. Here is the current error: Caused by: com.datastax.driver.core.exceptions.InvalidQueryException: You must specify one and only one PRIMARY KEY at com.datastax.driver.core.ResultSetFuture.convertException(ResultSetFuture.java:252) at com.datastax.driver.core.ResultSetFuture$ResponseCallback.onSet(ResultSetFuture.java:119) at com.datastax.driver.core.RequestHandler.setFinalResult(RequestHandler.java:202) at com.datastax.driver.core.RequestHandler.onSet(RequestHandler.java:319)Recommend considering two different error messages, ie: No primary keys were found, when exactly one is required. Multiple primary keys were found, when exactly one may be specified.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTableStatement.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5884" opendate="2013-8-13 00:00:00" fixdate="2013-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve offheap memory performance</summary>
+      <description>Currently getting data to and from offheap is slow due to individual calls to getByte() and putByte()The following patch makes this a single call and is 10x fasterbenchmark: [java] 0% Scenario{vm=java, trial=0, benchmark=GetBytesOld} 82266.48 ns; σ=2532.87 ns @ 10 trials [java] 50% Scenario{vm=java, trial=0, benchmark=GetBytesNew} 7876.95 ns; σ=489.78 ns @ 10 trials [java] [java] benchmark us linear runtime [java] GetBytesOld 82.27 ============================== [java] GetBytesNew 7.88 == [java] [java] vm: java [java] trial: 0</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.Memory.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5919" opendate="2013-8-22 00:00:00" fixdate="2013-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>reduce Map allocation from one per HH column to just one</summary>
+      <description>code allocates a map per hinted handoff column for tracking of cf truncation times. Changed to just one map for the whole hh delivery.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5921" opendate="2013-8-22 00:00:00" fixdate="2013-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t return empty list when the L0 compaction candidates could cause overlap in L1</summary>
+      <description>Followup to CASSANDRA-5907 - instead of returning empty list when the compaction candidates could cause overlap in L1, remove sstables that would cause the overlap from the candidates.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5952" opendate="2013-8-29 00:00:00" fixdate="2013-8-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>report compression ratio via nodetool cfstats</summary>
+      <description>CASSANDRA-3393 adds a getCompressionRatio JMX call, and was originally supposed to also expose this value per CF via nodetool cfstats.However, the nodetool cfstats part was not done in CASSANDRA-3393. This ticket serves as a request to expose this valuable data about compression via nodetool cfstats.(cc: vijay2win@yahoo.com, who did the CASSANDRA-3393 work)</description>
+      <version>1.2.10,2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5958" opendate="2013-8-30 00:00:00" fixdate="2013-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"Unable to find property" errors from snakeyaml are confusing</summary>
+      <description>When an unexpected property is present in cassandra.yaml (e.g. after upgrading), snakeyaml outputs the following message:Unable to find property 'some_property' on class: org.apache.cassandra.config.ConfigThe error message is kind of counterintuitive because at first glance it seems to suggest the property is missing from the yaml file, when in fact the error is caused by the presence of an unrecognized property. I know if you read it carefully it says it can't find the property on the class, but this has confused more than one user.I think we should catch this exception and wrap it in another exception that says something like this:Please remove 'some_property' from your cassandra.yaml. It is not recognized by this version of Cassandra.Also, it might make sense to make this a warning instead of a fatal error, and just ignore the unwanted property.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.YamlConfigurationLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5963" opendate="2013-8-30 00:00:00" fixdate="2013-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Require superuser status for adding triggers</summary>
+      <description>You can do anything from within ITrigger.augment(), bypassing any authorization checks. The only fix is to require superuser status for CREATE TRIGGER and CF updates via Thrift that involve triggers.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.DropTriggerStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTriggerStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5967" opendate="2013-9-1 00:00:00" fixdate="2013-9-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow local batchlog writes for CL.ANY</summary>
+      <description>We tell people that ANY means you can write if even a single node is reachable. We should apply that to batchlog writes as well.Note: we already allow local batchlog writes for any single-node datacenter; batchlog writes are synchronous, so cross-dc latency would be slow enough to be unusable.</description>
+      <version>1.2.10,2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5975" opendate="2013-9-3 00:00:00" fixdate="2013-9-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Filtering on Secondary Index Takes a Long Time Even with Limit 1, Trace Log Filled with Looping Messages</summary>
+      <description>After creating a table with 300,000 keys. Attempting to filter on a column with a secondary index causes an rpc timeout. Using a limit statement does not alleviate the problem. The tracing log appears to be filled with the same set of messages repeated over and over until the query times out. The data was created with the attached script and the commandpython create_data.py --num-keys 300000 --num-columns 50 --keyspace 'ks' --columnfamily cf_300000_keys_50_cols --create-index y -v 3The query causing the delay isselect * from cf_300000_keys_50_cols where color = 'green' limit 1;An excerpt of the trace logTracing session: cedbead0-14d7-11e3-915e-999f6c86239a activity | timestamp | source | source_elapsed-----------------------------------------------------------------------------------+--------------+--------------+---------------- execute_cql3_query | 20:31:27,230 | 10.196.1.106 | 0 Parsing select * from cf_300000_keys_50_cols where color = 'green' limit 1; | 20:31:27,230 | 10.196.1.106 | 31 Peparing statement | 20:31:27,230 | 10.196.1.106 | 219 Determining replicas to query | 20:31:27,230 | 10.196.1.106 | 563 Executing indexed scan for [min(-9223372036854775808), min(-9223372036854775808)] | 20:31:27,232 | 10.196.1.106 | 1816 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,232 | 10.196.1.106 | 2036 Acquiring sstable references | 20:31:27,232 | 10.196.1.106 | 2201 Merging memtable tombstones | 20:31:27,232 | 10.196.1.106 | 2345 Key cache hit for sstable 3 | 20:31:27,232 | 10.196.1.106 | 2493 Seeking to partition beginning in data file | 20:31:27,232 | 10.196.1.106 | 2555 Key cache hit for sstable 1 | 20:31:27,234 | 10.196.1.106 | 3742 Seeking to partition beginning in data file | 20:31:27,234 | 10.196.1.106 | 3806 Merging data from memtables and 2 sstables | 20:31:27,236 | 10.196.1.106 | 5805 Read 3 live and 0 tombstoned cells | 20:31:27,236 | 10.196.1.106 | 5977 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,236 | 10.196.1.106 | 6166 Acquiring sstable references | 20:31:27,236 | 10.196.1.106 | 6319 Merging memtable tombstones | 20:31:27,236 | 10.196.1.106 | 6382 Key cache hit for sstable 3 | 20:31:27,236 | 10.196.1.106 | 6421 Seeking to partition beginning in data file | 20:31:27,236 | 10.196.1.106 | 6423 Bloom filter allows skipping sstable 2 | 20:31:27,237 | 10.196.1.106 | 7060 Bloom filter allows skipping sstable 1 | 20:31:27,237 | 10.196.1.106 | 7218 Merging data from memtables and 1 sstables | 20:31:27,237 | 10.196.1.106 | 7358 Read 1 live and 0 tombstoned cells | 20:31:27,238 | 10.196.1.106 | 7644 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,238 | 10.196.1.106 | 7855 Acquiring sstable references | 20:31:27,238 | 10.196.1.106 | 8008 Merging memtable tombstones | 20:31:27,238 | 10.196.1.106 | 8072 Bloom filter allows skipping sstable 3 | 20:31:27,238 | 10.196.1.106 | 8225 Bloom filter allows skipping sstable 2 | 20:31:27,238 | 10.196.1.106 | 8284 Key cache hit for sstable 1 | 20:31:27,238 | 10.196.1.106 | 8367 Seeking to partition beginning in data file | 20:31:27,238 | 10.196.1.106 | 8468 Merging data from memtables and 1 sstables | 20:31:27,239 | 10.196.1.106 | 8968 Read 1 live and 0 tombstoned cells | 20:31:27,239 | 10.196.1.106 | 9234 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,239 | 10.196.1.106 | 9405 Acquiring sstable references | 20:31:27,239 | 10.196.1.106 | 9547 Merging memtable tombstones | 20:31:27,240 | 10.196.1.106 | 9608 Key cache hit for sstable 3 | 20:31:27,240 | 10.196.1.106 | 9700 Seeking to partition indexed section in data file | 20:31:27,240 | 10.196.1.106 | 9884 Key cache hit for sstable 1 | 20:31:27,240 | 10.196.1.106 | 10005 Seeking to partition indexed section in data file | 20:31:27,240 | 10.196.1.106 | 10175 Merging data from memtables and 2 sstables | 20:31:27,240 | 10.196.1.106 | 10323 Read 3 live and 0 tombstoned cells | 20:31:27,249 | 10.196.1.106 | 19358 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,249 | 10.196.1.106 | 19516 Acquiring sstable references | 20:31:27,249 | 10.196.1.106 | 19580 Merging memtable tombstones | 20:31:27,250 | 10.196.1.106 | 19670 Key cache hit for sstable 3 | 20:31:27,250 | 10.196.1.106 | 19765 Seeking to partition beginning in data file | 20:31:27,250 | 10.196.1.106 | 19884 Bloom filter allows skipping sstable 2 | 20:31:27,250 | 10.196.1.106 | 20357 Bloom filter allows skipping sstable 1 | 20:31:27,250 | 10.196.1.106 | 20514 Merging data from memtables and 1 sstables | 20:31:27,250 | 10.196.1.106 | 20576 Read 1 live and 0 tombstoned cells | 20:31:27,251 | 10.196.1.106 | 20864 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,251 | 10.196.1.106 | 21072 Acquiring sstable references | 20:31:27,251 | 10.196.1.106 | 21137 Merging memtable tombstones | 20:31:27,251 | 10.196.1.106 | 21315 Key cache hit for sstable 3 | 20:31:27,251 | 10.196.1.106 | 21461 Seeking to partition indexed section in data file | 20:31:27,252 | 10.196.1.106 | 21599 Key cache hit for sstable 1 | 20:31:27,252 | 10.196.1.106 | 21761 Seeking to partition indexed section in data file | 20:31:27,252 | 10.196.1.106 | 21909 Merging data from memtables and 2 sstables | 20:31:27,252 | 10.196.1.106 | 21977 Read 3 live and 0 tombstoned cells | 20:31:27,261 | 10.196.1.106 | 30678 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,261 | 10.196.1.106 | 31153 Acquiring sstable references | 20:31:27,261 | 10.196.1.106 | 31156 Merging memtable tombstones | 20:31:27,261 | 10.196.1.106 | 31221 Key cache hit for sstable 3 | 20:31:27,261 | 10.196.1.106 | 31259 Seeking to partition beginning in data file | 20:31:27,261 | 10.196.1.106 | 31261 Bloom filter allows skipping sstable 2 | 20:31:27,264 | 10.196.1.106 | 33808 Bloom filter allows skipping sstable 1 | 20:31:27,264 | 10.196.1.106 | 33875 Merging data from memtables and 1 sstables | 20:31:27,264 | 10.196.1.106 | 33877 Read 1 live and 0 tombstoned cells | 20:31:27,264 | 10.196.1.106 | 34313 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,264 | 10.196.1.106 | 34488 Acquiring sstable references | 20:31:27,264 | 10.196.1.106 | 34552 Merging memtable tombstones | 20:31:27,265 | 10.196.1.106 | 34642 Key cache hit for sstable 3 | 20:31:27,265 | 10.196.1.106 | 34792 Seeking to partition indexed section in data file | 20:31:27,265 | 10.196.1.106 | 34851 Key cache hit for sstable 1 | 20:31:27,265 | 10.196.1.106 | 35007 Seeking to partition indexed section in data file | 20:31:27,265 | 10.196.1.106 | 35066 Merging data from memtables and 2 sstables | 20:31:27,265 | 10.196.1.106 | 35272 Read 3 live and 0 tombstoned cells | 20:31:27,274 | 10.196.1.106 | 44333 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,274 | 10.196.1.106 | 44529 Acquiring sstable references | 20:31:27,275 | 10.196.1.106 | 44686 Merging memtable tombstones | 20:31:27,275 | 10.196.1.106 | 44752 Bloom filter allows skipping sstable 3 | 20:31:27,275 | 10.196.1.106 | 44766 Bloom filter allows skipping sstable 2 | 20:31:27,275 | 10.196.1.106 | 45021 Key cache hit for sstable 1 | 20:31:27,275 | 10.196.1.106 | 45163 Seeking to partition beginning in data file | 20:31:27,275 | 10.196.1.106 | 45241 Merging data from memtables and 1 sstables | 20:31:27,276 | 10.196.1.106 | 45719 Read 1 live and 0 tombstoned cells | 20:31:27,276 | 10.196.1.106 | 45985 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,276 | 10.196.1.106 | 46171 Acquiring sstable references | 20:31:27,276 | 10.196.1.106 | 46235 Merging memtable tombstones | 20:31:27,276 | 10.196.1.106 | 46325 Key cache hit for sstable 3 | 20:31:27,276 | 10.196.1.106 | 46501 Seeking to partition indexed section in data file | 20:31:27,276 | 10.196.1.106 | 46561 Key cache hit for sstable 1 | 20:31:27,277 | 10.196.1.106 | 46652 Seeking to partition indexed section in data file | 20:31:27,277 | 10.196.1.106 | 46853 Merging data from memtables and 2 sstables | 20:31:27,277 | 10.196.1.106 | 46922 Read 3 live and 0 tombstoned cells | 20:31:27,286 | 10.196.1.106 | 56025 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,286 | 10.196.1.106 | 56198 Acquiring sstable references | 20:31:27,286 | 10.196.1.106 | 56264 Merging memtable tombstones | 20:31:27,286 | 10.196.1.106 | 56352 Bloom filter allows skipping sstable 3 | 20:31:27,286 | 10.196.1.106 | 56439 Bloom filter allows skipping sstable 2 | 20:31:27,286 | 10.196.1.106 | 56543 Key cache hit for sstable 1 | 20:31:27,287 | 10.196.1.106 | 56631 Seeking to partition beginning in data file | 20:31:27,287 | 10.196.1.106 | 56634 Merging data from memtables and 1 sstables | 20:31:27,287 | 10.196.1.106 | 57194 Read 1 live and 0 tombstoned cells | 20:31:27,287 | 10.196.1.106 | 57494 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,288 | 10.196.1.106 | 57672 Acquiring sstable references | 20:31:27,288 | 10.196.1.106 | 57736 Merging memtable tombstones | 20:31:27,288 | 10.196.1.106 | 57922 Key cache hit for sstable 3 | 20:31:27,288 | 10.196.1.106 | 58047 Seeking to partition indexed section in data file | 20:31:27,288 | 10.196.1.106 | 58200 Key cache hit for sstable 1 | 20:31:27,288 | 10.196.1.106 | 58351 Seeking to partition indexed section in data file | 20:31:27,289 | 10.196.1.106 | 58783 Merging data from memtables and 2 sstables | 20:31:27,289 | 10.196.1.106 | 58790 Read 3 live and 0 tombstoned cells | 20:31:27,299 | 10.196.1.106 | 69455 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,300 | 10.196.1.106 | 69641 Acquiring sstable references | 20:31:27,300 | 10.196.1.106 | 69707 Merging memtable tombstones | 20:31:27,300 | 10.196.1.106 | 69713 Bloom filter allows skipping sstable 3 | 20:31:27,300 | 10.196.1.106 | 69806 Bloom filter allows skipping sstable 2 | 20:31:27,300 | 10.196.1.106 | 69904 Key cache hit for sstable 1 | 20:31:27,300 | 10.196.1.106 | 69994 Seeking to partition beginning in data file | 20:31:27,300 | 10.196.1.106 | 70297 Merging data from memtables and 1 sstables | 20:31:27,301 | 10.196.1.106 | 70778 Read 1 live and 0 tombstoned cells | 20:31:27,301 | 10.196.1.106 | 71044 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,301 | 10.196.1.106 | 71271 Acquiring sstable references | 20:31:27,301 | 10.196.1.106 | 71335 Merging memtable tombstones | 20:31:27,301 | 10.196.1.106 | 71424 Key cache hit for sstable 3 | 20:31:27,301 | 10.196.1.106 | 71583 Seeking to partition indexed section in data file | 20:31:27,302 | 10.196.1.106 | 71645 Key cache hit for sstable 1 | 20:31:27,302 | 10.196.1.106 | 71882 Seeking to partition indexed section in data file | 20:31:27,302 | 10.196.1.106 | 71940 Merging data from memtables and 2 sstables | 20:31:27,302 | 10.196.1.106 | 72030 Read 3 live and 0 tombstoned cells | 20:31:27,311 | 10.196.1.106 | 81217 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,311 | 10.196.1.106 | 81369 Acquiring sstable references | 20:31:27,311 | 10.196.1.106 | 81515 Merging memtable tombstones | 20:31:27,312 | 10.196.1.106 | 81661 Key cache hit for sstable 3 | 20:31:27,312 | 10.196.1.106 | 81812 Seeking to partition beginning in data file | 20:31:27,312 | 10.196.1.106 | 81873 Bloom filter allows skipping sstable 2 | 20:31:27,312 | 10.196.1.106 | 82409 Bloom filter allows skipping sstable 1 | 20:31:27,312 | 10.196.1.106 | 82479 Merging data from memtables and 1 sstables | 20:31:27,312 | 10.196.1.106 | 82481 Read 1 live and 0 tombstoned cells | 20:31:27,313 | 10.196.1.106 | 82860 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,313 | 10.196.1.106 | 83035 Acquiring sstable references | 20:31:27,313 | 10.196.1.106 | 83099 Merging memtable tombstones | 20:31:27,313 | 10.196.1.106 | 83217 Key cache hit for sstable 3 | 20:31:27,313 | 10.196.1.106 | 83307 Seeking to partition indexed section in data file | 20:31:27,313 | 10.196.1.106 | 83410 Key cache hit for sstable 1 | 20:31:27,314 | 10.196.1.106 | 83588 Seeking to partition indexed section in data file | 20:31:27,314 | 10.196.1.106 | 83652 Merging data from memtables and 2 sstables | 20:31:27,314 | 10.196.1.106 | 83742 Read 3 live and 0 tombstoned cells | 20:31:27,338 | 10.196.1.106 | 108372 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,345 | 10.196.1.106 | 115180 Acquiring sstable references | 20:31:27,345 | 10.196.1.106 | 115183 Merging memtable tombstones | 20:31:27,345 | 10.196.1.106 | 115188 Bloom filter allows skipping sstable 3 | 20:31:27,345 | 10.196.1.106 | 115194 Bloom filter allows skipping sstable 2 | 20:31:27,345 | 10.196.1.106 | 115197 Key cache hit for sstable 1 | 20:31:27,345 | 10.196.1.106 | 115203 Seeking to partition beginning in data file | 20:31:27,345 | 10.196.1.106 | 115205 Merging data from memtables and 1 sstables | 20:31:27,347 | 10.196.1.106 | 116821 Read 1 live and 0 tombstoned cells | 20:31:27,348 | 10.196.1.106 | 117631 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,348 | 10.196.1.106 | 117997 Acquiring sstable references | 20:31:27,348 | 10.196.1.106 | 118000 Merging memtable tombstones | 20:31:27,348 | 10.196.1.106 | 118007 Key cache hit for sstable 3 | 20:31:27,348 | 10.196.1.106 | 118014 Seeking to partition indexed section in data file | 20:31:27,348 | 10.196.1.106 | 118017 Key cache hit for sstable 1 | 20:31:27,348 | 10.196.1.106 | 118023 Seeking to partition indexed section in data file | 20:31:27,348 | 10.196.1.106 | 118025 Merging data from memtables and 2 sstables | 20:31:27,348 | 10.196.1.106 | 118030 Read 3 live and 0 tombstoned cells | 20:31:27,356 | 10.196.1.106 | 126375 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,356 | 10.196.1.106 | 126418 Acquiring sstable references | 20:31:27,356 | 10.196.1.106 | 126421 Merging memtable tombstones | 20:31:27,356 | 10.196.1.106 | 126427 Bloom filter allows skipping sstable 3 | 20:31:27,357 | 10.196.1.106 | 126695 Bloom filter allows skipping sstable 2 | 20:31:27,357 | 10.196.1.106 | 126699 Key cache hit for sstable 1 | 20:31:27,357 | 10.196.1.106 | 126705 Seeking to partition beginning in data file | 20:31:27,357 | 10.196.1.106 | 126708 Merging data from memtables and 1 sstables | 20:31:27,357 | 10.196.1.106 | 127265 Read 1 live and 0 tombstoned cells | 20:31:27,357 | 10.196.1.106 | 127519 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,358 | 10.196.1.106 | 127686 Acquiring sstable references | 20:31:27,358 | 10.196.1.106 | 127694 Merging memtable tombstones | 20:31:27,358 | 10.196.1.106 | 127700 Key cache hit for sstable 3 | 20:31:27,358 | 10.196.1.106 | 127708 Seeking to partition indexed section in data file | 20:31:27,358 | 10.196.1.106 | 127710 Key cache hit for sstable 1 | 20:31:27,358 | 10.196.1.106 | 127716 Seeking to partition indexed section in data file | 20:31:27,358 | 10.196.1.106 | 127718 Merging data from memtables and 2 sstables | 20:31:27,358 | 10.196.1.106 | 127722 Read 3 live and 0 tombstoned cells | 20:31:27,366 | 10.196.1.106 | 135976 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,366 | 10.196.1.106 | 136018 Acquiring sstable references | 20:31:27,366 | 10.196.1.106 | 136020 Merging memtable tombstones | 20:31:27,366 | 10.196.1.106 | 136026 Bloom filter allows skipping sstable 3 | 20:31:27,366 | 10.196.1.106 | 136032 Bloom filter allows skipping sstable 2 | 20:31:27,366 | 10.196.1.106 | 136035 Key cache hit for sstable 1 | 20:31:27,366 | 10.196.1.106 | 136040 Seeking to partition beginning in data file | 20:31:27,366 | 10.196.1.106 | 136043 Merging data from memtables and 1 sstables | 20:31:27,367 | 10.196.1.106 | 136852 Read 1 live and 0 tombstoned cells | 20:31:27,367 | 10.196.1.106 | 137046 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,367 | 10.196.1.106 | 137154 Acquiring sstable references | 20:31:27,367 | 10.196.1.106 | 137159 Merging memtable tombstones | 20:31:27,367 | 10.196.1.106 | 137165 Key cache hit for sstable 3 | 20:31:27,367 | 10.196.1.106 | 137172 Seeking to partition indexed section in data file | 20:31:27,367 | 10.196.1.106 | 137175 Key cache hit for sstable 1 | 20:31:27,367 | 10.196.1.106 | 137181 Seeking to partition indexed section in data file | 20:31:27,367 | 10.196.1.106 | 137183 Merging data from memtables and 2 sstables | 20:31:27,367 | 10.196.1.106 | 137187 Read 3 live and 0 tombstoned cells | 20:31:27,375 | 10.196.1.106 | 145161 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,375 | 10.196.1.106 | 145195 Acquiring sstable references | 20:31:27,375 | 10.196.1.106 | 145198 Merging memtable tombstones | 20:31:27,375 | 10.196.1.106 | 145203 Key cache hit for sstable 3 | 20:31:27,375 | 10.196.1.106 | 145212 Seeking to partition beginning in data file | 20:31:27,375 | 10.196.1.106 | 145214 Bloom filter allows skipping sstable 2 | 20:31:27,376 | 10.196.1.106 | 146059 Bloom filter allows skipping sstable 1 | 20:31:27,376 | 10.196.1.106 | 146063 Merging data from memtables and 1 sstables | 20:31:27,376 | 10.196.1.106 | 146066 Read 1 live and 0 tombstoned cells | 20:31:27,376 | 10.196.1.106 | 146295 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,376 | 10.196.1.106 | 146416 Acquiring sstable references | 20:31:27,376 | 10.196.1.106 | 146419 Merging memtable tombstones | 20:31:27,376 | 10.196.1.106 | 146425 Key cache hit for sstable 3 | 20:31:27,376 | 10.196.1.106 | 146433 Seeking to partition indexed section in data file | 20:31:27,376 | 10.196.1.106 | 146435 Key cache hit for sstable 1 | 20:31:27,376 | 10.196.1.106 | 146441 Seeking to partition indexed section in data file | 20:31:27,376 | 10.196.1.106 | 146443 Merging data from memtables and 2 sstables | 20:31:27,376 | 10.196.1.106 | 146447 Read 3 live and 0 tombstoned cells | 20:31:27,384 | 10.196.1.106 | 153664 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,384 | 10.196.1.106 | 153708 Acquiring sstable references | 20:31:27,384 | 10.196.1.106 | 153711 Merging memtable tombstones | 20:31:27,384 | 10.196.1.106 | 153717 Key cache hit for sstable 3 | 20:31:27,384 | 10.196.1.106 | 153899 Seeking to partition beginning in data file | 20:31:27,384 | 10.196.1.106 | 153902 Bloom filter allows skipping sstable 2 | 20:31:27,384 | 10.196.1.106 | 154556 Bloom filter allows skipping sstable 1 | 20:31:27,384 | 10.196.1.106 | 154566 Merging data from memtables and 1 sstables | 20:31:27,384 | 10.196.1.106 | 154568 Read 1 live and 0 tombstoned cells | 20:31:27,385 | 10.196.1.106 | 155041 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,385 | 10.196.1.106 | 155112 Acquiring sstable references | 20:31:27,385 | 10.196.1.106 | 155156 Merging memtable tombstones | 20:31:27,385 | 10.196.1.106 | 155163 Key cache hit for sstable 3 | 20:31:27,385 | 10.196.1.106 | 155171 Seeking to partition indexed section in data file | 20:31:27,385 | 10.196.1.106 | 155173 Key cache hit for sstable 1 | 20:31:27,385 | 10.196.1.106 | 155179 Seeking to partition indexed section in data file | 20:31:27,385 | 10.196.1.106 | 155181 Merging data from memtables and 2 sstables | 20:31:27,385 | 10.196.1.106 | 155185 Read 3 live and 0 tombstoned cells | 20:31:27,393 | 10.196.1.106 | 163321 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,393 | 10.196.1.106 | 163365 Acquiring sstable references | 20:31:27,393 | 10.196.1.106 | 163367 Merging memtable tombstones | 20:31:27,393 | 10.196.1.106 | 163373 Bloom filter allows skipping sstable 3 | 20:31:27,393 | 10.196.1.106 | 163379 Bloom filter allows skipping sstable 2 | 20:31:27,393 | 10.196.1.106 | 163382 Key cache hit for sstable 1 | 20:31:27,393 | 10.196.1.106 | 163387 Seeking to partition beginning in data file | 20:31:27,393 | 10.196.1.106 | 163389 Merging data from memtables and 1 sstables | 20:31:27,394 | 10.196.1.106 | 164206 Read 1 live and 0 tombstoned cells | 20:31:27,394 | 10.196.1.106 | 164397 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,394 | 10.196.1.106 | 164562 Acquiring sstable references | 20:31:27,394 | 10.196.1.106 | 164570 Merging memtable tombstones | 20:31:27,394 | 10.196.1.106 | 164576 Key cache hit for sstable 3 | 20:31:27,394 | 10.196.1.106 | 164584 Seeking to partition indexed section in data file | 20:31:27,394 | 10.196.1.106 | 164587 Key cache hit for sstable 1 | 20:31:27,395 | 10.196.1.106 | 164593 Seeking to partition indexed section in data file | 20:31:27,395 | 10.196.1.106 | 164595 Merging data from memtables and 2 sstables | 20:31:27,395 | 10.196.1.106 | 164599 Read 3 live and 0 tombstoned cells | 20:31:27,403 | 10.196.1.106 | 172818 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,403 | 10.196.1.106 | 172860 Acquiring sstable references | 20:31:27,403 | 10.196.1.106 | 172862 Merging memtable tombstones | 20:31:27,403 | 10.196.1.106 | 172868 Bloom filter allows skipping sstable 3 | 20:31:27,403 | 10.196.1.106 | 172967 Bloom filter allows skipping sstable 2 | 20:31:27,403 | 10.196.1.106 | 172971 Key cache hit for sstable 1 | 20:31:27,403 | 10.196.1.106 | 172979 Seeking to partition beginning in data file | 20:31:27,403 | 10.196.1.106 | 172982 Merging data from memtables and 1 sstables | 20:31:27,404 | 10.196.1.106 | 173735 Read 1 live and 0 tombstoned cells | 20:31:27,404 | 10.196.1.106 | 173923 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,404 | 10.196.1.106 | 174088 Acquiring sstable references | 20:31:27,404 | 10.196.1.106 | 174096 Merging memtable tombstones | 20:31:27,404 | 10.196.1.106 | 174102 Key cache hit for sstable 3 | 20:31:27,404 | 10.196.1.106 | 174110 Seeking to partition indexed section in data file | 20:31:27,404 | 10.196.1.106 | 174112 Key cache hit for sstable 1 | 20:31:27,404 | 10.196.1.106 | 174119 Seeking to partition indexed section in data file | 20:31:27,404 | 10.196.1.106 | 174121 Merging data from memtables and 2 sstables | 20:31:27,404 | 10.196.1.106 | 174124 Read 3 live and 0 tombstoned cells | 20:31:27,414 | 10.196.1.106 | 183917 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,414 | 10.196.1.106 | 183959 Acquiring sstable references | 20:31:27,414 | 10.196.1.106 | 183961 Merging memtable tombstones | 20:31:27,414 | 10.196.1.106 | 183967 Bloom filter allows skipping sstable 3 | 20:31:27,414 | 10.196.1.106 | 183973 Bloom filter allows skipping sstable 2 | 20:31:27,414 | 10.196.1.106 | 183976 Key cache hit for sstable 1 | 20:31:27,414 | 10.196.1.106 | 183982 Seeking to partition beginning in data file | 20:31:27,414 | 10.196.1.106 | 183984 Merging data from memtables and 1 sstables | 20:31:27,415 | 10.196.1.106 | 184807 Read 1 live and 0 tombstoned cells | 20:31:27,415 | 10.196.1.106 | 184994 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,415 | 10.196.1.106 | 185105 Acquiring sstable references | 20:31:27,415 | 10.196.1.106 | 185108 Merging memtable tombstones | 20:31:27,415 | 10.196.1.106 | 185114 Key cache hit for sstable 3 | 20:31:27,415 | 10.196.1.106 | 185134 Seeking to partition indexed section in data file | 20:31:27,415 | 10.196.1.106 | 185136 Key cache hit for sstable 1 | 20:31:27,415 | 10.196.1.106 | 185142 Seeking to partition indexed section in data file | 20:31:27,415 | 10.196.1.106 | 185144 Merging data from memtables and 2 sstables | 20:31:27,415 | 10.196.1.106 | 185148 Read 3 live and 0 tombstoned cells | 20:31:27,423 | 10.196.1.106 | 193586 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,424 | 10.196.1.106 | 193635 Acquiring sstable references | 20:31:27,424 | 10.196.1.106 | 193638 Merging memtable tombstones | 20:31:27,424 | 10.196.1.106 | 193643 Bloom filter allows skipping sstable 3 | 20:31:27,424 | 10.196.1.106 | 193649 Bloom filter allows skipping sstable 2 | 20:31:27,424 | 10.196.1.106 | 193652 Key cache hit for sstable 1 | 20:31:27,424 | 10.196.1.106 | 193657 Seeking to partition beginning in data file | 20:31:27,424 | 10.196.1.106 | 193660 Merging data from memtables and 1 sstables | 20:31:27,424 | 10.196.1.106 | 194274 Read 1 live and 0 tombstoned cells | 20:31:27,424 | 10.196.1.106 | 194483 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,425 | 10.196.1.106 | 194597 Acquiring sstable references | 20:31:27,425 | 10.196.1.106 | 194605 Merging memtable tombstones | 20:31:27,425 | 10.196.1.106 | 194611 Key cache hit for sstable 3 | 20:31:27,425 | 10.196.1.106 | 194619 Seeking to partition indexed section in data file | 20:31:27,425 | 10.196.1.106 | 194621 Key cache hit for sstable 1 | 20:31:27,425 | 10.196.1.106 | 194627 Seeking to partition indexed section in data file | 20:31:27,425 | 10.196.1.106 | 194629 Merging data from memtables and 2 sstables | 20:31:27,425 | 10.196.1.106 | 194633 Read 3 live and 0 tombstoned cells | 20:31:27,433 | 10.196.1.106 | 203042 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,433 | 10.196.1.106 | 203084 Acquiring sstable references | 20:31:27,433 | 10.196.1.106 | 203086 Merging memtable tombstones | 20:31:27,433 | 10.196.1.106 | 203092 Bloom filter allows skipping sstable 3 | 20:31:27,433 | 10.196.1.106 | 203097 Bloom filter allows skipping sstable 2 | 20:31:27,433 | 10.196.1.106 | 203100 Key cache hit for sstable 1 | 20:31:27,433 | 10.196.1.106 | 203106 Seeking to partition beginning in data file | 20:31:27,433 | 10.196.1.106 | 203108 Merging data from memtables and 1 sstables | 20:31:27,434 | 10.196.1.106 | 203598 Read 1 live and 0 tombstoned cells | 20:31:27,434 | 10.196.1.106 | 203942 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,434 | 10.196.1.106 | 204112 Acquiring sstable references | 20:31:27,434 | 10.196.1.106 | 204120 Merging memtable tombstones | 20:31:27,434 | 10.196.1.106 | 204126 Key cache hit for sstable 3 | 20:31:27,434 | 10.196.1.106 | 204134 Seeking to partition indexed section in data file | 20:31:27,434 | 10.196.1.106 | 204136 Key cache hit for sstable 1 | 20:31:27,434 | 10.196.1.106 | 204142 Seeking to partition indexed section in data file | 20:31:27,434 | 10.196.1.106 | 204144 Merging data from memtables and 2 sstables | 20:31:27,434 | 10.196.1.106 | 204148 Read 3 live and 0 tombstoned cells | 20:31:27,441 | 10.196.1.106 | 211397 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,441 | 10.196.1.106 | 211439 Acquiring sstable references | 20:31:27,441 | 10.196.1.106 | 211441 Merging memtable tombstones | 20:31:27,441 | 10.196.1.106 | 211447 Bloom filter allows skipping sstable 3 | 20:31:27,442 | 10.196.1.106 | 211546 Bloom filter allows skipping sstable 2 | 20:31:27,442 | 10.196.1.106 | 211732 Key cache hit for sstable 1 | 20:31:27,442 | 10.196.1.106 | 211737 Seeking to partition beginning in data file | 20:31:27,442 | 10.196.1.106 | 211739 Merging data from memtables and 1 sstables | 20:31:27,442 | 10.196.1.106 | 212484 Read 1 live and 0 tombstoned cells | 20:31:27,443 | 10.196.1.106 | 212809 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,443 | 10.196.1.106 | 212918 Acquiring sstable references | 20:31:27,443 | 10.196.1.106 | 212921 Merging memtable tombstones | 20:31:27,443 | 10.196.1.106 | 212927 Key cache hit for sstable 3 | 20:31:27,443 | 10.196.1.106 | 212934 Seeking to partition indexed section in data file | 20:31:27,443 | 10.196.1.106 | 212936 Key cache hit for sstable 1 | 20:31:27,443 | 10.196.1.106 | 212943 Seeking to partition indexed section in data file | 20:31:27,443 | 10.196.1.106 | 212945 Merging data from memtables and 2 sstables | 20:31:27,443 | 10.196.1.106 | 212949 Read 3 live and 0 tombstoned cells | 20:31:27,451 | 10.196.1.106 | 220911 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,451 | 10.196.1.106 | 220954 Acquiring sstable references | 20:31:27,451 | 10.196.1.106 | 220956 Merging memtable tombstones | 20:31:27,451 | 10.196.1.106 | 220962 Bloom filter allows skipping sstable 3 | 20:31:27,451 | 10.196.1.106 | 220968 Bloom filter allows skipping sstable 2 | 20:31:27,451 | 10.196.1.106 | 220971 Key cache hit for sstable 1 | 20:31:27,451 | 10.196.1.106 | 220976 Seeking to partition beginning in data file | 20:31:27,451 | 10.196.1.106 | 220979 Merging data from memtables and 1 sstables | 20:31:27,452 | 10.196.1.106 | 221774 Read 1 live and 0 tombstoned cells | 20:31:27,452 | 10.196.1.106 | 221965 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,452 | 10.196.1.106 | 222093 Acquiring sstable references | 20:31:27,452 | 10.196.1.106 | 222101 Merging memtable tombstones | 20:31:27,452 | 10.196.1.106 | 222108 Key cache hit for sstable 3 | 20:31:27,452 | 10.196.1.106 | 222115 Seeking to partition indexed section in data file | 20:31:27,452 | 10.196.1.106 | 222118 Key cache hit for sstable 1 | 20:31:27,452 | 10.196.1.106 | 222124 Seeking to partition indexed section in data file | 20:31:27,452 | 10.196.1.106 | 222126 Merging data from memtables and 2 sstables | 20:31:27,452 | 10.196.1.106 | 222130 Read 3 live and 0 tombstoned cells | 20:31:27,460 | 10.196.1.106 | 230378 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,460 | 10.196.1.106 | 230420 Acquiring sstable references | 20:31:27,460 | 10.196.1.106 | 230422 Merging memtable tombstones | 20:31:27,460 | 10.196.1.106 | 230428 Bloom filter allows skipping sstable 3 | 20:31:27,461 | 10.196.1.106 | 230527 Bloom filter allows skipping sstable 2 | 20:31:27,461 | 10.196.1.106 | 230619 Key cache hit for sstable 1 | 20:31:27,461 | 10.196.1.106 | 230624 Seeking to partition beginning in data file | 20:31:27,461 | 10.196.1.106 | 230627 Merging data from memtables and 1 sstables | 20:31:27,461 | 10.196.1.106 | 231223 Read 1 live and 0 tombstoned cells | 20:31:27,461 | 10.196.1.106 | 231419 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,461 | 10.196.1.106 | 231531 Acquiring sstable references | 20:31:27,461 | 10.196.1.106 | 231540 Merging memtable tombstones | 20:31:27,461 | 10.196.1.106 | 231545 Key cache hit for sstable 3 | 20:31:27,461 | 10.196.1.106 | 231553 Seeking to partition indexed section in data file | 20:31:27,461 | 10.196.1.106 | 231555 Key cache hit for sstable 1 | 20:31:27,461 | 10.196.1.106 | 231562 Seeking to partition indexed section in data file | 20:31:27,461 | 10.196.1.106 | 231564 Merging data from memtables and 2 sstables | 20:31:27,461 | 10.196.1.106 | 231568 Read 3 live and 0 tombstoned cells | 20:31:27,470 | 10.196.1.106 | 239976 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,470 | 10.196.1.106 | 240020 Acquiring sstable references | 20:31:27,470 | 10.196.1.106 | 240022 Merging memtable tombstones | 20:31:27,470 | 10.196.1.106 | 240028 Bloom filter allows skipping sstable 3 | 20:31:27,470 | 10.196.1.106 | 240034 Bloom filter allows skipping sstable 2 | 20:31:27,470 | 10.196.1.106 | 240037 Key cache hit for sstable 1 | 20:31:27,470 | 10.196.1.106 | 240054 Seeking to partition beginning in data file | 20:31:27,470 | 10.196.1.106 | 240093 Merging data from memtables and 1 sstables | 20:31:27,470 | 10.196.1.106 | 240585 Read 1 live and 0 tombstoned cells | 20:31:27,471 | 10.196.1.106 | 240885 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,471 | 10.196.1.106 | 240993 Acquiring sstable references | 20:31:27,471 | 10.196.1.106 | 240997 Merging memtable tombstones | 20:31:27,471 | 10.196.1.106 | 241003 Key cache hit for sstable 3 | 20:31:27,471 | 10.196.1.106 | 241011 Seeking to partition indexed section in data file | 20:31:27,471 | 10.196.1.106 | 241013 Key cache hit for sstable 1 | 20:31:27,471 | 10.196.1.106 | 241019 Seeking to partition indexed section in data file | 20:31:27,471 | 10.196.1.106 | 241020 Merging data from memtables and 2 sstables | 20:31:27,471 | 10.196.1.106 | 241028 Read 3 live and 0 tombstoned cells | 20:31:27,479 | 10.196.1.106 | 249225 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,479 | 10.196.1.106 | 249265 Acquiring sstable references | 20:31:27,479 | 10.196.1.106 | 249267 Merging memtable tombstones | 20:31:27,479 | 10.196.1.106 | 249273 Bloom filter allows skipping sstable 3 | 20:31:27,479 | 10.196.1.106 | 249279 Bloom filter allows skipping sstable 2 | 20:31:27,479 | 10.196.1.106 | 249282 Key cache hit for sstable 1 | 20:31:27,479 | 10.196.1.106 | 249287 Seeking to partition beginning in data file | 20:31:27,479 | 10.196.1.106 | 249289 Merging data from memtables and 1 sstables | 20:31:27,479 | 10.196.1.106 | 249296 Read 1 live and 0 tombstoned cells | 20:31:27,479 | 10.196.1.106 | 249558 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,480 | 10.196.1.106 | 249655 Acquiring sstable references | 20:31:27,480 | 10.196.1.106 | 249658 Merging memtable tombstones | 20:31:27,480 | 10.196.1.106 | 249755 Key cache hit for sstable 3 | 20:31:27,480 | 10.196.1.106 | 249763 Seeking to partition indexed section in data file | 20:31:27,480 | 10.196.1.106 | 249765 Key cache hit for sstable 1 | 20:31:27,480 | 10.196.1.106 | 249772 Seeking to partition indexed section in data file | 20:31:27,480 | 10.196.1.106 | 249774 Merging data from memtables and 2 sstables | 20:31:27,480 | 10.196.1.106 | 249778 Read 3 live and 0 tombstoned cells | 20:31:27,487 | 10.196.1.106 | 257542 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,487 | 10.196.1.106 | 257575 Acquiring sstable references | 20:31:27,488 | 10.196.1.106 | 257610 Merging memtable tombstones | 20:31:27,488 | 10.196.1.106 | 257616 Bloom filter allows skipping sstable 3 | 20:31:27,488 | 10.196.1.106 | 257622 Bloom filter allows skipping sstable 2 | 20:31:27,488 | 10.196.1.106 | 257625 Key cache hit for sstable 1 | 20:31:27,488 | 10.196.1.106 | 257631 Seeking to partition beginning in data file | 20:31:27,488 | 10.196.1.106 | 257633 Merging data from memtables and 1 sstables | 20:31:27,488 | 10.196.1.106 | 258473 Read 1 live and 0 tombstoned cells | 20:31:27,489 | 10.196.1.106 | 259067 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,489 | 10.196.1.106 | 259197 Acquiring sstable references | 20:31:27,489 | 10.196.1.106 | 259200 Merging memtable tombstones | 20:31:27,489 | 10.196.1.106 | 259206 Key cache hit for sstable 3 | 20:31:27,489 | 10.196.1.106 | 259214 Seeking to partition indexed section in data file | 20:31:27,489 | 10.196.1.106 | 259216 Key cache hit for sstable 1 | 20:31:27,489 | 10.196.1.106 | 259222 Seeking to partition indexed section in data file | 20:31:27,489 | 10.196.1.106 | 259224 Merging data from memtables and 2 sstables | 20:31:27,489 | 10.196.1.106 | 259319 Read 3 live and 0 tombstoned cells | 20:31:27,497 | 10.196.1.106 | 267071 Executing single-partition query on cf_300000_keys_50_cols | 20:31:27,497 | 10.196.1.106 | 267135 Acquiring sstable references | 20:31:27,497 | 10.196.1.106 | 267137 Merging memtable tombstones | 20:31:27,497 | 10.196.1.106 | 267143 Key cache hit for sstable 3 | 20:31:27,497 | 10.196.1.106 | 267151 Seeking to partition beginning in data file | 20:31:27,497 | 10.196.1.106 | 267154 Bloom filter allows skipping sstable 2 | 20:31:27,498 | 10.196.1.106 | 267943 Bloom filter allows skipping sstable 1 | 20:31:27,498 | 10.196.1.106 | 267957 Merging data from memtables and 1 sstables | 20:31:27,498 | 10.196.1.106 | 267960 Read 1 live and 0 tombstoned cells | 20:31:27,498 | 10.196.1.106 | 268176 Executing single-partition query on cf_300000_keys_50_cols.color | 20:31:27,498 | 10.196.1.106 | 268271 Acquiring sstable references | 20:31:27,498 | 10.196.1.106 | 268274 Merging memtable tombstones | 20:31:27,498 | 10.196.1.106 | 268280 Key cache hit for sstable 3 | 20:31:27,498 | ...</description>
+      <version>1.2.10,2.0.1</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.index.composites.CompositesSearcher.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5980" opendate="2013-9-5 00:00:00" fixdate="2013-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow cache keys-to-save to be dynamically set</summary>
+      <description>We have the option {key,row}_cache_keys_to_save so that operators can chose a balance between "can't handle load on cold start" and "takes too long to reboot". However, this can currently only be set at startup. This means that once it has been determined that X is a bad value for keys_to_save another badness inducing restart is required to change X.</description>
+      <version>1.2.11,2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CacheServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CacheService.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5985" opendate="2013-9-8 00:00:00" fixdate="2013-9-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paxos replay of in progress update is incorrect</summary>
+      <description>When we replay inProgress, we need to refresh it with the newly prepared ballot, or it will be (correctly) rejected.</description>
+      <version>2.0.1</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6004" opendate="2013-9-11 00:00:00" fixdate="2013-9-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Performing a "Select count(*)" when replication factor &lt; node count causes assertion error and timeout</summary>
+      <description>When performing a "Select Count()" query on a table belonging to a keyspace with a replication factor less than the total node count, the following error is encountered which ultimately results in an rpc_timeout for the request:ERROR 18:47:54,660 Exception in thread Thread&amp;#91;Thread-5,5,main&amp;#93;java.lang.AssertionError at org.apache.cassandra.db.filter.IDiskAtomFilter$Serializer.deserialize(IDiskAtomFilter.java:116) at org.apache.cassandra.db.RangeSliceCommandSerializer.deserialize(RangeSliceCommand.java:247) at org.apache.cassandra.db.RangeSliceCommandSerializer.deserialize(RangeSliceCommand.java:156) at org.apache.cassandra.net.MessageIn.read(MessageIn.java:99) at org.apache.cassandra.net.IncomingTcpConnection.receiveMessage(IncomingTcpConnection.java:148) at org.apache.cassandra.net.IncomingTcpConnection.handleModernVersion(IncomingTcpConnection.java:125) at org.apache.cassandra.net.IncomingTcpConnection.run(IncomingTcpConnection.java:73)The issue is not encountered when the replication factor is &gt;= node countTo replicate the issue:1) Create the keyspace: CREATE KEYSPACE demodb WITH REPLICATION = {'class' : 'SimpleStrategy', 'replication_factor': 1};2) Create the table CREATE TABLE users ( user_name varchar, password varchar, gender varchar, session_token varchar, state varchar, birth_year bigint, PRIMARY KEY (user_name));3) Do a CQL query: "SELECT count( * ) FROM demodb.users" ;The issue is reproducible even if the table is empty. Both CQLSH and client (astyanax) api calls are affected. Tested on two different clusters (2-node and 8-node)</description>
+      <version>2.0.1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6011" opendate="2013-9-12 00:00:00" fixdate="2013-9-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Race condition in snapshot repair</summary>
+      <description>When we do a snapshot/sequential repair, we use the repair session id as the snapshot name. Unfortunately in Directories.java when we delete a snapshot, we delete it for all column families, even when called on a specific cf store.So what can happen is this:Node B finishes validation compaction for CF1 and Notifies Node ANode B starts to delete snapshot for CF1Node A finishes repair of CF1 and starts repair of CF2Node B takes snapshot of CF2 and starts validation compaction, but the previous validation compaction is still deleting snapshots, so the snapshot it wants to run a validation on gets deleted out from under it.I've only reproduced on 1.2.6, but looking at the code this definitely looks like it exists in 1.2 HEAD. Not positive about 2.0.I think the fix is just to update Directories.java to not delete the snapshot from all column families.</description>
+      <version>1.2.10,2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6013" opendate="2013-9-12 00:00:00" fixdate="2013-9-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CAS may return false but still commit the insert</summary>
+      <description>If a Paxos proposer proposes some value/update and that propose fail, there is no guarantee on whether this value will be accepted or not ultimately. Paxos guarantees that we'll agree on "a" value (for a given round in our case), but does not guarantee that the proposer of the agreed upon value will know it. In particular, if for a given proposal at least one accepter has accepted it but not a quorum does, then that value might (but that's not guaranteed either) be replayed (and committed) by another proposer.Currently, if a proposer A proposes some update U but it is rejected, A will sleep a bit and retry U. But if U was accepted by at least one acceptor, some other proposer B might replay U, succeed and commit it. If A does its retry after that happens, he will prepare, check the condition, and probably find that the conditions don't apply anymore since U has been committed already. It will thus return false, even though U has been in fact committed.Unfortunately I'm not sure there is an easy way for a proposer whose propose fails to know if the update will prevail or not eventually. Which mean the only acceptable solution I can see would be to return to the user "I don't know" (through some exception for instance). Which is annoying because having a proposal rejected won't be an extremely rare occurrence, even with relatively light contention, and returning "I don't know" often is a bit unfriendly.</description>
+      <version>2.0.1</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.paxos.ProposeCallback.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6017" opendate="2013-9-12 00:00:00" fixdate="2013-9-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move hints and exception metrics to o.a.c.metrics</summary>
+      <description>Hints and exception count is still exposed through Storage{Proxy|Service}MBean.Move those to o.a.c.metrics.</description>
+      <version>1.2.10,2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.StorageMetrics.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6023" opendate="2013-9-13 00:00:00" fixdate="2013-9-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CAS should distinguish promised and accepted ballots</summary>
+      <description>Currently, we only keep 1) the most recent promise we've made and 2) the last update we've accepted. But we don't keep the ballot at which that last update was accepted. And because a node always promise to newer ballot, this means an already committed update can be replayed even after another update has been committed. Re-committing a value is fine, but only as long as we've not start a new round yet.Concretely, we can have the following case (with 3 nodes A, B and C) with the current implementation: A proposer P1 prepare and propose a value X at ballot t1. It is accepted by all nodes. A proposer P2 propose at t2 (wanting to commit a new value Y). If say A and B receive the commit of P1 before the propose of P2 but C receives those in the reverse order, we'll current have the following states:A: in-progress = (t2, _), mrc = (t1, X)B: in-progress = (t2, _), mrc = (t1, X)C: in-progress = (t2, X), mrc = (t1, X)Because C has received the t1 commit after promising t2, it won't have removed X during t1 commit (but note that the problem is not during commit, that example still stand if C never receive any commit message). Now, based on the promise of A and B, P2 will propose Y at t2 (C don't see this propose in particular, not before he promise on t3 below at least). A and B accepts, P2 will send a commit for Y. In the meantime a proposer P3 submit a prepare at t3 (for some other irrelevant value) which reaches C before it receives P2 propose&amp;commit. That prepare reaches A and B too, but after the P2 commit. At that point the state will be:A: in-progress = (t3, _), mrc = (t2, Y)B: in-progress = (t3, _), mrc = (t2, Y)C: in-progress = (t3, X), mrc = (t2, Y)In particular, C still has X as update because each time it got a commit, it has promised to a more recent ballot and thus skipped the delete. The value is still X because it has received the P2 propose after having promised t3 and has thus refused it. P3 gets back the promise of say C and A. Both response has t3 as in-progress ballot (and it is more recent than any mrc) but C comes with value X. So P3 will replay X. Assuming no more contention this replay will succeed and X will be committed at t3.At the end of that example, we've comitted X, Y and then X again, even though only P1 has ever proposed X.I believe the correct fix is to keep the ballot of when an update is accepted (instead of using the most recent promised ballot). That way, in the example above, P3 would receive from C a promise on t3, but would know that X was accepted at t1. And so P3 would be able to ignore X since the mrc of A will tell him it's an obsolete value.</description>
+      <version>2.0.1</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.paxos.PrepareResponse.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.paxos.PrepareCallback.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.paxos.PaxosState.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6027" opendate="2013-9-13 00:00:00" fixdate="2013-9-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>&amp;#39;null&amp;#39; error when running sstablesplit on valid sstable</summary>
+      <description>ccm create --cassandra-version git:cassandra-2.0 testccm populate -n 1ccm startccm node1 stress -n 10000000 -o insertccm node1 compactcd ~/.ccm/test/node1/data../bin/sstablesplit -s 100 ./Keyspace1/Standard1/Keyspace1-Standard1-jb-12-Data.dbExpected: single sstable should be split into multiple sstablesGot:Pre-split sstables snapshotted into snapshot pre-split-1379088385051Error splitting SSTableReader(path='./Keyspace1/Standard1/Keyspace1-Standard1-jb-12-Data.db'): nullrunning du -h on the large compacted sstable showed it to be 2.4GBThis is probably related to CASSANDRA-6026; however, it is different. In this bug the split does not occur, whereas in 6026 the split does occur though an error is thrown.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6040" opendate="2013-9-17 00:00:00" fixdate="2013-9-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Paging filter empty rows a bit too agressively</summary>
+      <description>See the attached patch.</description>
+      <version>2.0.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6067" opendate="2013-9-19 00:00:00" fixdate="2013-9-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use non-pooling readers with openForBatch</summary>
+      <description>Looks like CASSANDRA-5555 was incorrectly merged forward.</description>
+      <version>2.0.1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.BufferedSegmentedFile.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6090" opendate="2013-9-24 00:00:00" fixdate="2013-9-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>init.d script not working under Ubuntu</summary>
+      <description>When installing the Cassandra package on Ubuntu, it starts up automatically without writing the PID file.It renders the init.d script useless as it can't status or stop cassandra.I submitted a PR on github to fix this:https://github.com/apache/cassandra/pull/21</description>
+      <version>2.0.1</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

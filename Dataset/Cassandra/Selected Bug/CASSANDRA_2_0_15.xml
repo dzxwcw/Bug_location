@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  <bug fixdate="2014-3-7 01:00:00" id="7712" opendate="2014-8-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>temporary files need to be cleaned by unit tests</summary>
+      <description>There are many unit test temporary files left behind after test runs. In the case of CI servers, I have seen &gt;70,000 files accumulate in /tmp over a period of time. Each unit test should make an effort to remove its temporary files when the test is completed.My current unit test cleanup block:# clean up after unit tests..rm -rf /tmp/140*-0 /tmp/CFWith* /tmp/Counter1* /tmp/DescriptorTest* /tmp/Keyspace1* \ /tmp/KeyStreamingTransferTestSpace* /tmp/SSTableExportTest* /tmp/SSTableImportTest* \ /tmp/Standard1* /tmp/Statistics.db* /tmp/StreamingTransferTest* /tmp/ValuesWithQuotes* \ /tmp/cassandra* /tmp/jna-* /tmp/ks-cf-ib-1-* /tmp/lengthtest* /tmp/liblz4-java*.so /tmp/readtest* \ /tmp/set_length_during_read_mode* /tmp/set_negative_length* /tmp/snappy-*.so</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-3-21 01:00:00" id="7816" opendate="2014-8-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Duplicate DOWN/UP Events Pushed with Native Protocol</summary>
+      <description>Added "MOVED_NODE" as a possible type of topology change and also specified that it is possible to receive the same event multiple times.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">doc.native.protocol.v2.spec</file>
+      <file type="M">doc.native.protocol.v1.spec</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.EndpointState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-5-3 01:00:00" id="8051" opendate="2014-10-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add SERIAL and LOCAL_SERIAL consistency levels to cqlsh</summary>
+      <description>cqlsh does not support setting the serial consistency level. The default CL.SERIAL does not let users safely execute LWT alongside an app that runs at LOCAL_SERIAL, and can prevent any LWT from running when a DC is down (e.g. with 2 DCs, RF=3 in each.)Implementing this well is a bit tricky. A user setting the serial CL will probably not want all of their statements to have a serial CL attached, but only the conditional updates. At the same time it would be useful to support serial reads. "WITH CONSISTENCY LEVEL" used to provide this flexibility.I believe that it is currently impossible to run a SELECT at SERIAL or LOCAL_SERIAL; the only workaround seems to be to run a conditional update with a predicate that always resolves to False, and to rely on the CAS response to read the data.</description>
+      <version>2.0.15,2.1.6</version>
+      <fixedVersion>Feature/LightweightTransactions,Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cql-internal-only-1.4.1.zip</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-11-3 01:00:00" id="8243" opendate="2014-11-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DTCS can leave time-overlaps, limiting ability to expire entire SSTables</summary>
+      <description>CASSANDRA-6602 (DTCS) and CASSANDRA-5228 are supposed to be a perfect match for tables where every value is written with a TTL. DTCS makes sure to keep old data separate from new data. So shortly after the TTL has passed, Cassandra should be able to throw away the whole SSTable containing a given data point.CASSANDRA-5228 deletes the very oldest SSTables, and only if they don't overlap (in terms of timestamps) with another SSTable which cannot be deleted.DTCS however, can't guarantee that SSTables won't overlap (again, in terms of timestamps). In a test that I ran, every single SSTable overlapped with its nearest neighbors by a very tiny amount. My reasoning for why this could happen is that the dumped memtables were already overlapping from the start. DTCS will never create an overlap where there is none. I surmised that this happened in my case because I sent parallel writes which must have come out of order. This was just locally, and out of order writes should be much more common non-locally.That means that the SSTable removal optimization may never get a chance to kick in!I can see two solutions:1. Make DTCS split SSTables on time window borders. This will essentially only be done on a newly dumped memtable once every base_time_seconds.2. Make TTL SSTable expiry more aggressive. Relax the conditions on which an SSTable can be dropped completely, of course without affecting any semantics.</description>
+      <version>2.0.15,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.TTLExpiryTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2015-3-13 01:00:00" id="8613" opendate="2015-1-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression in mixed single and multi-column relation support</summary>
+      <description>In 2.0.6 through 2.0.8, a query like the following was supported:SELECT * FROM mytable WHERE clustering_0 = ? AND (clustering_1, clustering_2) &gt; (?, ?)However, after CASSANDRA-6875, you'll get the following error:Clustering columns may not be skipped in multi-column relations. They should appear in the PRIMARY KEY order. Got (c, d) &gt; (0, 0)</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.MultiColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-2-13 01:00:00" id="8614" opendate="2015-1-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Select optimal CRC32 implementation at runtime</summary>
+      <description>JDK 8 has support for an intrinsic for CRC32 that runs at 12-13 gigabytes/sec per core in my quick and dirty test. PureJavaCRC32 is &lt; 800 megabytes/sec if I recall and it has a lookup table that evicts random cache lines every time it runs.In order to capture the benefit of that when it is available we can select a CRC32 implementation at startup in a static block.If JDK 8 is not what is running we can fall back to the existing PureJavaCRC32 implementation.</description>
+      <version>None</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths,Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.PureJavaCrc32.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2015-3-9 01:00:00" id="8934" opendate="2015-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY command has inherent 128KB field size limit</summary>
+      <description>In using the COPY command as follows:cqlsh -e "COPY test.test1mb(pkey, ccol, data) FROM 'in/data1MB/data1MB_9.csv'"the following error is thrown:&lt;stdin&gt;:1:field larger than field limit (131072)The data file contains a field that is greater than 128KB (it's more like almost 1MB).A work-around (thanks to jjordan and thobbs is to modify the cqlsh script and add the linecsv.field_size_limit(1000000000)anywhere after the lineimport csv</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-4-7 01:00:00" id="9128" opendate="2015-4-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Flush system.IndexInfo after index state changed</summary>
+      <description>We don't force a flush of system.IndexInfo after updating it by marking an index as built. This may lead to indexes being unnecessarily rebuilt following a disorderly shutdown.We also don't update it after an index is removed, but that's probably less of an issue as we do flush system.schema_columns after removing the index, so those won't get rebuilt.</description>
+      <version>2.0.15,2.1.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-7-7 01:00:00" id="9132" opendate="2015-4-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>resumable_bootstrap_test can hang</summary>
+      <description>The bootstrap_test.TestBootstrap.resumable_bootstrap_test can hang sometimes. It looks like the following line never completes:node3.watch_log_for("Listening for thrift clients...")I'm not familiar enough with the recent bootstrap changes to know why that's not happening.</description>
+      <version>2.0.15,2.1.6,2.2.0rc1</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.IncomingFileMessage.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+</bugrepository>

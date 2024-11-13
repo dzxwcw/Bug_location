@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="5481" opendate="2013-4-16 00:00:00" fixdate="2013-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQLSH exception handling could leave a session in a bad state</summary>
+      <description>Playing with CTRL+C in a cqlsh session can leave the (Thrift|Native) connection in a bad state.To reproduce :1) Run a long running COPY FROM command (COPY test (k, v) FROM '/tmp/test.csv')2) Interrupt the importer with CTRL+CRepeat step 1 and 2 until you start seeing weird things in the cql shell (see attached screenshot)The reason is, I believe, the connection (and the cursor) is not correclty closed and reopened on interruption.I am working to propose a fix.Jordan</description>
+      <version>1.2.19,2.0.10</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7145" opendate="2014-5-3 00:00:00" fixdate="2014-9-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>FileNotFoundException during compaction</summary>
+      <description>I can't finish any compaction because my nodes always throw a "FileNotFoundException". I've already tried the following but nothing helped:1. nodetool flush2. nodetool repair (ends with RuntimeException; see attachment)3. node restart (via dse cassandra-stop)Whenever I restart the nodes, another type of exception is logged (see attachment) somewhere near the end of startup process. This particular exception doesn't seem to be critical because the nodes still manage to finish the startup and become online.I don't have specific steps to reproduce the problem that I'm experiencing with compaction and repair. I'm in the middle of migrating 4.8 billion rows from MySQL via SSTableLoader. Some things that may or may not be relevant:1. I didn't drop and recreate the keyspace (so probably not related to CASSANDRA-4857)2. I do the bulk-loading in batches of 1 to 20 millions rows. When a batch reaches 100% total progress (i.e. starts to build secondary index), I kill the sstableloader process and cancel the index build3. I restart the nodes occasionally. It's possible that there is an on-going compaction during one of those restarts.Related StackOverflow question (mine): http://stackoverflow.com/questions/23435847/filenotfoundexception-during-compaction</description>
+      <version>1.2.19,2.0.11,2.1.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LeveledManifest.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7601" opendate="2014-7-23 00:00:00" fixdate="2014-9-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Data loss after nodetool taketoken</summary>
+      <description>The dtest consistent_bootstrap_test.py:TestBootstrapConsistency.consistent_reads_after_relocate_test is failing on HEAD of the git branches 2.1 and 2.1.0.The test performs the following actions: Create a cluster of 3 nodes Create a keyspace with RF 2 Take node 3 down Write 980 rows to node 2 with CL ONE Flush node 2 Bring node 3 back up Run nodetool taketoken on node 3 to transfer 80% of node 1's tokens to node 3 Check for data lossWhen the check for data loss is performed, only ~725 rows can be read via CL ALL.</description>
+      <version>1.2.19,2.0.10,2.1rc5</version>
+      <fixedVersion>Legacy/Testing</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+      <file type="M">test.unit.org.apache.cassandra.service.RelocateTest.java</file>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.Shuffle.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ScheduledRangeTransferExecutorService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.PendingRangeCalculatorService.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.TokenMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.VersionedValue.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">debian.cassandra.install</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cassandra-shuffle</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7663" opendate="2014-7-31 00:00:00" fixdate="2014-8-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Removing a seed causes previously removed seeds to reappear</summary>
+      <description>When you remove a seed from a cluster, Gossiper.removeEndpoint ensures it is removed from the seed list. However, it also resets the seed list to be the original list, which would bring back any previously removed seeds. What is the reasoning for having the call to buildSeedsList()? If it wasn’t there then I think the problem would be solved.</description>
+      <version>1.2.19,2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.locator.SimpleSeedProvider.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7668" opendate="2014-8-1 00:00:00" fixdate="2014-8-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make gc_grace_seconds 7 days for system tables</summary>
+      <description>The system tables have had a gc_grace_seconds of 8640 since CASSANDRA-4018. This was probably a typo and was intended to be 10 days. In CASSANDRA-6717 we will set gc_grace to seven days, so that would be a reasonable value to use here.</description>
+      <version>1.2.19,2.0.10,2.1rc5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7745" opendate="2014-8-11 00:00:00" fixdate="2014-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Background LCS compactions stall with pending compactions remaining</summary>
+      <description>We've hit a scenario where background LCS compactions will stall. compactionstats output shows hundreds of pending compactions but none active. The thread dumps show no CompactionExecutor threads running, and no compaction activity is being logged to system.log. This seems to happen when there are no writes to the node. There are no flushes logged either, and when writes resume, compactions seem to resume as well, but still don't ever get to 0.</description>
+      <version>1.2.19,2.0.10,2.1.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7798" opendate="2014-8-19 00:00:00" fixdate="2014-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Empty clustering column not caught for CQL3 update to compact storage counter table</summary>
+      <description>If you update a compact storage counter column through cql3 you can set an empty column name, which is invalid. The server catches this for normal tables, but misses it for counters, and you end up with an assertion when the mutation gets serialized.CREATE TABLE nullcoltest ( key text, column1 text, value counter, PRIMARY KEY (key, column1)) WITH COMPACT STORAGE;UPDATE nullcoltest SET value = value + 1 WHERE key = 'k1' AND column1 = '';ERROR [COMMIT-LOG-WRITER] 2014-08-19 16:11:12,179 CassandraDaemon.java (line 199) Exception in thread Thread[COMMIT-LOG-WRITER,5,main]java.lang.AssertionError at org.apache.cassandra.db.ColumnSerializer.serialize(ColumnSerializer.java:56) at org.apache.cassandra.db.ColumnFamilySerializer.serialize(ColumnFamilySerializer.java:77) at org.apache.cassandra.db.RowMutation$RowMutationSerializer.serialize(RowMutation.java:278) at org.apache.cassandra.db.commitlog.CommitLogSegment.write(CommitLogSegment.java:264) at org.apache.cassandra.db.commitlog.CommitLog$LogRecordAdder.run(CommitLog.java:357) at org.apache.cassandra.db.commitlog.PeriodicCommitLogExecutorService$1.runMayThrow(PeriodicCommitLogExecutorService.java:51) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) at java.lang.Thread.run(Thread.java:744)</description>
+      <version>1.2.19,2.0.10,2.1.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.UpdateParameters.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Constants.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7810" opendate="2014-8-21 00:00:00" fixdate="2014-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>tombstones gc&amp;#39;d before being locally applied</summary>
+      <description>single node environmentCREATE KEYSPACE test WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1 };use test;create table foo (a int, b int, primary key(a,b));alter table foo with gc_grace_seconds = 0;insert into foo (a,b) values (1,2);select * from foo; one row returned. so far, so good.delete from foo where a=1 and b=2;select * from foo; 0 rows. still rainbows and kittens.bin/nodetool flush;bin/nodetool compact;select * from foo; a | b--+-- 1 | 2 (1 rows)gahhh.looks like the tombstones were considered obsolete and thrown away before being applied to the compaction? gc_grace just means the interval after which they won't be available to remote nodes repair - they should still apply locally regardless (and do correctly in 2.0.9)</description>
+      <version>1.2.19,2.0.11,2.1.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RangeTombstoneTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.RangeTombstone.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnIndex.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

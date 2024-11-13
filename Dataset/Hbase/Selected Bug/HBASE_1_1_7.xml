@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  <bug fixdate="2016-8-3 01:00:00" id="16347" opendate="2016-8-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unevaluated expressions in book</summary>
+      <description>Have a look at the quickstart guide, step two$ tar xzvf hbase-&lt;?eval ${project.version}?&gt;-bin.tar.gz$ cd hbase-&lt;?eval ${project.version}?&gt;/</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.getting.started.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-1-31 01:00:00" id="16973" opendate="2016-10-31 00:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>Revisiting default value for hbase.client.scanner.caching</summary>
+      <description>We are observing below logs for a long-running scan:2016-10-30 08:51:41,692 WARN [B.defaultRpcServer.handler=50,queue=12,port=16020] ipc.RpcServer:(responseTooSlow-LongProcessTime): {"processingtimems":24329,"call":"Scan(org.apache.hadoop.hbase.protobuf.generated.ClientProtos$ScanRequest)","client":"11.251.157.108:50415","scandetails":"table: ae_product_image region: ae_product_image,494:,1476872321454.33171a04a683c4404717c43ea4eb8978.","param":"scanner_id: 5333521 number_of_rows: 2147483647close_scanner: false next_call_seq: 8 client_handles_partials: true client_handles_heartbeats: true","starttimems":1477788677363,"queuetimems":0,"class":"HRegionServer","responsesize":818,"method":"Scan"}From which we found the "number_of_rows" is as big as Integer.MAX_VALUEAnd we also observed a long filter list on the customized scan. After checking application code we confirmed that there's no Scan.setCaching or hbase.client.scanner.caching setting on client side, so it turns out using the default value the caching for Scan will be Integer.MAX_VALUE, which is really a big surprise.After checking code and commit history, I found it's HBASE-11544 which changes HConstants.DEFAULT_HBASE_CLIENT_SCANNER_CACHING from 100 to Integer.MAX_VALUE, and from the release note there I could see below notation:Scan caching default has been changed to Integer.Max_Value This value works together with the new maxResultSize value from HBASE-12976 (defaults to 2MB) Results returned from server on basis of size rather than number of rows Provides better use of network since row size varies amongst tablesAnd I'm afraid this lacks of consideration of the case of scan with filters, which may involve many rows but only return with a small result.What's more, we still have below comment/code in Scan.java /* * -1 means no caching */ private int caching = -1;But actually the implementation does not follow (instead of no caching, we are caching Integer.MAX_VALUE...).So here I'd like to bring up two points:1. Change back the default value of HConstants.DEFAULT_HBASE_CLIENT_SCANNER_CACHING to some small value like 1282. Reenforce the semantic of "no caching"</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.upgrading.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-11-1 01:00:00" id="16986" opendate="2016-11-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add note on how scanner caching has changed since 0.98 to refguid</summary>
+      <description>Add note on how scanner caching config changed from 0.98 to the refguide (see parent issue for discussion but basics are we used to have default of 100 but not have unlimited as default)</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.upgrading.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-11-11 01:00:00" id="17074" opendate="2016-11-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PreCommit job always fails because of OOM</summary>
+      <description>https://builds.apache.org/job/PreCommit-HBASE-Build/4434/artifact/patchprocess/patch-unit-hbase-server.txtException in thread "Thread-2369" java.lang.OutOfMemoryError: Java heap space at java.util.Arrays.copyOf(Arrays.java:3332) at java.lang.AbstractStringBuilder.ensureCapacityInternal(AbstractStringBuilder.java:124) at java.lang.AbstractStringBuilder.append(AbstractStringBuilder.java:596) at java.lang.StringBuffer.append(StringBuffer.java:367) at java.io.BufferedReader.readLine(BufferedReader.java:370) at java.io.BufferedReader.readLine(BufferedReader.java:389) at org.apache.maven.surefire.shade.org.apache.maven.shared.utils.cli.StreamPumper.run(StreamPumper.java:66)Exception in thread "Thread-2357" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2365" java.lang.OutOfMemoryError: Java heap spaceRunning org.apache.hadoop.hbase.filter.TestFuzzyRowFilterEndToEndRunning org.apache.hadoop.hbase.filter.TestFilterListOrOperatorWithBlkCntException in thread "Thread-2383" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2397" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2401" java.lang.OutOfMemoryError: Java heap spaceRunning org.apache.hadoop.hbase.TestHBaseTestingUtilityException in thread "Thread-2407" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2411" java.lang.OutOfMemoryError: Java heap spaceException in thread "Thread-2413" java.lang.OutOfMemoryError: Java heap spaceThe OOM happens in the surefire plugin when reading the stdout or stderr of the running test...</description>
+      <version>1.3.0,1.4.0,1.1.7,0.98.23,1.2.4,2.0.0</version>
+      <fixedVersion>1.3.0,1.2.5,0.98.24,1.1.8,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.docker.Dockerfile</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2016-12-30 01:00:00" id="17207" opendate="2016-11-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Arrays.asList() with too few arguments</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RegionStateStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RackManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.asyncfs.FanOutOneBlockAsyncDFSOutputSaslHelper.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.filter.FilterList.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.MultiAction.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.BufferedMutatorImpl.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-11-7 01:00:00" id="23272" opendate="2019-11-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix link in Developer guide to "code review checklist"</summary>
+      <description>The destination of the link "code review checklist" in https://hbase.apache.org/book.html#_reject has been moved.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.developer.adoc</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

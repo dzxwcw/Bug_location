@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2433" opendate="2011-4-7 00:00:00" fixdate="2011-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Failed Streams Break Repair</summary>
+      <description>Running repair in cases where a stream fails we are seeing multiple problems.1. Although retry is initiated and completes, the old stream doesn't seem to clean itself up and repair hangs.2. The temp files are left behind and multiple failures can end up filling up the data partition.These issues together are making repair very difficult for nearly everyone running repair on a non-trivial sized data set.This issue is also being worked on w.r.t CASSANDRA-2088, however that was moved to 0.8 for a few reasons. This ticket is to fix the immediate issues that we are seeing in 0.7.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.AntiEntropyServiceTestAbstract.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageLoadBalancer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AntiEntropyService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.IFailureDetectionEventListener.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.IEndpointStateChangeSubscriber.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2857" opendate="2011-7-5 00:00:00" fixdate="2011-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>initialize log4j correctly in EmbeddedCassandraService</summary>
+      <description>Currently, ECS.cleanUpOldStuff calls CleanupHelper.cleanupAndLeaveDirs(), which initialized DatabaseDescriptor which does some logging. When we go to initialize log4j later in AbstractCassandraService, it's too late.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.AbstractCassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2868" opendate="2011-7-7 00:00:00" fixdate="2011-8-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Native Memory Leak</summary>
+      <description>We have memory issues with long running servers. These have been confirmed by several users in the user list. That's why I report.The memory consumption of the cassandra java process increases steadily until it's killed by the os because of oom (with no swap)Our server is started with -Xmx3000M and running for around 23 days.pmap -x showsTotal SST: 1961616 (mem mapped data and index files)Anon RSS: 6499640Total RSS: 8478376This shows that &gt; 3G are 'overallocated'.We will use BRAF on one of our less important nodes to check wether it is related to mmap and report back.</description>
+      <version>0.7.9,0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.GCInspector.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2941" opendate="2011-7-23 00:00:00" fixdate="2011-8-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose number of rpc timeouts for individual hosts metric via jmx</summary>
+      <description>We have a total number timeouts for each node. It's better for monitoring to break down this total number into number of timeouts per host that this node tried to connect to.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2950" opendate="2011-7-26 00:00:00" fixdate="2011-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Data from truncated CF reappears after server restart</summary>
+      <description>Configure 3 node cluster Ensure the java stress tool creates Keyspace1 with RF=3// Run Stress Tool to generate 10 keys, 1 columnstress --operation=INSERT -t 2 --num-keys=50 --columns=20 --consistency-level=QUORUM --average-size-values --replication-factor=3 --create-index=KEYS --nodes=cathy1,cathy2// Verify 50 keys in CLIuse Keyspace1; list Standard1; // TRUNCATE CF in CLIuse Keyspace1;truncate counter1;list counter1;// Run stress tool and verify creation of 1 key with 10 columnsstress --operation=INSERT -t 2 --num-keys=1 --columns=10 --consistency-level=QUORUM --average-size-values --replication-factor=3 --create-index=KEYS --nodes=cathy1,cathy2// Verify 1 key in CLIuse Keyspace1; list Standard1; // Restart all three nodes// You will see 51 keys in CLIuse Keyspace1; list Standard1;</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RecoveryManagerTruncateTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemTable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLog.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2991" opendate="2011-8-4 00:00:00" fixdate="2011-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a &amp;#39;load new sstables&amp;#39; JMX/nodetool command</summary>
+      <description>Sometimes people have to create a new cluster to get around a problem and need to copy sstables around. It would be convenient to be able to trigger this from nodetool or JMX instead of doing a restart of the node.</description>
+      <version>0.8.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStoreMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3019" opendate="2011-8-11 00:00:00" fixdate="2011-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>log the keyspace and CF of large rows being compacted</summary>
+      <description>If you want to find the large rows it'd help to know the Keyspace and CF to look in.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3027" opendate="2011-8-13 00:00:00" fixdate="2011-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[patch] use long math for long values</summary>
+      <description>code performs integer math, then extends to a long value to store in a long variable. Should do long math instead.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableSimpleUnsortedWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3030" opendate="2011-8-13 00:00:00" fixdate="2011-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[patch] remove dead allocation</summary>
+      <description>allocation in cql code not needed, removed</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.Cql.g</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3036" opendate="2011-8-14 00:00:00" fixdate="2011-8-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Vague primary key references in CQL</summary>
+      <description>create columnfamily wonk (id 'utf8' primary key, id int)update wonk set id=1 where id='test'create index wonk_id on wonk (id)This does what you would expect but then the results are unclear when using 'id' in a where clause."select * from wonk where id=1" returns nothing and "select * from wonk where id='test'" works fine.Perhaps secondary indexes should not be allowed on columns that have the same name as the key_alias? At least a warning or something should be thrown to indicate you've just made a useless index.</description>
+      <version>0.8.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.thrift.ThriftValidationTest.java</file>
+      <file type="M">test.system.test.cql.py</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.CreateColumnFamilyStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.AlterTableStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3054" opendate="2011-8-18 00:00:00" fixdate="2011-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CLI "drop index" doesn&amp;#39;t handle numeric-only hex column identifiers properly</summary>
+      <description>CLI drop index doesn't accept requests to drop columns whose hex names include only numeric characters. The 617070 column name below is col2.&amp;#91;default@Host&amp;#93; use MyKeyspace;Authenticated to keyspace: MyKeyspace&amp;#91;default@Host&amp;#93; drop index on MyCF.617070; Syntax error at position 22: mismatched input '617070' expecting IdentifierWhile drop index seems to parse correctly with alpha chars included:&amp;#91;default@Host&amp;#93; drop index on MyCF.617070x;Column '617070x' definition was not found in ColumnFamily 'MyCF'.&amp;#91;default@Host&amp;#93; drop index on MyCF.col2;Column 'col2' definition was not found in ColumnFamily 'MyCF'.cassandra-user thread: http://mail-archives.apache.org/mod_mbox/cassandra-user/201108.mbox/%3CB2D1533B-C69E-467A-9653-1D086E33227C@thelastpickle.com%3E</description>
+      <version>0.8.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.Cli.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3057" opendate="2011-8-18 00:00:00" fixdate="2011-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>secondary index on a column that has a value of size &gt; 64k will fail on flush</summary>
+      <description>exception seen on flush when an indexed column contain size &gt; 64k:granted that having a value &gt; 64k possibly mean something that shouldn't be indexed as it most likely would have a high cardinality, but i think there would still be some valid use case for it.test case:simply run the stress test with -n 1 -u 0 -c 2 -y Standard -o INSERT -S 65536 -x KEYSthen call a flushexception: INFO &amp;#91;FlushWriter:8&amp;#93; 2011-08-18 21:49:33,214 Memtable.java (line 218) Writing Memtable-Standard1.Idx1@1652462853(16/20 serialized/live bytes, 1 ops)Standard1@980087547(196659/245823 serialized/live bytes, 3 ops)ERROR &amp;#91;FlushWriter:8&amp;#93; 2011-08-18 21:49:33,230 AbstractCassandraDaemon.java (line 133) Fatal exception in thread Thread&amp;#91;FlushWriter:8,5,RMI Runtime&amp;#93;java.lang.AssertionError: 65536 at org.apache.cassandra.utils.ByteBufferUtil.writeWithShortLength(ByteBufferUtil.java:330) at org.apache.cassandra.io.sstable.SSTableWriter.append(SSTableWriter.java:164) at org.apache.cassandra.db.Memtable.writeSortedContents(Memtable.java:245) at org.apache.cassandra.db.Memtable.access$400(Memtable.java:49) at org.apache.cassandra.db.Memtable$3.runMayThrow(Memtable.java:270) at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:30) at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908) at java.lang.Thread.run(Thread.java:662)</description>
+      <version>0.8.5</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.thrift.ThriftValidationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3066" opendate="2011-8-21 00:00:00" fixdate="2011-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Creating a keyspace SYSTEM cause issue</summary>
+      <description>It's possible to create a keyspace SYSTEM but impossible to do anything with it after.I know naming a keyspace SYSTEM is probably not a good idea but I was testing something on a test cluster and found this bug. Step to reproduce:connect localhost/9160;create keyspace SYSTEM;use SYSTEM;create column family testwith comparator = UTF8Type and subcomparator = UTF8Typeand default_validation_class = UTF8Typeand column_metadata = [{column_name: title, validation_class: UTF8Type}, {column_name: publisher, validation_class: UTF8Type}];And you get:system keyspace is not user-modifiableAlthough SYSTEM keyspace have been created and is a different keyspace as system.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ClientState.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3071" opendate="2011-8-23 00:00:00" fixdate="2011-8-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Gossip state is not removed after a new IP takes over a token</summary>
+      <description>When a new node takes over a token, the endpoint state in the gossiper is never removed for the old node.</description>
+      <version>0.7.9,0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3074" opendate="2011-8-24 00:00:00" fixdate="2011-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>comments and documentation for index_interval are misleading</summary>
+      <description>The comments and documentation for index_interval are misleading. They state the larger the sampling the more effective the index as at the cost of space. This is true, but in the context of the configuration variable it implies the larger the setting is the larger the index is while in fact it's the opposite of that.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra.yaml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3075" opendate="2011-8-25 00:00:00" fixdate="2011-8-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra CLI unable to use list command with INTEGER column names, resulting in syntax error</summary>
+      <description>I have a Column Family named 1105115.I have inserted the CF with Hector, and it did notthrow any exception concerning the name of thecolumn.If I am issuing the commandlist 1105115;I incur the following error:&amp;#91;default@unknown&amp;#93; list 1105115;Syntax error at position 5: mismatched input '1105115' expecting IdentifierI presume we are not to name CFs as integers? Or is there something I am missing fromthe bellow help content:&amp;#91;default@unknown&amp;#93; help list;list &lt;cf&gt;;list &lt;cf&gt;&amp;#91;&lt;startKey&gt;:&amp;#93;;list &lt;cf&gt;&amp;#91;&lt;startKey&gt;:&lt;endKey&gt;&amp;#93;;list &lt;cf&gt;&amp;#91;&lt;startKey&gt;:&lt;endKey&gt;&amp;#93; limit &lt;limit&gt;;List a range of rows, and all of their columns, in the specified columnfamily.The order of rows returned is dependant on the Partitioner in use.Required Parameters: cf: Name of the column family to list rows from.Optional Parameters: endKey: Key to end the range at. The end key will be includedin the result. Defaults to an empty byte array. limit: Number of rows to return. Default is 100. startKey: Key start the range from. The start key will beincluded in the result. Defaults to an empty byte array.Examples:list Standard1;list Super1&amp;#91;j:&amp;#93;;list Standard1&amp;#91;j:k&amp;#93; limit 40;================================================Column Family Info: ColumnFamily: 1105115 Key Validation Class: org.apache.cassandra.db.marshal.BytesType Default column value validator: org.apache.cassandra.db.marshal.BytesType Columns sorted by: org.apache.cassandra.db.marshal.AsciiType Row cache size / save period in seconds: 0.0/0 Key cache size / save period in seconds: 200000.0/14400 Memtable thresholds: 0.5203125/111/1440 (millions of ops/MB/minutes) GC grace seconds: 864000 Compaction min/max thresholds: 4/32 Read repair chance: 1.0 Replicate on write: true Built indexes: []</description>
+      <version>0.8.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cli.CliTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliCompiler.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.Cli.g</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3099" opendate="2011-8-29 00:00:00" fixdate="2011-8-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Counters are not always hinted</summary>
+      <description>CASSANDRA-2892 mistakenly removed some hints for counters, namely the hints that were supposed to be stored on the local node (that is, instead of removing from the hintedEndpoints multimap only the local write (since it has been already applied), we were removing everything having the local node as destination).</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3102" opendate="2011-8-30 00:00:00" fixdate="2011-8-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>catch invalid key_validation_class before instantiating UpdateColumnFamily</summary>
+      <description></description>
+      <version>0.8.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3113" opendate="2011-8-31 00:00:00" fixdate="2011-9-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bundle sstableloader with the Debian package</summary>
+      <description>Add sstableloader to /usr/bin/ along with the other Cassandra tools.</description>
+      <version>0.8.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">NEWS.txt</file>
+      <file type="M">debian.cassandra.install</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3123" opendate="2011-9-2 00:00:00" fixdate="2011-9-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t try to build secondary indexes when there is none</summary>
+      <description>buildSecondaryIndexes() is sometimes called without checking the cfs has secondary indexes. Has a result, it prints a useless message and will trigger a bunch of useless action (among which, a full scan of the indexed column family). This is not a huge problem in 0.8 because only the fairly new loadNewSSTables() call does this (which doesn't mean we should fix it). But in trunk, it does this after every streamIn session.</description>
+      <version>0.8.5</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamInSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

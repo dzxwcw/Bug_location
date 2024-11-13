@@ -1,0 +1,828 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  
+  
+  
+  <bug fixdate="2016-9-10 01:00:00" id="16390" opendate="2016-8-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix documentation around setAutoFlush</summary>
+      <description>Our documentation is a little confused around setAutoFlush. Talks of Table but setAutoFlush is not in the Table interface. It was on HTable but was deprecated and since removed. Clean up the doc:100.4. HBase Client: AutoFlushWhen performing a lot of Puts, make sure that setAutoFlush is set to falseon your Table&lt;http://hbase.apache.org/apidocs/org/apache/hadoop/hbase/client/Table.html&gt;instance.Otherwise, the Puts will be sent one at a time to the RegionServer. Putsadded via table.add(Put) and table.add( &lt;List&gt; Put) wind up in the samewrite buffer. If autoFlush = false, these messages are not sent until thewrite-buffer is filled. To explicitly flush the messages, call flushCommits.Calling close on the Table instance will invoke flushCommitsSpotted by Jeff Shmain.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-alpha-3,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.performance.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-6-26 01:00:00" id="18269" opendate="2017-6-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Jython docs out of date</summary>
+      <description>The documentation describing how to launch Jython + HBase is out of date. - https://hbase.apache.org/book.html#jythonFirst, we would set the classpath differently:HBASE_CLASSPATH=/home/hbase/jython.jar bin/hbase org.python.util.jythonThen, the actual code example is out of date too:&gt;&gt;&gt; desc = HTableDescriptor(tablename)&gt;&gt;&gt; desc.addFamily(HColumnDescriptor("content:"))Traceback (most recent call last): File "&lt;stdin&gt;", line 1, in &lt;module&gt; at org.apache.hadoop.hbase.HColumnDescriptor.isLegalFamilyName(HColumnDescriptor.java:566) at org.apache.hadoop.hbase.HColumnDescriptor.&lt;init&gt;(HColumnDescriptor.java:470) at org.apache.hadoop.hbase.HColumnDescriptor.&lt;init&gt;(HColumnDescriptor.java:425) at org.apache.hadoop.hbase.HColumnDescriptor.&lt;init&gt;(HColumnDescriptor.java:390) at org.apache.hadoop.hbase.HColumnDescriptor.&lt;init&gt;(HColumnDescriptor.java:338) at org.apache.hadoop.hbase.HColumnDescriptor.&lt;init&gt;(HColumnDescriptor.java:327) at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method) at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:57) at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45) at java.lang.reflect.Constructor.newInstance(Constructor.java:526) at org.python.core.PyReflectedConstructor.constructProxy(PyReflectedConstructor.java:211)We should make sure that the examples we claim are runnable actually are.</description>
+      <version>1.3.1,1.2.6,1.5.0,1.4.2,2.0.0</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.external.apis.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-18 01:00:00" id="18626" opendate="2017-8-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Handle the incompatible change about the replication TableCFs&amp;#39; config</summary>
+      <description>About compatibility, there is one incompatible change about the replication TableCFs' config. The old config is a string and it concatenate the list of tables and column families in format "table1:cf1,cf2;table2:cfA,cfB" in zookeeper for table-cf to replication peer mapping. When parse the config, it use ":" to split the string. If table name includes namespace, it will be wrong (See HBASE-11386). It is a problem since we support namespace (0.98). So HBASE-11393 (and HBASE-16653) changed it to a PB object. When rolling update cluster, you need rolling master first. And the master will try to translate the string config to a PB object. But there are two problems.1. Permission problem. The replication client can write the zookeeper directly. So the znode may have different owner. And master may don't have the write permission for the znode. It maybe failed to translate old table-cfs string to new PB Object. See HBASE-169382. We usually keep compatibility between old client and new server. But the old replication client may write a string config to znode directly. Then the new server can't parse them.</description>
+      <version>3.0.0-alpha-1,1.4.0,1.5.0,2.0.0-alpha-3</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.upgrading.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-8-18 01:00:00" id="18630" opendate="2017-8-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prune dependencies; as is branch-2 has duplicates</summary>
+      <description>Purge duplicate includes and try to prune back our dependencies (Suggestion by elserj up on the 2.0.0-alpha2 vote). Just looking at my current issue, we have vestiges we include even though the root justification has passed.</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-alpha-3,2.0.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-10-23 01:00:00" id="18667" opendate="2017-8-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disable error-prone for hbase-protocol-shaded</summary>
+      <description>This is all generated code that we shouldn't be running extra analysis on because it adds a lot of noise to the build, and also takes a very long time (15 minutes on my machine). Let's make it fast and simple.Even when we run with error-prone enabled for the rest of the build, it should not apply here.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-protocol.pom.xml</file>
+      <file type="M">hbase-protocol-shaded.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-9-1 01:00:00" id="18740" opendate="2017-9-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade Zookeeper version to 3.4.10</summary>
+      <description>Branch 1.4 and branch 1 are still on Zookeeper 3.4.6.Branch 2 and master branch have upgraded to 3.4.9.There are some important fixes we'd like to have. See the linked JIRAs.Another critical fix is ZOOKEEPER-2146, which can be explored maliciously.</description>
+      <version>1.4.0,1.5.0</version>
+      <fixedVersion>1.4.0,2.0.0-alpha-3,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-9-11 01:00:00" id="18789" opendate="2017-9-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Displays the reporting interval of each RS on the Master page</summary>
+      <description>RegionServer will periodically send the RS Load to Master.If RS is abnormal(eg.Full gc), RS cannot send the RS Load to the Master.If every RS's reporting time is displayed on the Master page, we can easily know which regionserver is abnormal.</description>
+      <version>3.0.0-alpha-1,1.5.0,2.0.0-alpha-3</version>
+      <fixedVersion>1.4.0,2.0.0-alpha-3,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.jamon.org.apache.hadoop.hbase.tmpl.master.RegionServerListTmpl.jamon</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.ServerLoad.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2017-10-4 01:00:00" id="18934" opendate="2017-10-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>precommit on branch-1 isn&amp;#39;t supposed to run against hadoop 3</summary>
+      <description>Hadoop 3 doesn't work with HBase 1.y and we haven't done any work to backport the efforts to make HBase 2.y work with it. Precommit shouldn't tell contributors otherwise.see HBASE-18923 for an example of a branch-1 patch that had hadoop 3 compilation checked.</description>
+      <version>1.5.0</version>
+      <fixedVersion>1.4.0,1.3.2,1.1.13,2.0.0-alpha-4,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-11-9 01:00:00" id="19227" opendate="2017-11-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nightly jobs should archive JVM dumpstream files</summary>
+      <description>came up on dev@ discussion about some of our current nightly test failures. when surefire fails to launch a test JVM instance, the details go into a file that we currently don't archive:&amp;#91;ERROR&amp;#93; Please refer to dump files (if any exist) &amp;#91;date&amp;#93;-jvmRun&amp;#91;N&amp;#93;.dump, &amp;#91;date&amp;#93;.dumpstream and &amp;#91;date&amp;#93;-jvmRun&amp;#91;N&amp;#93;.dumpstream.Add them to the default archive pattern.</description>
+      <version>None</version>
+      <fixedVersion>1.0.4,1.1.13,2.0.0,1.2.7</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-11-9 01:00:00" id="19228" opendate="2017-11-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nightly job should gather machine stats.</summary>
+      <description>leverage the script added in HBASE-19189 to get machine stats when running nightly</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.3.2,2.0.0-beta-1,1.1.13,2.0.0,1.2.7</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile</file>
+      <file type="M">dev-support.gather.machine.environment.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-11-9 01:00:00" id="19229" opendate="2017-11-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nightly script to check source artifact should not do a destructive git operation without opt-in</summary>
+      <description>right now we have a "git please destroy all this stuff" command in the check of the source artifact. we shouldn't do this unless the person invoking the script has indicated that's okay (e..g through a cli flag).</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.3.2,2.0.0-beta-1,1.1.13,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile</file>
+      <file type="M">dev-support.hbase.nightly.source-artifact.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-12-17 01:00:00" id="19290" opendate="2017-11-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce zk request when doing split log</summary>
+      <description>We observe once the cluster has 1000+ nodes and when hundreds of nodes abort and doing split log, the split is very very slow, and we find the regionserver and master wait on the zookeeper response, so we need to reduce zookeeper request and pressure for big cluster.(1) Reduce request to rsZNode, every time calculateAvailableSplitters will get rsZNode's children from zookeeper, when cluster is huge, this is heavy. This patch reduce the request. (2) When the regionserver has max split tasks running, it may still trying to grab task and issue zookeeper request, we should sleep and wait until we can grab tasks again.</description>
+      <version>3.0.0-alpha-1,1.5.0,2.0.0</version>
+      <fixedVersion>1.5.0,2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coordination.ZkSplitLogWorkerCoordination.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2018-1-10 01:00:00" id="19755" opendate="2018-1-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Error message for non-existent namespace is inaccurate</summary>
+      <description>On a secure cluster, when I issued this command where ns1 didn't exist:hbase(main):002:0&gt; create 'ns1:t1', 'f1', SPLITS =&gt; ['10', '20', '30', '40']ERROR: Unknown namespace ns1:t1!Creates a table. Pass a table name, and a set of column familyspecifications (at least one), and, optionally, table configurationHere is related code: raise "Unknown namespace #{args.first}!"Simply quoting the argument is not accurate - namespace should be extracted from the argument</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-1,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-shell.src.main.ruby.shell.commands.rb</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-4-24 01:00:00" id="20068" opendate="2018-2-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hadoopcheck project health check uses default maven repo instead of yetus managed ones</summary>
+      <description>Recently had a precommit run fail hadoop check for all 3 versions with [ERROR] Failed to execute goal org.apache.maven.plugins:maven-install-plugin:2.5.2:install (default-install) on project hbase-thrift: Failed to install metadata org.apache.hbase:hbase-thrift:3.0.0-SNAPSHOT/maven-metadata.xml: Could not parse metadata /home/jenkins/.m2/repository/org/apache/hbase/hbase-thrift/3.0.0-SNAPSHOT/maven-metadata-local.xml: in epilog non whitespace content is not allowed but got / (position: END_TAG seen ...&lt;/metadata&gt;\n/... @25:2) -&gt; [Help 1]Looks like maven repo corruption.Also the path /home/jenkins/.m2/repository means that those invocations are using the jenkins user repo, which isn't safe since there are multiple executors. either the plugin isn't using the yetus provided maven repo path or our yetus invocation isn't telling yetus to provide its own maven repo path.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.1.0,1.3.3,1.4.4,2.0.1,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-3-24 01:00:00" id="20070" opendate="2018-2-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>website generation is failing</summary>
+      <description>website generation has been failing since Feb 20thChecking out files: 100% (68971/68971), done.Usage: grep [OPTION]... PATTERN [FILE]...Try 'grep --help' for more information.PUSHED is 2 is not yet mentioned in the hbase-site commit log. Assuming we don't have it yet. 2Building HBaseJava HotSpot(TM) 64-Bit Server VM warning: ignoring option MaxPermSize=256m; support was removed in 8.0Java HotSpot(TM) 64-Bit Server VM warning: ignoring option MaxPermSize=256m; support was removed in 8.0Failure: mvn clean siteBuild step 'Execute shell' marked build as failureThe status email saysBuild status: Still FailingThe HBase website has not been updated to incorporate HBase commit ${CURRENT_HBASE_COMMIT}.Looking at the code where that grep happens, it looks like the env variable CURRENT_HBASE_COMMIT isn't getting set. That comes from some git command. I'm guessing the version of git changed on the build hosts and upended our assumptions.we should fix this to 1) rely on git's porcelain interface, and 2) fail as soon as that git command fails</description>
+      <version>None</version>
+      <fixedVersion>2.0.0-beta-2,2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">hbase-zookeeper.pom.xml</file>
+      <file type="M">hbase-thrift.pom.xml</file>
+      <file type="M">hbase-testing-util.pom.xml</file>
+      <file type="M">hbase-spark-it.pom.xml</file>
+      <file type="M">hbase-shell.pom.xml</file>
+      <file type="M">hbase-shaded.pom.xml</file>
+      <file type="M">hbase-shaded.hbase-shaded-check-invariants.pom.xml</file>
+      <file type="M">hbase-server.pom.xml</file>
+      <file type="M">hbase-rsgroup.pom.xml</file>
+      <file type="M">hbase-rest.pom.xml</file>
+      <file type="M">hbase-resource-bundle.pom.xml</file>
+      <file type="M">hbase-replication.pom.xml</file>
+      <file type="M">hbase-protocol.pom.xml</file>
+      <file type="M">hbase-protocol-shaded.pom.xml</file>
+      <file type="M">hbase-procedure.pom.xml</file>
+      <file type="M">hbase-metrics.pom.xml</file>
+      <file type="M">hbase-metrics-api.pom.xml</file>
+      <file type="M">hbase-mapreduce.pom.xml</file>
+      <file type="M">hbase-it.pom.xml</file>
+      <file type="M">hbase-http.pom.xml</file>
+      <file type="M">hbase-hadoop2-compat.pom.xml</file>
+      <file type="M">hbase-hadoop-compat.pom.xml</file>
+      <file type="M">hbase-external-blockcache.pom.xml</file>
+      <file type="M">hbase-examples.pom.xml</file>
+      <file type="M">hbase-endpoint.pom.xml</file>
+      <file type="M">hbase-common.pom.xml</file>
+      <file type="M">hbase-client.pom.xml</file>
+      <file type="M">hbase-build-configuration.pom.xml</file>
+      <file type="M">hbase-backup.pom.xml</file>
+      <file type="M">hbase-assembly.pom.xml</file>
+      <file type="M">hbase-annotations.pom.xml</file>
+      <file type="M">dev-support.jenkins-scripts.generate-hbase-website.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-3-9 01:00:00" id="20164" opendate="2018-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>failed hadoopcheck should add footer link</summary>
+      <description>thought for sure this already had an issue, busbey, but I can't find it.</description>
+      <version>None</version>
+      <fixedVersion>1.3.2,1.4.3,2.0.0,1.2.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-3-9 01:00:00" id="20165" opendate="2018-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Shell command to make a normal peer to be a serial replication peer</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>2.1.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-shell.src.test.ruby.hbase.replication.admin.test.rb</file>
+      <file type="M">hbase-shell.src.main.ruby.shell.commands.list.peers.rb</file>
+      <file type="M">hbase-shell.src.main.ruby.shell.rb</file>
+      <file type="M">hbase-shell.src.main.ruby.hbase.replication.admin.rb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2009-11-30 01:00:00" id="2017" opendate="2009-11-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Set configurable max value size check to 10MB</summary>
+      <description>Make the user think about whether storing larger values than 10MB is a good idea.</description>
+      <version>None</version>
+      <fixedVersion>0.90.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.hbase-default.xml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-3-23 01:00:00" id="20264" opendate="2018-3-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update Java prerequisite section with LTS rec and status of current GA JDKs</summary>
+      <description>Per the thread [DISCUSS] strategy on Java versions Add Java 9 and Java 10 to the support matrix as NT Add a NOTE to Java prereqs about "use a LTS version"For now, leave out talk about planning for timelines on LTS additions or dropping older JDK support. Once we get over the initial hurdle of prepping for Java 11 we'll hopefully have enough info to know how realistic the things talked about in the thread are and we can include a writeup.</description>
+      <version>1.5.0,2.0.0</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.configuration.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-5-14 01:00:00" id="20581" opendate="2018-5-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HBase book documentation wrong for REST operations on schema endpoints</summary>
+      <description>On https://hbase.apache.org/book.html#_using_rest_endpointsThe documentation states that to update a table schema (the configuration for a column family), the PUT HTTP verb will update the current configuration with the "fragment" of configuration provided, while the POST HTTP verb will replace the current configuration with whatever is provided.In reality, the opposite is true: POST updates the configuration, PUT replaces. The old javadoc for the o.a.h.h.rest package got it right, but the entry on the HBase book transposed this.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.external.apis.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-5-14 01:00:00" id="20582" opendate="2018-5-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bump up JRuby version because of some reported vulnerabilities</summary>
+      <description>There are some vulnerabilities reported with two of the libraries used in HBase.Jruby(version:9.1.10.0):CVE-2009-5147CVE-2013-4363CVE-2014-4975CVE-2014-8080CVE-2014-8090CVE-2015-3900CVE-2015-7551CVE-2015-9096CVE-2017-0899CVE-2017-0900CVE-2017-0901CVE-2017-0902CVE-2017-0903CVE-2017-10784CVE-2017-14064CVE-2017-9224CVE-2017-9225CVE-2017-9226CVE-2017-9227CVE-2017-9228Tool somehow able to relate the vulnerability of Ruby with JRuby(Java implementation). (Jackson will be handled in a different issue.)Not all of them directly affects HBase but elserj suggested that it is better to be on the updated version to avoid issues during an audit in security sensitive organization. </description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.1.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2018-6-28 01:00:00" id="20801" opendate="2018-6-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix broken TestReplicationShell</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-shell.src.test.ruby.hbase.replication.admin.test.rb</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2009-12-30 01:00:00" id="2081" opendate="2009-12-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Set the retries higher in shell since client pause is lower</summary>
+      <description>Client pause went from 2 to1 second and in the shell we only retry 5 times. I propose we set that to 6 or 7 now to keep the same behavior as before.</description>
+      <version>None</version>
+      <fixedVersion>0.20.3,0.90.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.hirb.rb</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2018-9-7 01:00:00" id="21021" opendate="2018-8-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Result returned by Append operation should be ordered</summary>
+      <description>Problem:The result returned by the append operation should be ordered. Currently, it returns an unordered list, which may cause problems like if the user tries to perform Result.getValue(byte[] family, byte[] qualifier), even if the returned result has a value corresponding to (family, qualifier), the method may return null as it performs a binary search over the  unsorted result (which should have been sorted actually). The result is enumerated by iterating over each entry of tempMemstore hashmap (which will never be ordered) and adding the values (see HRegion.java#L7882). Actual: The returned result is unorderedExpected: Similar to increment op, the returned result should be ordered.</description>
+      <version>1.3.0,1.5.0</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestAtomicOperation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-8-15 01:00:00" id="21058" opendate="2018-8-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nightly tests for branches 1 fail to build ref guide</summary>
+      <description>Nightly on all branches 1 reports failure to get a PDF version of the ref guide-1 refguide 2m 14s patch failed to produce the pdf version of the reference guide.Actual build log looks clean[INFO] --- asciidoctor-maven-plugin:1.5.2.1:process-asciidoc (output-pdf) @ hbase ---asciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for passasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_indextermasciidoctor: WARNING: conversion missing in backend pdf for inline_imageasciidoctor: WARNING: conversion missing in backend pdf for inline_image[INFO] Rendered /testptch/hbase/src/main/asciidoc/book.adoc</description>
+      <version>1.5.0,1.3.3,1.2.7,1.4.7</version>
+      <fixedVersion>3.0.0-alpha-1,1.3.3,2.2.0,1.2.7,2.1.1,2.0.2,1.4.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-8-20 01:00:00" id="21074" opendate="2018-8-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JDK7 branches need to pass "-Dhttps.protocols=TLSv1.2" to maven when building</summary>
+      <description>Maven central now requires TLSv1.2 and by default JDK7 doesn't use it. So anyone building from a clean repo will fail like our nightly check of building the convenience binary from the source tarball e.g. 1.4[INFO] Scanning for projects...[INFO] Downloading from apache release: https://repository.apache.org/content/repositories/releases/org/apache/apache/18/apache-18.pom[INFO] Downloaded from apache release: https://repository.apache.org/content/repositories/releases/org/apache/apache/18/apache-18.pom (16 kB at 14 kB/s)[INFO] Downloading from Nexus: http://repository.apache.org/snapshots/org/apache/felix/maven-bundle-plugin/2.5.3/maven-bundle-plugin-2.5.3.pom[INFO] Downloading from central: https://repo.maven.apache.org/maven2/org/apache/felix/maven-bundle-plugin/2.5.3/maven-bundle-plugin-2.5.3.pom[ERROR] [ERROR] Some problems were encountered while processing the POMs:[ERROR] Unresolveable build extension: Plugin org.apache.felix:maven-bundle-plugin:2.5.3 or one of its dependencies could not be resolved: Failed to read artifact descriptor for org.apache.felix:maven-bundle-plugin:jar:2.5.3 @ @ [ERROR] The build could not read 1 project -&gt; [Help 1][ERROR] [ERROR] The project org.apache.hbase:hbase:1.4.7-SNAPSHOT (/home/jenkins/jenkins-slave/workspace/HBase_Nightly_branch-1.4-EDDBHIHAYHZVAGB2FQL37O5LZNSEJJEXGP55DEGOA4FQKBLNWBAQ/unpacked_src_tarball/pom.xml) has 1 error[ERROR] Unresolveable build extension: Plugin org.apache.felix:maven-bundle-plugin:2.5.3 or one of its dependencies could not be resolved: Failed to read artifact descriptor for org.apache.felix:maven-bundle-plugin:jar:2.5.3: Could not transfer artifact org.apache.felix:maven-bundle-plugin:pom:2.5.3 from/to central (https://repo.maven.apache.org/maven2): Received fatal alert: protocol_version -&gt; [Help 2][ERROR] [ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.[ERROR] Re-run Maven using the -X switch to enable full debug logging.[ERROR] [ERROR] For more information about the errors and possible solutions, please read the following articles:[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/ProjectBuildingException[ERROR] [Help 2] http://cwiki.apache.org/confluence/display/MAVEN/PluginManagerExceptionif we pass "-Dhttps.protocols=TLSv1.2" to maven then it should work for any JDK7 version.</description>
+      <version>1.5.0,1.3.3,1.2.7,1.4.7</version>
+      <fixedVersion>3.0.0-alpha-1,1.3.3,2.2.0,1.2.7,2.1.1,2.0.2,1.4.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.developer.adoc</file>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2010-1-14 01:00:00" id="2123" opendate="2010-1-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove &amp;#39;master&amp;#39; command-line option from PE.</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>0.20.3,0.90.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.org.apache.hadoop.hbase.PerformanceEvaluation.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-1-4 01:00:00" id="21547" opendate="2018-12-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Precommit uses master flaky list for other branches</summary>
+      <description>Precommit job downloads the flaky exclude list for master branch when the uploaded patch file is made for different branches.As an example check https://builds.apache.org/job/PreCommit-HBASE-Build/15192 which was against branch-1 but the unit test downloaded master's flaky list.15:26:05 [Tue Dec 4 14:26:04 UTC 2018 INFO]: Personality: patch unit15:26:05 [Tue Dec 4 14:26:04 UTC 2018 INFO]: EXCLUDE_TESTS_URL=https://builds.apache.org/job/HBase-Find-Flaky-Tests/job/master/lastSuccessfulBuild/artifact/excludes/15:26:05 [Tue Dec 4 14:26:04 UTC 2018 INFO]: INCLUDE_TESTS_URL=15:26:05 --2018-12-04 14:26:04-- https://builds.apache.org/job/HBase-Find-Flaky-Tests/job/master/lastSuccessfulBuild/artifact/excludes/15:26:05 Resolving builds.apache.org (builds.apache.org)... 195.201.213.130, 2a01:4f8:c0:2cc9::215:26:05 Connecting to builds.apache.org (builds.apache.org)|195.201.213.130|:443... connected.15:26:06 HTTP request sent, awaiting response... 200 15:26:06 Length: 866 [application/octet-stream]15:26:06 Saving to: 'excludes'15:26:06 15:26:06 0K 100% 43.0M=0s15:26:06 15:26:06 2018-12-04 14:26:06 (43.0 MB/s) - 'excludes' saved [866/866]15:26:06 15:26:09 cd /testptch/hbase/hbase-thrift15:26:09 mvn --batch-mode -Dmaven.repo.local=/home/jenkins/jenkins-slave/workspace/PreCommit-HBASE-Build/yetus-m2/hbase-branch-1-patch-1 -DHBasePatchProcess -Dhttps.protocols=TLSv1.2 -PrunAllTests -Dtest.exclude.pattern=**/master.cleaner.TestSnapshotFromMaster.java,**/client.TestRestoreSnapshotFromClientAfterSplittingRegions.java,**/regionserver.TestRegionMergeTransactionOnCluster.java,**/client.TestCloneSnapshotFromClientAfterSplittingRegion.java,**/master.assignment.TestAssignmentManager.java,**/master.assignment.TestAMAssignWithRandExec.java,**/client.TestMobCloneSnapshotFromClientAfterSplittingRegion.java,**/regionserver.TestCompactingToCellFlatMapMemStore.java,**/replication.TestReplicationSmallTestsSync.java,**/TestMultiVersions.java,**/client.TestMobRestoreSnapshotFromClientAfterSplittingRegions.java,**/client.TestRestoreSnapshotFromClientWithRegionReplicas.java,**/regionserver.TestRegionServerAbortTimeout.java,**/replication.TestMasterReplication.java,**/backup.TestIncrementalBackupWithBulkLoad.java,**/master.replication.TestRegisterPeerWorkerWhenRestarting.java clean test -fae &gt; /testptch/patchprocess/patch-unit-hbase-thrift.txt 2&gt;&amp;1</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,1.2.10,1.4.10,2.1.3,2.0.5,1.3.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2010-8-22 01:00:00" id="2155" opendate="2010-1-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add the option to bind to a specific IP address to the Nonblocking Thrift servers</summary>
+      <description>This is not possible in Thrift 0.2.0 so we'll have to wait until the next version is released (which includes THRIFT-684). After that is released this is an easy and quick fix. For a few more details see HBASE-1373 and HBASE-65.</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.thrift.ThriftServerRunner.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.thrift.ThriftServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.thrift2.ThriftServer.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-7-14 01:00:00" id="21606" opendate="2018-12-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document use of the meta table load metrics added in HBASE-19722</summary>
+      <description>HBASE-19722 added a great new tool for figuring out where cluster load is coming from. Needs a section in the ref guide When should I use this? Why shouldn't I use it all the time? What does using it look like? How do I use it?I think all the needed info for making something to answer these questions is in the discussion on HBASE-19722</description>
+      <version>3.0.0-alpha-1,1.5.0,1.4.6,2.2.0,2.0.2,2.1.3</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0,2.0.6,2.2.1,2.1.6,1.4.11</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.ops.mgt.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-1-26 01:00:00" id="21645" opendate="2018-12-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Perform sanity check and disallow table creation/modification with region replication &lt; 1</summary>
+      <description>We should perform sanity check and disallow table creation with region replication &lt; 1 or modification of an existing table with new region replication value &lt; 1.</description>
+      <version>3.0.0-alpha-1,1.5.0,2.1.1,2.1.2</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,1.4.10,2.1.3,2.0.5</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestFromClientSide.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-4-8 01:00:00" id="21688" opendate="2019-1-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Address WAL filesystem issues</summary>
+      <description>Scan and fix code base to use new way of instantiating WAL File System. https://issues.apache.org/jira/browse/HBASE-21457?focusedCommentId=16734688&amp;page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-16734688</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.0.6,2.1.5</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.regionserver.TestWALEntryStream.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.AbstractTestDLS.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.fs.TestBlockReorderMultiBlocks.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.HBaseFsck.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.WALEntryStream.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSourceWALReader.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.WALLink.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.test.IntegrationTestLoadAndVerify.java</file>
+      <file type="M">hbase-it.src.test.java.org.apache.hadoop.hbase.test.IntegrationTestBigLinkedList.java</file>
+      <file type="M">hbase-backup.src.test.java.org.apache.hadoop.hbase.backup.master.TestBackupLogCleaner.java</file>
+      <file type="M">hbase-backup.src.main.java.org.apache.hadoop.hbase.backup.impl.IncrementalBackupManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.wal.AbstractFSWALProvider.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.MasterWalManager.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-2-25 01:00:00" id="21780" opendate="2019-1-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid a wide line on the RegionServer webUI for many ZooKeeper servers</summary>
+      <description>HBASE-8812 made this change for MasterUI but not for RegionServer UI. </description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.jamon.org.apache.hadoop.hbase.tmpl.regionserver.RSStatusTmpl.jamon</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-2-27 01:00:00" id="21794" opendate="2019-1-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update the Coprocessor observer example given in section 111.1 of the ref guide.</summary>
+      <description>The given example should be changed after the CP changes (HBASE-17732)</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.cp.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2019-2-13 01:00:00" id="21889" opendate="2019-2-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use thrift 0.12.0 when build thrift by compile-thrift profile</summary>
+      <description>Build command.mvn compile -Pcompile-thrift</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.0.5,2.3.0,2.1.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-thrift.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-2-22 01:00:00" id="21944" opendate="2019-2-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Validate put for batch operation</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestAsyncTableBatch.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestAsyncTable.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.RawAsyncTableImpl.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ConnectionUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-2-22 01:00:00" id="21945" opendate="2019-2-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Maintain the original order when sending batch request</summary>
+      <description>Find this when implementing HBASE-21717. In some UT we put several good requests and bad requests together, and expect only the bad ones to fail. This usually depends on the grouping at rs side, if we group the good one and the bad one together as a batch, it will fail them all. So usually in test we will insert an increment or append in the middle to break them into two groups when executing at RS side.So if we do not maintain the order, at the rs side, the increment or append may comes first or last, then the good ones and bad ones will be grouped and cause all of them to fail.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestAsyncTableBatch.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.AsyncBatchRpcRetryingCaller.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-2-27 01:00:00" id="21962" opendate="2019-2-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Filters do not work in ThriftTable</summary>
+      <description>Filters in ThriftTable is not working, this issue is to fix it.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-thrift.src.test.java.org.apache.hadoop.hbase.thrift2.TestThriftConnection.java</file>
+      <file type="M">hbase-thrift.src.main.java.org.apache.hadoop.hbase.thrift2.ThriftUtilities.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-4-12 01:00:00" id="22225" opendate="2019-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Profiler tab on Master/RS UI not working w/o comprehensive message</summary>
+      <description>As titled, when checking 1.5.0 RC3 binary package, clicking the "Profiler" tab on HMaster/RegionServer web UI, it complains page not found error like below:Problem accessing /prof. Reason: NOT_FOUND</description>
+      <version>1.5.0</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,1.4.10,2.3.0,2.1.5,1.3.5</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-http.src.main.java.org.apache.hadoop.hbase.http.ProfileServlet.java</file>
+      <file type="M">hbase-http.src.main.java.org.apache.hadoop.hbase.http.HttpServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-6-17 01:00:00" id="22264" opendate="2019-4-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Separate out jars related to JDK 11 into a folder in /lib</summary>
+      <description>UPDATE:Separate out the the jars related to JDK 11 and add control their addition to the classpath using an environment variable or auto-detection of the jdk version installed.OLD:This is in continuation with HBASE-22249. When compiled with jdk 8 and run on jdk 11, the master branch throws the following exception during an attempt to start the hbase rest server:Exception in thread "main" java.lang.NoClassDefFoundError: javax/annotation/Priority at org.glassfish.jersey.model.internal.ComponentBag.modelFor(ComponentBag.java:483) at org.glassfish.jersey.model.internal.ComponentBag.access$100(ComponentBag.java:89) at org.glassfish.jersey.model.internal.ComponentBag$5.call(ComponentBag.java:408) at org.glassfish.jersey.model.internal.ComponentBag$5.call(ComponentBag.java:398) at org.glassfish.jersey.internal.Errors.process(Errors.java:315) at org.glassfish.jersey.internal.Errors.process(Errors.java:297) at org.glassfish.jersey.internal.Errors.process(Errors.java:228) at org.glassfish.jersey.model.internal.ComponentBag.registerModel(ComponentBag.java:398) at org.glassfish.jersey.model.internal.ComponentBag.register(ComponentBag.java:235) at org.glassfish.jersey.model.internal.CommonConfig.register(CommonConfig.java:420) at org.glassfish.jersey.server.ResourceConfig.register(ResourceConfig.java:425) at org.apache.hadoop.hbase.rest.RESTServer.run(RESTServer.java:245) at org.apache.hadoop.hbase.rest.RESTServer.main(RESTServer.java:421)</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">hbase-resource-bundle.src.main.resources.supplemental-models.xml</file>
+      <file type="M">hbase-resource-bundle.src.main.resources.META-INF.LICENSE.vm</file>
+      <file type="M">hbase-assembly.src.main.assembly.hadoop-two-compat.xml</file>
+      <file type="M">hbase-assembly.pom.xml</file>
+      <file type="M">bin.hbase</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-5-8 01:00:00" id="22379" opendate="2019-5-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Markdown for "Voting on Release Candidates" in book</summary>
+      <description>The Markdown in the section "Voting on Release Candidates" of the HBase book seems to be broken. It looks like that there should be a quote, which isn't displayed correctly. Same is true for the formatting of the Maven RAT command.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,1.4.10,2.3.0,2.0.6,2.1.5,1.3.5</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.developer.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-5-8 01:00:00" id="22384" opendate="2019-5-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Formatting issues in administration section of book</summary>
+      <description>The administration section in the book (64.3.2. Administration) has some formatting issues. Due to that issues the list count is not accurate, as well as the indentation of some code snippets.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,1.4.10,2.3.0,2.0.6,2.1.5,1.3.5</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.security.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-5-12 01:00:00" id="22399" opendate="2019-5-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change default hadoop-two.version to 2.8.x and remove the 2.7.x hadoop checks</summary>
+      <description>Our nightly is failing so let's do this first, and for the ref guide changes can be done in another sub task.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.2.0,2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">hbase-client.src.test.java.org.apache.hadoop.hbase.client.TestReversedScannerCallable.java</file>
+      <file type="M">dev-support.Jenkinsfile</file>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-5-13 01:00:00" id="22405" opendate="2019-5-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update Ref Guide for EOL of Hadoop 2.7</summary>
+      <description/>
+      <version>3.0.0-alpha-1,1.5.0,2.2.0</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.configuration.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2010-2-19 01:00:00" id="2241" opendate="2010-2-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change balancer sloppyness from 0.1 to 0.3</summary>
+      <description>This is a quick workaround until we do a better balancer.Taking a region off line when cluster is under load is bad news. Latency goes up as we wait on regions to come up in new locations.The load balancer should only cut in if the cluster is way out of alignment.I'd argue that 10% deviance from the avg. is not good enough reason moving regions around when cluster is under load.Balancer already has a knack for cutting in at most inopportune moments: during cluster startup, when new node is added to a small cluster, or moving a region just after its been opened on a node. We'll need to do a better balancer but meantime lets just allow that region loading can be sloppier, say 20% or 30% off the average before balancer cuts in.</description>
+      <version>None</version>
+      <fixedVersion>0.20.4,0.90.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.hbase-default.xml</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.hadoop.hbase.master.RegionManager.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-7-25 01:00:00" id="22628" opendate="2019-6-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document the custom WAL directory (hbase.wal.dir) usage</summary>
+      <description>Custom WAL directory usage must be documented, otherwise it may lead to inconsistent data during migrating to new WAL dir path. You can consider below scenario while migrating to custom WAL directory. Setup HBase cluster with the default setting (all WAL files are under the root directory ie. /hbase/WALs). Create table 't1' and insert few records Flush meta table (so that table region entries persist in FS) Forcibly kill HBase processes (HM &amp; RS). Configure the hbase.wal.dir to outside the root dir (say /hbaseWAL) Start the HBase servers Scan 't1'Ideally HMaster should submit split task of old RS(s) WAL files (created under /hbase/WALs) and old data should be replayed. But currently, during HM startup we populate the previous dead servers from the current WAL dir ( hbase.wal.dir -&gt; /hbaseWAL). Since WAL dir path is new, so you need to copy RegionServer WAL directories manualy from old WAL dir to new path. </description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.architecture.adoc</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2010-2-24 01:00:00" id="2263" opendate="2010-2-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[stargate] multiuser mode: authenticator for zookeeper</summary>
+      <description>Add an authenticator module for zookeeper.Use a tree like:/stargate/ users/ &lt;token&gt; -- JSON formatted user record with keys 'token', 'name', 'admin', and 'disabled'</description>
+      <version>None</version>
+      <fixedVersion>0.20.4,0.90.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-7-13 01:00:00" id="22689" opendate="2019-7-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Line break for fix version in documentation</summary>
+      <description>The section describing the policy for the fix version in JIRA is missing line breaks.</description>
+      <version>3.0.0-alpha-1,1.5.0,2.3.0,2.0.6,2.2.1,2.1.6,1.3.6,1.4.11</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0,2.0.6,2.2.1,2.1.6,1.3.6,1.4.11</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.asciidoc..chapters.developer.adoc</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2019-8-9 01:00:00" id="22824" opendate="2019-8-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Show filesystem path for the orphans regions on filesystem</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,2.0.6,2.2.1,2.1.6</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.assignment.TestHbckChore.java</file>
+      <file type="M">hbase-server.src.main.resources.hbase-webapps.master.hbck.jsp</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HbckChore.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-8-12 01:00:00" id="22838" opendate="2019-8-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>assembly:single failure: user id or group id &amp;#39;xxxxx&amp;#39; is too big</summary>
+      <description> tarball build with assembly:single command fails with user id(mac) or group id(ubuntu) too big error:$ mvn clean install package assembly:single -DskipTests............[ERROR] Failed to execute goal org.apache.maven.plugins:maven-assembly-plugin:3.0.0:single (default-cli) on project hbase-assembly: Execution default-cli of goal org.apache.maven.plugins:maven-assembly-plugin:3.0.0:single failed: user id 'xxxxxxxx' is too big ( &gt; 2097151 ). -&gt; [Help 1][ERROR][ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.[ERROR] Re-run Maven using the -X switch to enable full debug logging.[ERROR][ERROR] For more information about the errors and possible solutions, please read the following articles:[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/PluginExecutionException[ERROR][ERROR] After correcting the problems, you can resume the build with the command[ERROR]   mvn &lt;goals&gt; -rf :hbase-assemblyTo avoid this error and to get better features for tarball build, we should upgrade tarLongFileMode from gnu to posix: MPOM-132This works for assembly plugin &gt;= 2.5.0: MASSEMBLY-728 </description>
+      <version>3.0.0-alpha-1,1.5.0,2.3.0</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0,2.0.6,2.2.1,2.1.6,1.3.6,1.4.11</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-assembly.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-8-24 01:00:00" id="22911" opendate="2019-8-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>fewer concurrent github PR builds</summary>
+      <description>we've been regularly getting 4-5 concurrent builds of PRs.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0,2.2.1,2.1.6,1.3.6,1.4.11,2.0.7</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile.GitHub</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-8-24 01:00:00" id="22913" opendate="2019-8-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use Hadoop label for nightly builds</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,1.5.0,2.3.0,2.2.1,2.1.6,1.3.6,1.4.11</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.Jenkinsfile</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2019-10-29 01:00:00" id="23227" opendate="2019-10-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade jackson-databind to 2.9.10.1 to avoid recent CVEs</summary>
+      <description>Several net new CVEs were raised against jackson-databind 2.9.10.CVE-2019-16942CVE-2019-169432.9.10.1 is released, which I believe addresses these two CVEs.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,1.6.0,1.4.12,2.1.8,2.2.3</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-11-29 01:00:00" id="23228" opendate="2019-10-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow for jdk8 specific modules on branch-1 in precommit/nightly testing</summary>
+      <description>At least 1 feature backport is waiting on proper handling of jdk8 activated modules for our yetus personality (HBASE-22114 tinylfu).Implement the general handling here so that we don't have to worry about pushes to the PR branch overwriting it.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,1.6.0,1.4.12,2.1.8,2.2.3</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.hbase-personality.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-11-13 01:00:00" id="23289" opendate="2019-11-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update links to Hadoop wiki in code and book</summary>
+      <description>Seems Hadoop has moved their wiki, so now links throughout our book are broken. We've found and fixed a couple one-offs, but we should do a sweep and clean up the rest.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.site.xdoc.old.news.xml</file>
+      <file type="M">src.site.xdoc.metrics.xml</file>
+      <file type="M">src.site.site.xml</file>
+      <file type="M">src.site.asciidoc.metrics.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.zookeeper.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.troubleshooting.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.ops.mgt.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.faq.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.cp.adoc</file>
+      <file type="M">src.main.asciidoc..chapters.configuration.adoc</file>
+      <file type="M">hbase-zookeeper.src.main.java.org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper.java</file>
+      <file type="M">hbase-mapreduce.src.main.java.org.apache.hadoop.hbase.mapred.package-info.java</file>
+      <file type="M">hbase-mapreduce.src.main.java.org.apache.hadoop.hbase.mapreduce.package-info.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.HColumnDescriptor.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ColumnFamilyDescriptorBuilder.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-4-11 01:00:00" id="23829" opendate="2020-2-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Get `-PrunSmallTests` passing on JDK11</summary>
+      <description>Start with the small tests, shaking out issues identified by the harness. So far it seems like -Dhadoop.profile=3.0 and -Dhadoop-three.version=3.3.0-SNAPSHOT maybe be required.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">hbase-shaded.hbase-shaded-with-hadoop-check-invariants.pom.xml</file>
+      <file type="M">hbase-shaded.hbase-shaded-check-invariants.pom.xml</file>
+      <file type="M">hbase-http.src.test.java.org.apache.hadoop.hbase.http.log.TestLogLevel.java</file>
+      <file type="M">hbase-hadoop2-compat.pom.xml</file>
+      <file type="M">hbase-common.src.test.java.org.apache.hadoop.hbase.util.TestFutureUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2010-6-7 01:00:00" id="2523" opendate="2010-5-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add check for licenses before rolling an RC, add to how-to-release doc. and check for inlining a tool that does this for us</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>0.90.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.assembly.bin.xml</file>
+      <file type="M">pom.xml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

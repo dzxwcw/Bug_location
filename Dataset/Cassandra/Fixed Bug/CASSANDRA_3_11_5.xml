@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="10917" opendate="2015-12-22 00:00:00" fixdate="2015-12-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>better validator randomness</summary>
+      <description>get better randomness by reusing a Random object rather than recreating it.Also reuse keys list to avoid reallocations.</description>
+      <version>3.11.5</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.repair.Validator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10918" opendate="2015-12-22 00:00:00" fixdate="2015-12-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>remove leftover code from refactor</summary>
+      <description>code seems to have been left over from refactor from 2.2 to 3.0. removed.</description>
+      <version>3.11.5</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogSegmentManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10966" opendate="2016-1-5 00:00:00" fixdate="2016-1-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>guard against legacy migration failure due to non-existent index name</summary>
+      <description>code checks for whether an index has a name, but then blindly goes ahead and tries creates the index regardless. That would cause an NPE. Simple guard against that.</description>
+      <version>3.11.5</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaMigrator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11210" opendate="2016-2-23 00:00:00" fixdate="2016-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unresolved hostname in replace address</summary>
+      <description>If you provide a hostname which could not be resolved by DNS, it leads to replace args being ignored. If you provide an IP which is not in the cluster, it does the right thing and complain.</description>
+      <version>2.2.6,3.0.5,3.5,3.11.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11339" opendate="2016-3-10 00:00:00" fixdate="2016-4-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>WHERE clause in SELECT DISTINCT can be ignored</summary>
+      <description>I've tested this out on 2.1-head. I'm not sure if it's the same behavior on newer versions.For a given table t, with PRIMARY KEY (id, v) the following two queries return the same result:SELECT DISTINCT id FROM t WHERE v &gt; X ALLOW FILTERINGSELECT DISTINCT id FROM tThe WHERE clause in the former is silently ignored, and all id are returned, regardless of the value of v in any row. It seems like this has been a known issue for a while:http://stackoverflow.com/questions/26548788/select-distinct-cql-ignores-where-clauseHowever, if we don't support filtering on anything but the partition key, we should reject the query, rather than silently dropping the where clause</description>
+      <version>2.2.x,3.11.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.StatementRestrictions.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12964" opendate="2016-11-28 00:00:00" fixdate="2016-8-28 01:00:00" resolution="Duplicate">
+    <buginformation>
+      <summary>Reported load higher than available disk space</summary>
+      <description>Nodetool status is reporting a node to have almost 2x the amount of space that it actually physically have. We are running 6x825 GB HDDs in JBOD per node. Currently the last node alcas11 is in bootstrap state. Nodetool is consistently reporting the following:&amp;#91;alcas11-p2e&amp;#93; ~ # /opt/cassandra/bin/nodetool -h alcas11-p2e status -rDatacenter: datacenter1=======================Status=Up/Down/ State=Normal/Leaving/Joining/Moving&amp;#8211; Address Load Tokens Owns (effective) Host ID RackUN node8 3.27 TiB 256 29.6% 44cdab3e-ebb2-4f9a-9c7a-0b720ab81b7e rack1UN node5 8.29 TiB 256 31.1% 46d2dc3e-e2c8-487a-ab9f-cc499f45d68f rack1UN node9 3.32 TiB 256 30.2% 08e0bd5e-4247-42f1-976b-c4478f52277b rack1UN node10 3.36 TiB 256 29.7% 0d62d6df-e49c-44bd-a749-834ea8e612c0 rack1UN node1 3.42 TiB 256 30.5% e6763183-0a1c-4078-a8a9-8d28ab8b42ab rack1UN node4 3.34 TiB 256 30.4% d40d4db3-36d3-4311-adac-55754d1a13c3 rack1UN node3 3.28 TiB 256 29.5% 5a689467-e835-472d-807f-be38c03a4231 rack1UN node2 3.21 TiB 256 29.1% 0b66f5e9-a05c-45ec-9723-3b8fb700f510 rack1UN node7 3.23 TiB 256 29.4% d43c8527-edd8-4683-ba3e-54fc10a414c7 rack1UN node6 3.49 TiB 256 30.7% a64cb95d-ba63-4340-9e81-63d5e189217f rack1UJ node11-p2e 1.49 TiB 256 ? 6df0c42a-f3aa-4408-8876-51e0772ca2f2 rack1while the physical disk utilization on the machine itself is:&amp;#91;node5&amp;#93; ~ # df -hFilesystem Size Used Avail Use% Mounted on/dev/sdb1 825G 638G 145G 82% /data1/dev/sdc1 825G 532G 251G 68% /data2/dev/sdd1 825G 601G 182G 77% /data3/dev/sde1 825G 572G 212G 74% /data5/dev/sdf1 825G 552G 231G 71% /data6/dev/sdg1 825G 724G 59G 93% /data4Any clue what might cause this or any other information you need me to provide?</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.InsertUpdateIfConditionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ColumnFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CQL3CasRequest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14803" opendate="2018-10-3 00:00:00" fixdate="2018-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rows that cross index block boundaries can cause incomplete reverse reads in some cases.</summary>
+      <description>When we're reading 2.1 sstables in reverse, we skip the first row of an index block if it's split across index boundaries. The entire row will be read at the end of the next block. In some cases though, the only thing in this index block is the partial row, so we return an empty iterator. The empty iterator is then interpreted as the end of the row further down the call stack, so we return early without reading the rest of the data. This only affects 3.x during upgrades from 2.1</description>
+      <version>3.0.18,3.11.5</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableReversedIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14812" opendate="2018-10-10 00:00:00" fixdate="2018-7-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Multiget Thrift query returns null records after digest mismatch</summary>
+      <description>It seems that in Cassandra 3.0.0 a nasty bug was introduced in multiget Thrift query processing logic. When one tries to read data from several partitions with a single multiget query and DigestMismatch exception is raised during this query processing, request coordinator prematurely terminates response stream right at the point where the first DigestMismatch error is occurring. This leads to situation where clients "do not see" some data contained in the database.We managed to reproduce this bug in all versions of Cassandra starting with v3.0.0. The pre-release version 3.0.0-rc2 works correctly. It looks like refactoring of iterator transformation hierarchy related to CASSANDRA-9975 triggers incorrect behaviour.When concatenated iterator is returned from the StorageProxy.fetchRows(...), Cassandra starts to consume this combined iterator. Because of DigestMismatch exception some elements of this combined iterator contain additional ThriftCounter, that was added during DataResolver.resolve(...) execution. While consuming iterator for many partitions Cassandra calls BaseIterator.tryGetMoreContents(...) method that must switch from one partition iterator to another in case of exhaustion of the former. In this case all Transformations contained in the next iterator are applied to the combined BaseIterator that enumerates partitions sequence which is wrong. This behaviour causes BaseIterator to stop enumeration after it fully consumes partition with DigestMismatch error, because this partition iterator has additional ThriftCounter data limit.The attachment contains the python2 script small_repro_script.py that reproduces this bug within 3-nodes ccmlib controlled cluster. Also, there is an extended version of this script - repro_script.py - that contains more logging information and provides the ability to test behavior for many Cassandra versions (to run all test cases from repro_script.py you can call python -m unittest2 -v repro_script.ThriftMultigetTestCase). All the necessary dependencies contained in the requirements.txt This bug is critical in our production environment because we can't permit any data skip.Any ideas about a patch for this issue?</description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Consistency/Coordination,Messaging/Thrift</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.transform.BasePartitions.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.partitions.PartitionIterators.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.DataLimits.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14866" opendate="2018-11-5 00:00:00" fixdate="2018-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Issue a CQL native protocol warning if SASI indexes are enabled on a table</summary>
+      <description>If someone enables SASI indexes then we should return a native protocol warning that will be printed by cqlsh saying that they are beta quality still and you need to be careful with using them in production.This is motivated not only by the existing bugs and limitations but for the fact that they haven't been extensively tested yet.</description>
+      <version>3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Feature/SASI</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.index.sasi.SASICQLTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.index.sasi.SASIIndex.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.view.View.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateViewStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14903" opendate="2018-11-19 00:00:00" fixdate="2018-4-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool cfstats prints index name twice</summary>
+      <description>CREATE TABLE test.test (id int PRIMARY KEY,data text);CREATE INDEX test_data_idx ON test.test (data);ccm node1 nodetool cfstats testTotal number of tables: 40----------------Keyspace : testRead Count: 0Read Latency: NaN msWrite Count: 0Write Latency: NaN msPending Flushes: 0Table (index): test.test_data_idxtest.test_data_idx</description>
+      <version>3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.nodetool.stats.TableStatsPrinter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14907" opendate="2018-11-21 00:00:00" fixdate="2018-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-stress does not work with frozen collections: list, set</summary>
+      <description>com.datastax.driver.core.exceptions.InvalidQueryException: Invalid operation (f_list = f_list + ?) for frozen collection column f_list patch utest 3.0 circle This patch should apply cleanly.. Map is not supported yet..</description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Tool/stress</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressProfile.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14916" opendate="2018-11-29 00:00:00" fixdate="2018-2-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add missing commands to nodetool_completion</summary>
+      <description>Since CASSANDRA-6421, the file nodetool_completion haven't been modified in order to add the new features of nodetool command.I propose this patch to add those missing features.I tried to follow the logic of the code, I hope I did not miss anything. cscetbon , I would be happy if you have a look to the patch.</description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.nodetool-completion</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14937" opendate="2018-12-14 00:00:00" fixdate="2018-2-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Multi-version In-JVM dtests</summary>
+      <description>In order to support more sophisticated upgrade tests, including complex fuzz tests that can span a sequence of version upgrades, we propose abstracting a cross-version API for the in-jvm dtests. This will permit starting a node with an arbitrary compatible C* version, stopping the node, and restarting it with another C* version.</description>
+      <version>2.2.15,3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Test/dtest/java</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.concurrent.SEPExecutorTest.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.TestCluster.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.RowUtil.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.MessageFilters.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.Message.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.LegacyAdapter.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.InvokableInstance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.InstanceIDDefiner.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.InstanceConfig.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.InstanceClassLoader.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.Instance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.DistributedTestBase.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.DistributedReadWritePathTest.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.Coordinator.java</file>
+      <file type="M">test.conf.logback-dtest.xml</file>
+      <file type="M">src.java.org.apache.cassandra.utils.FBUtilities.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.NamedThreadFactory.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.InfiniteLoopExecutor.java</file>
+      <file type="M">build.xml</file>
+      <file type="M">.circleci.config.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14948" opendate="2019-1-3 00:00:00" fixdate="2019-7-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Backport dropped column checks to 3.0 and 3.11</summary>
+      <description>This is a follow on from CASSANDRA-14913 and CASSANDRA-14843 that introduced some fixes to prevent and mitigate data corruption caused by dropping a column then re-adding it with the same name but an incompatible type (e.g. simple int to a complex map&lt;&gt;) or different kind (regular/static). This patch backports the checks that now exist in trunk. This does include adding a column to the dropped_columns table to keep track of static columns like trunk, not sure it we are able to make that change in 3.11.x. Also not sure what our stance on backporting just the isValueCompatibleWith check to 3.0 is. I'd be for it since it prevents recreating a simple column as a map (or vice-versa) which will basically always lead to corruption.C* 3.11.xPatch</description>
+      <version>3.0.19,3.11.5</version>
+      <fixedVersion>Cluster/Schema</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.schema.LegacySchemaMigratorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.NativeSSTableLoaderClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.SchemaKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.LegacySchemaMigrator.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15013" opendate="2019-2-7 00:00:00" fixdate="2019-7-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prevent client requests from blocking on executor task queue</summary>
+      <description>This is a follow-up ticket out of CASSANDRA-14855, to make the Flusher queue bounded, since, in the current state, items get added to the queue without any checks on queue size, nor with any checks on netty outbound buffer to check the isWritable state.We are seeing this issue hit our production 3.0 clusters quite often.</description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Messaging/Client</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.NativeTransportServiceTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.SimpleClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.RequestThreadPoolExecutor.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.messages.StartupMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Message.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Frame.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Connection.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.NativeTransportService.java</file>
+      <file type="M">src.java.org.apache.cassandra.metrics.ClientMetrics.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">doc.native.protocol.v4.spec</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15039" opendate="2019-3-1 00:00:00" fixdate="2019-3-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Documentation claims copyright for future years</summary>
+      <description>See attached patch for details and fix. See also on this topic:https://stackoverflow.com/questions/2390230/do-copyright-dates-need-to-be-updated </description>
+      <version>3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Documentation/Javadoc</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">NOTICE.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15045" opendate="2019-3-7 00:00:00" fixdate="2019-3-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix index summary redistribution compaction cancellation issues</summary>
+      <description>We can't cancel ongoing index summary redistributions currently due to CompactionInfo returning null for getTableMetadata/getCFMetaData here for index summary redistributionsCASSANDRA-14935 also introduced a bug where we track the wrong sstables for index summary redistributions</description>
+      <version>2.2.15,3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.IndexSummaryManagerTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.FBUtilities.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.IndexSummaryManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15058" opendate="2019-3-19 00:00:00" fixdate="2019-3-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid double counting read latencies for digest queries</summary>
+      <description>We are closing the UnfilteredPartitionIterator wrapped with withMetricsRecording twice when we get digest requests - closing it calls onClose and that makes the metrics update twice.</description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Observability/Metrics</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.test.DistributedReadWritePathTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.partitions.UnfilteredPartitionIterators.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15072" opendate="2019-4-1 00:00:00" fixdate="2019-4-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incomplete range results during 2.X -&gt; 3.11.4 upgrade</summary>
+      <description>HelloDuring an upgrade from 2.1.17 to 3.11.4, our application starting getting back incomplete results for range queries. When all nodes were upgraded (before upgrading sstables), we stopped getting incomplete results. I was able to reproduce it and listed steps below. It seems to require the random partitioner and compact storage to reproduce reliably. It also reproduces coming from 2.1.21 and 2.2.14. You seem to get the bad behavior when an old node is your coordinator and it has to talk to an upgraded replica.ccm create test -v 2.1.17 -n 3ccm updateconf 'partitioner: org.apache.cassandra.dht.RandomPartitioner'ccm node1 updateconf 'initial_token: 0'ccm node2 updateconf 'initial_token: 56713727820156410577229101238628035242'ccm node3 updateconf 'initial_token: 113427455640312821154458202477256070484'ccm startccm node1 cqlsh &lt;&lt;SCHEMACREATE KEYSPACE test WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 3};CREATE COLUMNFAMILY test.test ( id text, foo text, bar text, PRIMARY KEY (id)) WITH COMPACT STORAGE;CONSISTENCY QUORUM;INSERT INTO test.test (id, foo, bar) values ('1', 'hi', 'there');INSERT INTO test.test (id, foo, bar) values ('2', 'hi', 'there');SCHEMAccm node1 stopccm node1 setdir -v 3.11.4ccm node1 startccm node2 stopccm node2 setdir -v 3.11.4ccm node2 start# here I use 3.X cqlsh to connect to 2.X node so I can lower the page size (to# allow for simpler test setup)cqlsh 127.0.0.3 &lt;&lt;QUERYCONSISTENCY QUORUM;PAGING 2;select * from test.test;QUERYThis results in:Page size: 2 id | bar | foo----+-------+----- 2 | there | hi(1 rows)Running it against the upgraded node (node1):Page size: 2 id | bar | foo----+-------+----- 2 | there | hi 1 | there | hi(2 rows)</description>
+      <version>3.0.19,3.11.5</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.DataLimits.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15078" opendate="2019-4-4 00:00:00" fixdate="2019-4-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support cross version messaging in in-jvm upgrade dtests</summary>
+      <description></description>
+      <version>2.2.15,3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Test/dtest/java</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.upgrade.UpgradeTestBase.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.InstanceClassLoader.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.Instance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.DelegatingInvokableInstance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.api.IInstance.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.AbstractCluster.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15086" opendate="2019-4-16 00:00:00" fixdate="2019-5-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Illegal column names make legacy sstables unreadable in 3.0/3.x</summary>
+      <description>CASSANDRA-10608 adds extra validation when decoding a bytebuffer representing a legacy cellname. If the table is not COMPACT and the column name component of the cellname refers to a primary key column, an IllegalArgumentException is thrown. It looks like the original intent of 10608 was to prevent Thrift writes from inserting these invalid cells, but the same code path is exercised on the read path. The problem is that this kind of cells may exist in pre-3.0 sstables, either due to Thrift writes or through side loading of externally generated SSTables. Following an upgrade to 3.0, these partitions become unreadable, breaking both the read and compaction paths (and so also upgradesstables). Scrub in 2.1 does not help here as it blindly reproduces the invalid cells.</description>
+      <version>3.0.19,3.11.5</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.IllegalLegacyColumnException.java</file>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.LegacyCellNameTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnknownColumnException.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnfilteredDeserializer.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ReadCommand.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.LegacyLayout.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15090" opendate="2019-4-17 00:00:00" fixdate="2019-5-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Customize cassandra log directory</summary>
+      <description>Add a new variable CASSANDRA_LOG_DIR (default: $CASSANDRA_HOME/logs) so that we could customize log directory such as ‘/var/log/cassandra’ .  </description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/Config</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15097" opendate="2019-4-23 00:00:00" fixdate="2019-7-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid updating unchanged gossip state</summary>
+      <description>The node might get unchanged gossip states, the state might be just updated after sending a GOSSIP_SYN, then it will get the state that is already up to date. If the heartbeat in the GOSSIP_ACK message is updated, it will unnecessary re-apply the same state again, which could be costly like updating token change.It's very likely to happen for large cluster when a node startup, as the first gossip message will sync all endpoints tokens, it could take some time (in our case about 200 seconds), during that time, it keeps gossip with other node and get the full token states. Which causes lots of pending gossip tasks.</description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Cluster/Gossip</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.gms.GossiperTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15100" opendate="2019-4-25 00:00:00" fixdate="2019-8-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve no-op cleanup performance</summary>
+      <description>We should filter sstables in `OneSSTableOperation#filterSSTables` instead of in the cleanup method to avoid creating unnecessary single-sstable transactions for sstables fully contained in the owned ranges.</description>
+      <version>3.0.19,3.11.5,4.1-alpha1,4.1</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.CleanupTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15120" opendate="2019-5-7 00:00:00" fixdate="2019-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodes that join the ring while another node is MOVING build an invalid view of the token ring</summary>
+      <description>Gossip only updates the token metadata for nodes in the NORMAL, SHUTDOWN or LEAVING* statuses.  MOVING and REMOVING_TOKEN nodes do not have their ring information updated (nor do others, but these other states should only be taken by nodes that are not members of the ring).  If a node missed the most recent token-modifying events because they were not a member of the ring when they happened (or because Gossip was delayed to them), they will retain an invalid view of the ring until the node enters the one of the NORMAL, SHUTDOWN or LEAVING states.*LEAVING is populated differently, however, and in a probably unsafe manner that this work will also address.</description>
+      <version>3.0.19,3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Cluster/Gossip,Cluster/Membership</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.MoveTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.concurrent.SEPExecutorTest.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.UpgradeableCluster.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.test.DistributedTestBase.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.InstanceClassLoader.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.Instance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.DelegatingInvokableInstance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.AbstractCluster.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.Cluster.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.api.IInstance.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.ExpiringMap.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.StageManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.SharedExecutorPool.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.SEPWorker.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.SEPExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15123" opendate="2019-5-10 00:00:00" fixdate="2019-8-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid keeping sstables marked compacting forever when user defined compaction gets interrupted</summary>
+      <description>When we have both repaired + unrepaired data on a node, we create multiple compaction tasks and run them serially. If one of those tasks gets interrupted or throws exception we will keep sstables in the other tasks as compacting forever.</description>
+      <version>3.11.5,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.CompactionsBytemanTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15193" opendate="2019-7-2 00:00:00" fixdate="2019-10-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add ability to cap max negotiable protocol version</summary>
+      <description>3.0 and native protocol V4 introduced a change to how PagingState is serialized. Unfortunately that can break requests during upgrades: since paging states are opaque, it's possible for a client to receive a paging state encoded as V3 on a 2.1 node, and then send it to a 3.0 node on a V4 session. The version of the current session will be used to deserialize the paging state, instead of the actual version used to serialize it, and the request will fail.CASSANDRA-15176 solves half of this problem by enabling 3.0 nodes to serialize mis-versioned PagingStates. To address the other side of the issue, 2.1 nodes receiving V4 PagingStates, we can introduce a property to cap the max native protocol version that the 3.0 nodes will negotiate with clients. If we cap this to V3 during upgrades, no V4 connections will be established and so no incompatible PagingStates will be sent to clients.</description>
+      <version>3.0.19,3.11.5,4.0-alpha2,4.0</version>
+      <fixedVersion>Messaging/Client</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.transport.ProtocolErrorTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.CQLTester.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.SimpleClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Message.java</file>
+      <file type="M">src.java.org.apache.cassandra.transport.Frame.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.NativeTransportService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">pylib.cqlshlib.test.test.cqlsh.output.py</file>
+      <file type="M">pylib.cqlshlib.test.test.cqlsh.completion.py</file>
+      <file type="M">pylib.cqlshlib.test.cassconnect.py</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15204" opendate="2019-7-9 00:00:00" fixdate="2019-7-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Toughen up column drop/recreate validations in 3.0/3.11</summary>
+      <description>After CASSANDRA-8099 it’s no longer possible to safely drop/add columns with incompatible types. In 4.0 we validate this correctly, but in 3.0 we don’t,and that can result in unreadable sstables (corrupted serialization headers causing simple columns to be read as complex or vice versa).This patch brings 3.0 in line with 4.0 restrictions, making such corruption impossible.</description>
+      <version>3.0.19,3.11.5</version>
+      <fixedVersion>Cluster/Schema</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.AlterTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15363" opendate="2019-10-18 00:00:00" fixdate="2019-10-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Read repair in mixed mode between 2.1 and 3.0 on COMPACT STORAGE tables causes unreadable sstables after upgrade</summary>
+      <description>if we have a table like this:CREATE TABLE tbl (pk ascii, b boolean, v blob, PRIMARY KEY (pk)) WITH COMPACT STORAGEwith a cluster where node1 is 2.1 and node2 is 3.0 (during upgrade): node2 coordinates a delete DELETE FROM tbl WHERE pk = 'something' which node1 does not get node1 coordinates a quorum read SELECT * FROM tbl WHERE id = 'something' which causes a read repair this makes node1 flush an sstable like this:[{"key": "something", "metadata": {"deletionInfo": {"markedForDeleteAt":1571388944364000,"localDeletionTime":1571388944}}, "cells": [["b","b",1571388944364000,"t",1571388944], ["v","v",1571388944364000,"t",1571388944]]}](It has range tombstones which are covered by the partition deletion)Then, when we upgrade this node to 3.0 and try to read or run upgradesstables, we get this:ERROR [node1_CompactionExecutor:1] node1 2019-10-18 10:44:11,325 DebuggableThreadPoolExecutor.java:242 - Error in ThreadPoolExecutorjava.lang.UnsupportedOperationException: null at org.apache.cassandra.db.LegacyLayout.extractStaticColumns(LegacyLayout.java:779) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.io.sstable.SSTableSimpleIterator$OldFormatIterator.readStaticRow(SSTableSimpleIterator.java:120) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.io.sstable.SSTableIdentityIterator.&lt;init&gt;(SSTableIdentityIterator.java:57) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.io.sstable.format.big.BigTableScanner$KeyScanningIterator$1.initializeIterator(BigTableScanner.java:362) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.rows.LazilyInitializedUnfilteredRowIterator.maybeInit(LazilyInitializedUnfilteredRowIterator.java:48) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.rows.LazilyInitializedUnfilteredRowIterator.isReverseOrder(LazilyInitializedUnfilteredRowIterator.java:65) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.partitions.UnfilteredPartitionIterators$1.reduce(UnfilteredPartitionIterators.java:103) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.partitions.UnfilteredPartitionIterators$1.reduce(UnfilteredPartitionIterators.java:94) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.utils.MergeIterator$OneToOne.computeNext(MergeIterator.java:442) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.utils.AbstractIterator.hasNext(AbstractIterator.java:47) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.partitions.UnfilteredPartitionIterators$2.hasNext(UnfilteredPartitionIterators.java:144) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.transform.BasePartitions.hasNext(BasePartitions.java:92) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.compaction.CompactionIterator.hasNext(CompactionIterator.java:227) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.compaction.CompactionTask.runMayThrow(CompactionTask.java:190) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.compaction.CompactionTask.executeInternal(CompactionTask.java:89) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.compaction.AbstractCompactionTask.execute(AbstractCompactionTask.java:61) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.db.compaction.CompactionManager$8.runMayThrow(CompactionManager.java:675) ~[dtest-3.0.19.jar:na] at org.apache.cassandra.utils.WrappedRunnable.run(WrappedRunnable.java:28) ~[dtest-3.0.19.jar:na] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) ~[na:1.8.0_121] at java.util.concurrent.FutureTask.run(FutureTask.java:266) ~[na:1.8.0_121] at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1142) ~[na:1.8.0_121] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:617) [na:1.8.0_121] at org.apache.cassandra.concurrent.NamedThreadFactory.lambda$threadLocalDeallocator$0(NamedThreadFactory.java:83) [dtest-3.0.19.jar:na] at java.lang.Thread.run(Thread.java:745) ~[na:1.8.0_121]</description>
+      <version>3.0.19,3.11.5,4.0-alpha2,4.0</version>
+      <fixedVersion>Consistency/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.upgrade.UpgradeTestBase.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.Instance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.impl.DelegatingInvokableInstance.java</file>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.api.IInstance.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

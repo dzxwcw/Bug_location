@@ -1,0 +1,776 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="10016" opendate="2018-8-1 00:00:00" fixdate="2018-8-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make YARN/Kerberos end-to-end test stricter</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.5.3,1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.yarn.kerberos.docker.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.docker-hadoop-secure-cluster.config.yarn-site.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10020" opendate="2018-8-1 00:00:00" fixdate="2018-8-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Kinesis Consumer listShards should support more recoverable exceptions</summary>
+      <description>Currently transient errors in listShards make the consumer fail and cause the entire job to reset. That is unnecessary for certain exceptions (like status 503 errors). It should be possible to control the exceptions that qualify for retry, similar to getRecords/isRecoverableSdkClientException.</description>
+      <version>None</version>
+      <fixedVersion>1.6.1,1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.test.java.org.apache.flink.streaming.connectors.kinesis.proxy.KinesisProxyTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.java.org.apache.flink.streaming.connectors.kinesis.proxy.KinesisProxy.java</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.java.org.apache.flink.streaming.connectors.kinesis.config.ConsumerConfigConstants.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10101" opendate="2018-8-8 00:00:00" fixdate="2018-8-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Mesos web ui url is missing.</summary>
+      <description>Mesos web ui url is missing in new deploy mode.</description>
+      <version>1.5.0,1.5.1,1.5.2</version>
+      <fixedVersion>1.5.4,1.6.1,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-mesos.src.test.java.org.apache.flink.mesos.runtime.clusterframework.MesosResourceManagerTest.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.runtime.clusterframework.MesosResourceManager.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.entrypoint.MesosSessionClusterEntrypoint.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.entrypoint.MesosJobClusterEntrypoint.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10115" opendate="2018-8-9 00:00:00" fixdate="2018-9-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Content-length limit is also applied to FileUploads</summary>
+      <description>Uploading jar files via WEB UI not working. After initializing upload... it only shows saving... and file never shows up on UI to be able to submit it</description>
+      <version>1.5.1,1.6.0,1.7.0</version>
+      <fixedVersion>1.5.4,1.6.1,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.MultipartUploadResource.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.FileUploadHandler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10142" opendate="2018-8-14 00:00:00" fixdate="2018-11-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce synchronization overhead for credit notifications</summary>
+      <description>When credit-based flow control was introduced, we also added some checks and optimisations for uncommon code paths that make common code paths unnecessarily more expensive, e.g. checking whether a channel was released before forwarding a credit notification to Netty. Such checks would have to be confirmed by the Netty thread anyway and thus only add additional load for something that happens only once (per channel).</description>
+      <version>1.5.0,1.5.1,1.5.2,1.5.3,1.6.0,1.7.0</version>
+      <fixedVersion>1.5.4,1.6.1,1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannelTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.consumer.RemoteInputChannel.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.PartitionRequestClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1018" opendate="2014-7-10 00:00:00" fixdate="2014-3-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Logistic Regression deadlocks</summary>
+      <description>We are currently running our implementation of logistic regression with batch gradient descent on the cluster.Unfortunatelly for datasets &gt; 1GB it seems to deadlock inside of the iteration. This means the first iteration is never finished.The iteration does a map over all points, the map gets the iteration input as broadcast variable. The result of the map is reduced and the result of the reducer (1 tuple) is crossed with the iteration input.There should be no reason for the deadlock, since the data is still quite small compared to the cluster size (4 nodes a 32GB). Also the datasize stays constant throughout the algorithm.Here is the generated plan. I will also attach the full algorithm.{ "nodes": [ { "id": 2, "type": "source", "pact": "Data Source", "contents": "[([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.", "parallelism": "1", "subtasks_per_instance": "1", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "(unknown)" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "0.0 B" }, { "name": "Cumulative Disk I/O", "value": "0.0 B" }, { "name": "Cumulative CPU", "value": "0.0 " } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "step_function": [ { "id": 8, "type": "source", "pact": "Data Source", "contents": "TextInputFormat (hdfs://cloud-7:45010/tmp/input/higgs.M.txt) - UTF-8", "parallelism": "64", "subtasks_per_instance": "16", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "8.0.31 GB" }, { "name": "Est. Cardinality", "value": "109.90 M" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "8.0.31 GB" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "0.0 B" }, { "name": "Cumulative Disk I/O", "value": "8.0.31 GB" }, { "name": "Cumulative CPU", "value": "0.0 " } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 7, "type": "pact", "pact": "Map", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$6", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 8, "ship_strategy": "Forward"} ], "driver_strategy": "Map", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "109.90 M" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "0.0 B" }, { "name": "Cumulative Disk I/O", "value": "8.0.31 GB" }, { "name": "Cumulative CPU", "value": "0.0 " } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 11, "type": "pact", "pact": "Map", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$1", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 7, "ship_strategy": "Forward"} ], "driver_strategy": "Map", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "109.90 M" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "0.0 B" }, { "name": "Cumulative Disk I/O", "value": "4.0.15 GB" }, { "name": "Cumulative CPU", "value": "0.0 " } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 10, "type": "pact", "pact": "Reduce", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$2", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 11, "ship_strategy": "Forward"} ], "driver_strategy": "Reduce All", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "109.90 M" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "0.0 B" }, { "name": "Cumulative Disk I/O", "value": "4.0.15 GB" }, { "name": "Cumulative CPU", "value": "0.0 " } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 9, "type": "pact", "pact": "Reduce", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$2", "parallelism": "1", "subtasks_per_instance": "1", "predecessors": [ {"id": 10, "ship_strategy": "Redistribute"} ], "driver_strategy": "Reduce All", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "(unknown)" } ], "costs": [ { "name": "Network", "value": "(unknown)" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "(unknown)" }, { "name": "Cumulative Disk I/O", "value": "4.0.15 GB" }, { "name": "Cumulative CPU", "value": "0.0 " } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 12, "type": "pact", "pact": "Bulk Partial Solution", "contents": "Partial Solution", "parallelism": "64", "subtasks_per_instance": "16", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "(unknown)" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "0.0 B" }, { "name": "Cumulative Disk I/O", "value": "0.0 B" }, { "name": "Cumulative CPU", "value": "0.0 " } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 6, "type": "pact", "pact": "Map", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$3", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 7, "side": "first", "ship_strategy": "Forward", "temp_mode": "CACHED"}, {"id": 9, "side": "second", "ship_strategy": "Broadcast"}, {"id": 12, "side": "second", "ship_strategy": "Broadcast"} ], "driver_strategy": "Map", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "109.90 M" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "(unknown)" }, { "name": "CPU", "value": "(unknown)" }, { "name": "Cumulative Network", "value": "(unknown)" }, { "name": "Cumulative Disk I/O", "value": "(unknown)" }, { "name": "Cumulative CPU", "value": "(unknown)" } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 5, "type": "pact", "pact": "Reduce", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$4", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 6, "ship_strategy": "Forward"} ], "driver_strategy": "Reduce All", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "109.90 M" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "(unknown)" }, { "name": "Cumulative Disk I/O", "value": "(unknown)" }, { "name": "Cumulative CPU", "value": "(unknown)" } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 4, "type": "pact", "pact": "Reduce", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$4", "parallelism": "1", "subtasks_per_instance": "1", "predecessors": [ {"id": 5, "ship_strategy": "Redistribute"} ], "driver_strategy": "Reduce All", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "(unknown)" } ], "costs": [ { "name": "Network", "value": "(unknown)" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "(unknown)" }, { "name": "Cumulative Disk I/O", "value": "(unknown)" }, { "name": "Cumulative CPU", "value": "(unknown)" } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 3, "type": "pact", "pact": "Cross", "contents": "de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$5", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 4, "side": "first", "ship_strategy": "Broadcast"}, {"id": 12, "side": "second", "ship_strategy": "Forward", "temp_mode": "PIPELINE_BREAKER"} ], "driver_strategy": "Nested Loops (Blocked Outer: de.tu_berlin.impro3.stratosphere.classification.logreg.LogisticRegression$4)", "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "(unknown)" } ], "costs": [ { "name": "Network", "value": "(unknown)" }, { "name": "Disk I/O", "value": "(unknown)" }, { "name": "CPU", "value": "(unknown)" }, { "name": "Cumulative Network", "value": "(unknown)" }, { "name": "Cumulative Disk I/O", "value": "(unknown)" }, { "name": "Cumulative CPU", "value": "(unknown)" } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] } ], "partial_solution": 12, "next_partial_solution": 3, "id": 1, "type": "bulk_iteration", "pact": "Bulk Iteration", "contents": "Bulk Iteration", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 2, "ship_strategy": "Redistribute"} ], "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "(unknown)" } ], "costs": [ { "name": "Network", "value": "(unknown)" }, { "name": "Disk I/O", "value": "(unknown)" }, { "name": "CPU", "value": "(unknown)" }, { "name": "Cumulative Network", "value": "(unknown)" }, { "name": "Cumulative Disk I/O", "value": "(unknown)" }, { "name": "Cumulative CPU", "value": "(unknown)" } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] }, { "id": 0, "type": "sink", "pact": "Data Sink", "contents": "TextOutputFormat (hdfs://cloud-7:45010/tmp/output/logreg) - UTF-8", "parallelism": "64", "subtasks_per_instance": "16", "predecessors": [ {"id": 1, "ship_strategy": "Forward"} ], "global_properties": [ { "name": "Partitioning", "value": "RANDOM" }, { "name": "Partitioning Order", "value": "(none)" }, { "name": "Uniqueness", "value": "not unique" } ], "local_properties": [ { "name": "Order", "value": "(none)" }, { "name": "Grouping", "value": "not grouped" }, { "name": "Uniqueness", "value": "not unique" } ], "estimates": [ { "name": "Est. Output Size", "value": "(unknown)" }, { "name": "Est. Cardinality", "value": "(unknown)" } ], "costs": [ { "name": "Network", "value": "0.0 B" }, { "name": "Disk I/O", "value": "0.0 B" }, { "name": "CPU", "value": "0.0 " }, { "name": "Cumulative Network", "value": "(unknown)" }, { "name": "Cumulative Disk I/O", "value": "(unknown)" }, { "name": "Cumulative CPU", "value": "(unknown)" } ], "compiler_hints": [ { "name": "Output Size (bytes)", "value": "(none)" }, { "name": "Output Cardinality", "value": "(none)" }, { "name": "Avg. Output Record Size (bytes)", "value": "(none)" }, { "name": "Filter Factor", "value": "(none)" } ] } ]}</description>
+      <version>None</version>
+      <fixedVersion>0.9</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-compiler.src.test.java.org.apache.flink.compiler.BranchingPlansCompilerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.DriverStrategy.java</file>
+      <file type="M">flink-compiler.src.test.java.org.apache.flink.compiler.PipelineBreakerTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10195" opendate="2018-8-22 00:00:00" fixdate="2018-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RabbitMQ Source With Checkpointing Doesn&amp;#39;t Backpressure Correctly</summary>
+      <description>The connection between the RabbitMQ server and the client does not appropriately back pressure when auto acking is disabled. This becomes very problematic when a downstream process throttles the data processing to slower then RabbitMQ sends the data to the client.The difference in records ends up being stored in the flink's heap space, which grows indefinitely (or technically to "Integer Max" Deliveries). Looking at RabbitMQ's metrics the number of unacked messages looks like steadily rising saw tooth shape.Upon further invesitgation it looks like this is due to how the QueueingConsumer works, messages are added to the BlockingQueue faster then they are being removed and processed, resulting in the previously described behavior.This may be intended behavior, however this isn't explicitly obvious in the documentation or any of the examples I have seen.</description>
+      <version>1.4.0,1.5.0,1.5.1,1.6.0</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-rabbitmq.src.test.java.org.apache.flink.streaming.connectors.rabbitmq.RMQSourceTest.java</file>
+      <file type="M">flink-connectors.flink-connector-rabbitmq.src.test.java.org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfigTest.java</file>
+      <file type="M">flink-connectors.flink-connector-rabbitmq.src.main.java.org.apache.flink.streaming.connectors.rabbitmq.RMQSource.java</file>
+      <file type="M">flink-connectors.flink-connector-rabbitmq.src.main.java.org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig.java</file>
+      <file type="M">docs.dev.connectors.rabbitmq.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10274" opendate="2018-8-31 00:00:00" fixdate="2018-1-31 01:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>The stop-cluster.sh cannot stop cluster properly when there are multiple clusters running</summary>
+      <description>When you are preparing to do a Flink framework version upgrading by using the strategy shadow copy , you have to run multiple clusters concurrently,  however when you are ready to stop the old version cluster after upgrading, you would find the stop-cluster.sh wouldn't work as you expected, the following is the steps to duplicate the issue: There is already a running Flink 1.5.x cluster instance; Installing another Flink 1.6.x cluster instance at the same cluster machines; Migrating the jobs from Flink 1.5.x  to Flink 1.6.x ; go to the bin dir of the Flink 1.5.x cluster instance and run stop-cluster.sh ;You would expect the old Flink 1.5.x cluster instance be stopped ,right? Unfortunately the stopped cluster is the new installed Flink 1.6.x cluster instance instead!</description>
+      <version>1.5.1,1.5.2,1.5.3,1.6.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.CoreOptions.java</file>
+      <file type="M">docs..includes.generated.environment.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10282" opendate="2018-9-5 00:00:00" fixdate="2018-10-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Provide separate thread-pool for REST endpoint</summary>
+      <description>The REST endpoints currently share their thread-pools with the RPC system, which can cause the Dispatcher to become unresponsive if the REST parts are overloaded.</description>
+      <version>1.5.1,1.6.0,1.7.0</version>
+      <fixedVersion>1.5.5,1.6.2,1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.util.ExecutorThreadFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.webmonitor.WebMonitorEndpoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.SessionRestEndpointFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.RestEndpointFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.JobRestEndpointFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.minicluster.MiniCluster.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.MiniDispatcherRestEndpoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.entrypoint.component.AbstractDispatcherResourceManagerComponentFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.DispatcherRestEndpoint.java</file>
+      <file type="M">flink-docs.src.main.java.org.apache.flink.docs.rest.RestAPIDocGenerator.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.RestOptions.java</file>
+      <file type="M">docs..includes.generated.rest.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10331" opendate="2018-9-13 00:00:00" fixdate="2018-9-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce number of flush requests to the network stack</summary>
+      <description>With the re-design of the record writer interaction with the result(sub)partitions, flush requests can currently pile up in these scenarios: a previous flush request has not been completely handled yet and/or is still enqueued or the network stack is still polling from this subpartition and doesn't need a new notificationThese lead to increased notifications in low latency settings (low output flusher intervals) which can be avoided.</description>
+      <version>1.5.0,1.5.1,1.5.2,1.5.3,1.6.0,1.7.0</version>
+      <fixedVersion>1.5.5,1.6.2,1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.PipelinedSubpartitionTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.PipelinedSubpartition.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9163" opendate="2018-4-12 00:00:00" fixdate="2018-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Harden e2e tests&amp;#39; signal traps and config restoration during abort</summary>
+      <description>Signal traps on certain systems, e.g. Linux, may be called concurrently when the trap is caught during its own execution. In that case, our cleanup may just be wrong and may also overly eagerly delete flink-conf.yaml.</description>
+      <version>1.5.0,1.5.1,1.6.0</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.streaming.sql.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.streaming.kafka010.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.resume.savepoint.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9372" opendate="2018-5-15 00:00:00" fixdate="2018-5-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Typo on Elasticsearch website link (elastic.io --&gt; elastic.co)</summary>
+      <description>Typo on website link in Elasticsearch Java Docs (elastic.io --&gt; elastic.co)</description>
+      <version>1.4.1,1.4.2,1.5.0,1.5.1</version>
+      <fixedVersion>1.5.1,1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-elasticsearch.src.main.java.org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSink.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch5.src.main.java.org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch2.src.main.java.org.apache.flink.streaming.connectors.elasticsearch2.ElasticsearchSink.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="962" opendate="2014-6-21 00:00:00" fixdate="2014-7-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move documentation from old website into source code</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9801" opendate="2018-7-11 00:00:00" fixdate="2018-7-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>flink-dist is missing dependency on flink-examples</summary>
+      <description>For the assembly of flink-dist we copy various batch/streaming examples directly from the respective /target directory.Never mind that this is already a problem as is (see FLINK-9582), flink-dist defines no dependency on these modules.If you were to only compile flink-dist with the -am flag (to also build all dependencies) it thus may or may not happen that these modules are actually compiled, which could cause these examples to not be included in the final assembly.</description>
+      <version>1.5.1,1.6.0</version>
+      <fixedVersion>1.5.2,1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-dist.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9833" opendate="2018-7-12 00:00:00" fixdate="2018-8-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>End-to-end test: SQL Client with unified source/sink/format</summary>
+      <description>After FLINK-8858 is resolved we can add an end-to-end test for the SQL Client. The test should perform the following steps: Put JSON data into Kafka Submit and execute a INSERT INTO statement that reads from a Kafka connector with JSON format, does some ETL, and writes to Kafka with Avro format Validate Avro data</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.run-nightly-tests.sh</file>
+      <file type="M">flink-end-to-end-tests.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9846" opendate="2018-7-13 00:00:00" fixdate="2018-7-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a Kafka table sink factory</summary>
+      <description>FLINK-8866 implements a unified way of creating sinks and using the format discovery for searching for formats (FLINK-8858). It is now possible to add a Kafka table sink factory for streaming environment that uses the new interfaces.</description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.factories.utils.TestTableFormatFactory.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.factories.utils.TestSerializationSchema.scala</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaTableSourceFactoryTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaTableSinkTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.partitioner.FlinkFixedPartitioner.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.KafkaTableSourceFactory.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.KafkaTableSink.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.KafkaJsonTableSink.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka09TableSourceFactoryTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka09JsonTableSinkTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.main.resources.META-INF.services.org.apache.flink.table.factories.TableFactory</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka09TableSourceFactory.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka09TableSource.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka09JsonTableSink.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka08TableSourceFactoryTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka08JsonTableSinkTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.main.resources.META-INF.services.org.apache.flink.table.factories.TableFactory</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka08TableSourceFactory.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka08TableSource.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka08JsonTableSink.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.11.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka011TableSourceFactoryTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.11.src.main.resources.META-INF.services.org.apache.flink.table.factories.TableFactory</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.11.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka011TableSourceFactory.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.11.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka011TableSource.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka010TableSourceFactoryTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka010JsonTableSinkTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.main.resources.META-INF.services.org.apache.flink.table.factories.TableFactory</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka010TableSourceFactory.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.main.java.org.apache.flink.streaming.connectors.kafka.Kafka010JsonTableSink.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9857" opendate="2018-7-16 00:00:00" fixdate="2018-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Processing-time timers fire too early</summary>
+      <description>The firing of processing-time timers is off by one. This leads to problems in edge cases, as discovered here (mailing list) when elements arrive at the timestamp that is the end of the window.The problem is here (github). For event-time, we fire timers when the watermark is &gt;= the timestamp, this is correct because a watermark T says that we will not see elements with a timestamp smaller or equal to T. For processing time, a time of T does not say that we won't see an element with timestamp T, which makes processing-time timers fire one ms too early.I think we can fix it by turning that &lt;= into a &lt;.</description>
+      <version>1.3.4,1.4.2,1.5.1,1.6.0</version>
+      <fixedVersion>1.5.2,1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.SystemProcessingTimeService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9858" opendate="2018-7-16 00:00:00" fixdate="2018-7-16 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>State TTL End-to-End Test</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+      <file type="M">flink-end-to-end-tests.run-nightly-tests.sh</file>
+      <file type="M">flink-end-to-end-tests.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9859" opendate="2018-7-16 00:00:00" fixdate="2018-8-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>More Akka config options</summary>
+      <description>Add more akka config options.</description>
+      <version>1.5.1</version>
+      <fixedVersion>1.5.3,1.6.1,1.7.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.jobmanager.JobManager.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.akka.AkkaUtils.scala</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rpc.akka.AkkaRpcServiceUtils.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.clusterframework.BootstrapTools.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.AkkaOptions.java</file>
+      <file type="M">docs..includes.generated.akka.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="986" opendate="2014-6-26 00:00:00" fixdate="2014-1-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add intermediate results to distributed runtime</summary>
+      <description>Support for intermediate results in the runtime is currently blocking different efforts like fault tolerance or result collection at the client.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.AbstractRecordReader.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.runtime.NetworkStackThroughput.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.recordJobs.util.InfiniteIntegerInputFormatWithDelay.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.recordJobs.relational.query1Util.LineItemFilterTest.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.iterative.nephele.JobGraphUtils.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.iterative.nephele.IterationWithChainingNepheleITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.iterative.nephele.danglingpagerank.CompensatableDanglingPageRank.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.iterative.nephele.customdanglingpagerank.CustomCompensatableDanglingPageRankWithCombiner.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.iterative.nephele.customdanglingpagerank.CustomCompensatableDanglingPageRank.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.iterative.nephele.ConnectedComponentsNepheleITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.exampleJavaPrograms.ConnectedComponentsITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.broadcastvars.KMeansIterativeNepheleITCase.java</file>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.broadcastvars.BroadcastVarsNepheleITCase.java</file>
+      <file type="M">flink-test-utils.src.main.scala.org.apache.flink.test.util.ForkableFlinkMiniCluster.scala</file>
+      <file type="M">flink-test-utils.src.main.java.org.apache.flink.test.util.TestBaseUtils.java</file>
+      <file type="M">flink-test-utils.src.main.java.org.apache.flink.test.util.RecordAPITestBase.java</file>
+      <file type="M">flink-test-utils.src.main.java.org.apache.flink.test.util.JavaProgramTestBase.java</file>
+      <file type="M">flink-test-utils.src.main.java.org.apache.flink.test.util.AbstractTestBase.java</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.testingUtils.TestingTaskManagerMessages.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.testingUtils.TestingTaskManager.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.testingUtils.TestingJobManagerMessages.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.testingUtils.TestingJobManager.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.jobmanager.Tasks.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.jobmanager.TaskManagerFailsWithSlotSharingITCase.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.jobmanager.TaskManagerFailsITCase.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.jobmanager.SlotSharingITCase.scala</file>
+      <file type="M">flink-runtime.src.test.scala.org.apache.flink.runtime.jobmanager.JobManagerITCase.scala</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.util.AtomicDisposableReferenceCounterTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.testutils.TestBufferProvider.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.testutils.DiscardingRecycler.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskmanager.TaskManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.util.RecordOutputEmitterTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.util.OutputEmitterTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.testutils.TaskTestBase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.testutils.MockEnvironment.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.resettable.SpillingResettableMutableObjectIteratorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.DataSourceTaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.DataSinkTaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.chaining.ChainTaskTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobgraph.JobTaskVertexTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobgraph.JobGraphTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.iterative.concurrent.SuperstepBarrierTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.iterative.concurrent.BrokerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.Util.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.UnsignedShortType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.UnsignedByteType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.ShortType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.SerializationTestTypeFactory.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.SerializationTestType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.LongType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.IntType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.FloatType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.DoubleType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.CharType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.ByteType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.ByteSubArrayType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.ByteArrayType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.BooleanType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.types.AsciiStringType.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.SpanningRecordSerializerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.SpanningRecordSerializationTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.PagedViewsTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.serialization.DataInputOutputSerializerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.OutboundEnvelopeEncoderTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.NettyConnectionManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.InboundEnvelopeDecoderTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.DefaultChannelSelectorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.bufferprovider.LocalBufferPoolTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.disk.iomanager.IOManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.PointwisePatternTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ExecutionVertexCancelTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ExecutionGraphTestUtils.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ExecutionGraphDeploymentTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ExecutionGraphConstructionTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.event.task.EventNotificationManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.deployment.TaskDeploymentDescriptorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.deployment.ChannelDeploymentDescriptorTest.java</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.taskmanager.TaskManager.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.taskmanager.NetworkConnectionConfiguration.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.minicluster.LocalFlinkMiniCluster.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.messages.TaskManagerMessages.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.messages.JobmanagerMessages.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.jobmanager.JobManager.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.akka.serialization.WritableSerializer.scala</file>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.akka.serialization.IOReadableWritableSerializer.scala</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.util.BufferPoolConnector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.util.AtomicDisposableReferenceCounter.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.Task.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.util.SimpleCloseableInputProvider.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.util.ReaderIterator.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.shipping.RecordOutputEmitter.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.shipping.RecordOutputCollector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.shipping.OutputEmitter.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.shipping.OutputCollector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.RegularPactTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.DataSourceTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.DataSinkTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.chaining.ChainedDriver.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmanager.web.JsonFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobgraph.JobID.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobgraph.DistributionPattern.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.task.SyncEventHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.task.IterationTailPactTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.task.IterationSynchronizationSinkTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.task.IterationIntermediatePactTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.task.IterationHeadPactTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.task.AbstractIterativePactTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.io.WorksetUpdateOutputCollector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.io.SolutionSetUpdateOutputCollector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.io.SolutionSetObjectsUpdateOutputCollector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.io.SolutionSetFastUpdateOutputCollector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.event.TerminationEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.event.IterationEventWithAggregators.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.concurrent.SuperstepBarrier.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.serialization.SpanningRecordSerializer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.serialization.RecordSerializer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.serialization.RecordDeserializer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.serialization.DataOutputSerializer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.serialization.DataInputDeserializer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.serialization.AdaptiveSpanningRecordDeserializer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.SenderHintEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.RemoteReceiver.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.NetworkConnectionManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.OutboundEnvelopeEncoder.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.OutboundConnectionQueue.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.NettyConnectionManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.InboundEnvelopeDispatcher.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.InboundEnvelopeDecoder.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.LocalReceiverCancelledException.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.LocalConnectionManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.InsufficientResourcesException.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.gates.RecordAvailabilityListener.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.gates.OutputGate.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.gates.InputGate.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.gates.InputChannelResult.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.gates.GateID.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.gates.Gate.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.EnvelopeReceiverList.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.EnvelopeDispatcher.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.Envelope.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.ConnectionInfoLookupResponse.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.ReceiverAlreadyClosedException.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.OutputChannel.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.InputChannel.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.EndOfSuperstepEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.ChannelType.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.ChannelID.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.ChannelCloseEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.Channel.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.channels.BufferOrEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.ChannelManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.BufferRecycler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.bufferprovider.LocalBufferPoolOwner.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.bufferprovider.LocalBufferPool.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.bufferprovider.GlobalBufferPool.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.bufferprovider.DiscardBufferPool.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.bufferprovider.BufferProviderBroker.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.bufferprovider.BufferProvider.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.bufferprovider.BufferAvailabilityListener.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.Buffer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.UnionRecordReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.RoundRobinChannelSelector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.RecordWriter.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.RecordReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.ReaderBase.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.Reader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.MutableUnionRecordReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.MutableRecordReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.MutableReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.ChannelSelector.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.BufferWriter.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.AbstractUnionRecordReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.api.AbstractSingleGateRecordReader.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.collector.DirectedStreamCollector.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.collector.StreamCollector.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.JobGraphBuilder.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.CoStreamVertex.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.InputHandler.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.OutputHandler.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.StreamingRuntimeContext.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.StreamIterationHead.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.StreamVertex.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.io.CoRecordReader.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.io.StreamRecordWriter.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.partitioner.StreamPartitioner.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.test.java.org.apache.flink.streaming.api.collector.DirectedOutputTest.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.test.java.org.apache.flink.streaming.api.streamrecord.UIDTest.java</file>
+      <file type="M">flink-addons.flink-streaming.flink-streaming-core.src.test.java.org.apache.flink.streaming.api.streamvertex.MockRecordWriter.java</file>
+      <file type="M">flink-compiler.src.main.java.org.apache.flink.compiler.plantranslate.NepheleJobGraphGenerator.java</file>
+      <file type="M">flink-compiler.src.test.java.org.apache.flink.compiler.BranchingPlansCompilerTest.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.core.memory.MemorySegment.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.types.BooleanValue.java</file>
+      <file type="M">flink-examples.flink-java-examples.src.main.java.org.apache.flink.examples.java.wordcount.WordCount.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.DataSet.java</file>
+      <file type="M">flink-runtime.pom.xml</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.broadcast.BroadcastVariableManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.broadcast.BroadcastVariableMaterialization.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.deployment.ChannelDeploymentDescriptor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.deployment.GateDeploymentDescriptor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.deployment.TaskDeploymentDescriptor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.event.task.AbstractTaskEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.event.task.EventListener.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.event.task.EventNotificationManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.event.task.IntegerTaskEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.event.task.StringTaskEvent.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.Execution.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionAttemptID.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionEdge.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionGraph.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionVertex.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.IntermediateResult.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.IntermediateResultPartition.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.execution.Environment.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.execution.RuntimeEnvironment.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.AsynchronousBlockReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.AsynchronousBlockWriterWithCallback.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.AsynchronousBulkBlockReader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.AsynchronousFileIOChannel.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.IOManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.IOManagerAsync.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.IORequest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.QueuingCallback.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.disk.iomanager.RequestDoneCallback.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9860" opendate="2018-7-16 00:00:00" fixdate="2018-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Netty resource leak on receiver side</summary>
+      <description>The Hadoop-free Wordcount end-to-end test fails with the following exception:ERROR org.apache.flink.shaded.netty4.io.netty.util.ResourceLeakDetector - LEAK: ByteBuf.release() was not called before it's garbage-collected. See http://netty.io/wiki/reference-counted-objects.html for more information.Recent access records: Created at: org.apache.flink.shaded.netty4.io.netty.buffer.PooledByteBufAllocator.newDirectBuffer(PooledByteBufAllocator.java:331) org.apache.flink.shaded.netty4.io.netty.buffer.AbstractByteBufAllocator.directBuffer(AbstractByteBufAllocator.java:185) org.apache.flink.shaded.netty4.io.netty.buffer.AbstractByteBufAllocator.directBuffer(AbstractByteBufAllocator.java:176) org.apache.flink.shaded.netty4.io.netty.buffer.AbstractByteBufAllocator.ioBuffer(AbstractByteBufAllocator.java:137) org.apache.flink.shaded.netty4.io.netty.channel.DefaultMaxMessagesRecvByteBufAllocator$MaxMessageHandle.allocate(DefaultMaxMessagesRecvByteBufAllocator.java:114) org.apache.flink.shaded.netty4.io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:147) org.apache.flink.shaded.netty4.io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:645) org.apache.flink.shaded.netty4.io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:580) org.apache.flink.shaded.netty4.io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:497) org.apache.flink.shaded.netty4.io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:459) org.apache.flink.shaded.netty4.io.netty.util.concurrent.SingleThreadEventExecutor$5.run(SingleThreadEventExecutor.java:884) org.apache.flink.shaded.netty4.io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)We might have a resource leak on the receiving side of our network stack.https://api.travis-ci.org/v3/job/404225956/log.txt</description>
+      <version>1.5.1,1.6.0</version>
+      <fixedVersion>1.5.2,1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.resources.log4j-test.properties</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.FileUploadHandlerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.FileUploadHandler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9865" opendate="2018-7-16 00:00:00" fixdate="2018-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>flink-hadoop-compatibility should assume Hadoop as provided</summary>
+      <description>The flink-hadoop-compatibility project as a compile scope dependency on Hadoop (flink-hadoop-shaded). Because of that, the hadoop dependencies are pulled into the user application.Like in other Hadoop-dependent modules, we should assume that Hadoop is provided in the framework classpath already.</description>
+      <version>1.5.0,1.5.1</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-hcatalog.pom.xml</file>
+      <file type="M">flink-connectors.flink-hadoop-compatibility.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9878" opendate="2018-7-17 00:00:00" fixdate="2018-10-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>IO worker threads BLOCKED on SSL Session Cache while CMS full gc</summary>
+      <description>According to https://github.com/netty/netty/issues/832, there is a JDK issue during garbage collection when the SSL session cache is not limited. We should allow the user to configure this and further (advanced) SSL parameters for fine-tuning to fix this and similar issues. In particular, the following parameters should be configurable: SSL session cache size SSL session timeout SSL handshake timeout SSL close notify flush timeout</description>
+      <version>1.5.0,1.5.1,1.6.0</version>
+      <fixedVersion>1.5.4,1.6.3,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.net.SSLUtilsTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.NettyClientServerSslTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.RestServerEndpointConfiguration.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.RestServerEndpoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.RestClientConfiguration.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.RestClient.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.net.SSLUtils.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.net.SSLEngineFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.net.RedirectingSslHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.NettyServer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.NettyConfig.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.NettyClient.java</file>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.WebRuntimeMonitor.java</file>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.utils.WebFrontendBootstrap.java</file>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.history.HistoryServer.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.util.MesosArtifactServer.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.SecurityOptions.java</file>
+      <file type="M">docs..includes.generated.security.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9897" opendate="2018-7-19 00:00:00" fixdate="2018-8-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Further enhance adaptive reads in Kinesis Connector to depend on run loop time</summary>
+      <description>In FLINK-9692, we introduced the ability for the shardConsumer to adaptively read more records based on the current average record size to optimize the 2 Mb/sec shard limit. The feature maximizes  maxNumberOfRecordsPerFetch of 5 reads/sec (as prescribed by Kinesis limits). In the case where applications take more time to process records in the run loop, they are no longer able to read at a frequency of 5 reads/sec (even though their fetchIntervalMillis maybe set to 200 ms). In such a scenario, the maxNumberOfRecordsPerFetch should be calculated based on the time that the run loop actually takes as opposed to fetchIntervalMillis. </description>
+      <version>1.4.2,1.5.1</version>
+      <fixedVersion>1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.java.org.apache.flink.streaming.connectors.kinesis.internals.ShardConsumer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="990" opendate="2014-6-29 00:00:00" fixdate="2014-7-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Scala API: Compiler Hints are not forwarded</summary>
+      <description>The Scala API contains functions such as preserve, observe, neglect, uniqueKey etc. which can be used to specify compiler hints. However, they are not forwarded to the compiler. Thus an operation:DataSet&amp;#91;A&amp;#93; ds = input.map{ x=&gt; x}ds.preserve(x=&gt;x, y=&gt;y)which should say that the fields stay constant, does not have an effect.</description>
+      <version>None</version>
+      <fixedVersion>0.6-incubating</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">stratosphere-scala.src.main.scala.eu.stratosphere.api.scala.ScalaPlan.scala</file>
+      <file type="M">stratosphere-scala.src.main.scala.eu.stratosphere.api.scala.CompilerHints.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9909" opendate="2018-7-22 00:00:00" fixdate="2018-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove cancellation of input futures from ConjunctFutures</summary>
+      <description>With FLINK-8749, we introduced that a ConjunctFutures cancels all of its input futures if it is cancelled. This has, however, some unpleasant side effects since a all of the cancelled future's completing callbacks won't be called. Since this can lead to subtle bugs like in FLINK-9908, I would propose to remove this feature and require the user to do the cancellation of input futures explicitly.</description>
+      <version>1.5.1,1.6.0,1.7.0</version>
+      <fixedVersion>1.5.2,1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.concurrent.FutureUtilsTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.concurrent.FutureUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9935" opendate="2018-7-24 00:00:00" fixdate="2018-7-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batch Table API: grouping by window and attribute causes java.lang.ClassCastException:</summary>
+      <description> Grouping by window AND some other attribute(s) seems broken. Test case attached:class BatchStatisticsIntegrationTest extends FlatSpec with Matchers { trait BatchContext { implicit lazy val env: ExecutionEnvironment = ExecutionEnvironment.getExecutionEnvironment implicit val tableEnv: BatchTableEnvironment = TableEnvironment.getTableEnvironment(env) val data = Seq( (1532424567000L, "id1", "location1"), (1532424567000L, "id2", "location1"), (1532424567000L, "id3", "location1"), (1532424568000L, "id1", "location2"), (1532424568000L, "id2", "location3") ) val rawDataSet: DataSet[(Long, String, String)] = env.fromCollection(data) val table: Table = tableEnv.fromDataSet(rawDataSet, 'rowtime, 'id, 'location) } it should "be possible to run Table API queries with grouping by tumble window and column(s) on batch data" in new BatchContext { val results = table .window(Tumble over 1.second on 'rowtime as 'w) .groupBy('w, 'location) .select( 'w.start.cast(Types.LONG), 'w.end.cast(Types.LONG), 'location, 'id.count ) .toDataSet[(Long, Long, String, Long)] .collect() results should contain theSameElementsAs Seq( (1532424567000L, 1532424568000L, "location1", 3L), (1532424568000L, 1532424569000L, "location2", 1L), (1532424568000L, 1532424569000L, "location3", 1L) ) }}It seems like during execution time, the 'rowtime attribute replaces 'location and that causes ClassCastException.[info] Cause: java.lang.ClassCastException: java.lang.Long cannot be cast to java.lang.String[info] at org.apache.flink.api.common.typeutils.base.StringSerializer.serialize(StringSerializer.java:28)[info] at org.apache.flink.api.java.typeutils.runtime.RowSerializer.serialize(RowSerializer.java:160)[info] at org.apache.flink.api.java.typeutils.runtime.RowSerializer.serialize(RowSerializer.java:46)[info] at org.apache.flink.runtime.plugable.SerializationDelegate.write(SerializationDelegate.java:54)[info] at org.apache.flink.runtime.io.network.api.serialization.SpanningRecordSerializer.addRecord(SpanningRecordSerializer.java:88)[info] at org.apache.flink.runtime.io.network.api.writer.RecordWriter.sendToTarget(RecordWriter.java:129)[info] at org.apache.flink.runtime.io.network.api.writer.RecordWriter.emit(RecordWriter.java:105)[info] at org.apache.flink.runtime.operators.shipping.OutputCollector.collect(OutputCollector.java:65)[info] at org.apache.flink.runtime.operators.util.metrics.CountingCollector.collect(CountingCollector.java:35)[info] at org.apache.flink.api.java.operators.translation.RichCombineToGroupCombineWrapper.combine(RichCombineToGroupCombineWrapper.java:52)Here is some debug information that I was able to get. So, field serializers don't match the type of Row fields:this.instance = {Row@68451} "1532424567000,(3),1532424567000" fields = {Object[3]@68461} 0 = {Long@68462} 1532424567000 1 = {CountAccumulator@68463} "(3)" 2 = {Long@68462} 1532424567000this.serializer = {RowSerializer@68452} fieldSerializers = {TypeSerializer[3]@68455} 0 = {StringSerializer@68458} 1 = {TupleSerializer@68459} 2 = {LongSerializer@68460} arity = 3 nullMask = {boolean[3]@68457}  </description>
+      <version>1.4.2,1.5.1,1.6.0,1.7.0</version>
+      <fixedVersion>1.4.3,1.5.3,1.6.0,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.batch.table.GroupWindowITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.AggregateUtil.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9936" opendate="2018-7-24 00:00:00" fixdate="2018-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Mesos resource manager unable to connect to master after failover</summary>
+      <description>When deployed in mesos session cluster mode, the connector monitor keeps reporting unable to connect to mesos after restart. In fact, scheduler driver already connected to mesos master, but when the connected message is lost. This is because leadership is not granted yet and fence id is not set, the rpc service ignores the connected message. So we should connect to mesos master after leadership is granted.</description>
+      <version>1.5.0,1.5.1,1.6.0</version>
+      <fixedVersion>1.5.3,1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.ResourceManager.java</file>
+      <file type="M">flink-mesos.src.test.java.org.apache.flink.mesos.runtime.clusterframework.MesosResourceManagerTest.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.runtime.clusterframework.MesosResourceManager.java</file>
+      <file type="M">flink-jepsen.scripts.run-tests.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9951" opendate="2018-7-25 00:00:00" fixdate="2018-7-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update scm developerConnection</summary>
+      <description>The developer connection must be updated to point to the update remote.</description>
+      <version>1.3.3,1.4.2,1.5.1,1.6.0,1.7.0</version>
+      <fixedVersion>1.4.3,1.5.3,1.6.0,1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="996" opendate="2014-7-2 00:00:00" fixdate="2014-7-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NullPointerException while translating union node</summary>
+      <description>The NepheleJobGraphGenerator throws a NullPointerException when translating a binary union operator. The BinaryUnionPlanNode is not replaced by a NAryUnionPlanNode and thus is still treated as a DualInputVertex. Accessing the driver code of the BinaryUnionPlanNode causes then the NullPointerException.</description>
+      <version>None</version>
+      <fixedVersion>0.6-incubating</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">stratosphere-compiler.src.main.java.eu.stratosphere.compiler.PactCompiler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9969" opendate="2018-7-26 00:00:00" fixdate="2018-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unreasonable memory requirements to complete examples/batch/WordCount</summary>
+      <description>setup on AWS EMR: 5 worker nodes (m4.4xlarge nodes)  1 master node (m4.large)following command fails with out of memory errors:export HADOOP_CLASSPATH=`hadoop classpath`./bin/flink run -m yarn-cluster -p 20 -yn 5 -ys 4 -ytm 16000 examples/batch/WordCount.jarOnly increasing memory over 17.2GB example completes. At the same time after disabling flip6 following command succeeds:export HADOOP_CLASSPATH=`hadoop classpath`./bin/flink run -m yarn-cluster -p 20 -yn 5 -ys 4 -ytm 1000 examples/batch/WordCount.jar</description>
+      <version>1.5.0,1.5.1,1.5.2,1.6.0</version>
+      <fixedVersion>1.5.3,1.6.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.sort.UnilateralSortMerger.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9972" opendate="2018-7-26 00:00:00" fixdate="2018-8-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Debug memory logging not working</summary>
+      <description>It seems like with introduction of Flip6, debug memory logging is not being initialised anymore and following config properties are ignored:  `taskmanager.debug.memory.log` `taskmanager.debug.memory.log-interval`after disabling flip6 it works just fine.</description>
+      <version>1.5.0,1.5.1,1.5.2,1.6.0</version>
+      <fixedVersion>1.5.3,1.6.1,1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.scala.org.apache.flink.runtime.taskmanager.TaskManager.scala</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.MemoryLogger.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskManagerRunner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9975" opendate="2018-7-26 00:00:00" fixdate="2018-10-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Netty dependency of Hadoop &gt;= 2.7 is not relocated</summary>
+      <description>Previously, in flink-shaded-hadoop, we also relocate Netty (org.jboss.netty) to not conflict with user code. Since Hadoop 2.7 the Netty version they depend on has been upgraded and we missed relocating io.netty accordingly.</description>
+      <version>1.4.2,1.5.0,1.5.1,1.6.0</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn-tests.pom.xml</file>
+      <file type="M">flink-shaded-hadoop.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9986" opendate="2018-7-27 00:00:00" fixdate="2018-7-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove unnecessary information from .version.properties file</summary>
+      <description>To log the revision flink-runtime creates a .version.properties file using the git-commit-id-plugin that is stored within the jar.Here's an example:git.commit.id.abbrev=1a9b648git.commit.user.email=chesnay@apache.orggit.commit.message.full=Commit for release 1.5.2\ngit.commit.id=1a9b6486a2d268d4fb8282c32d65fcc701d18e42git.commit.message.short=Commit for release 1.5.2git.commit.user.name=zentolgit.build.user.name=zentolgit.build.user.email=chesnay@apache.orggit.branch=1a9b6486a2d268d4fb8282c32d65fcc701d18e42git.commit.time=25.07.2018 @ 17\:10\:13 GMTgit.build.time=25.07.2018 @ 20\:47\:15 GMTgit.remote.origin.url=https\://github.com/zentol/flink.gitmost of this information isn't used, as flink-runtime only access git.commit.id.abbrev and git.commit.time.The build, remote and branch information should be removed as they are neither relevant, nor consistent, as releases can be created on any branch, under any git alias, against any remote.To exclude properties we have to bump the plugin version to 2.1.9.</description>
+      <version>1.4.2,1.5.1,1.6.0</version>
+      <fixedVersion>1.5.3,1.6.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9990" opendate="2018-7-29 00:00:00" fixdate="2018-10-29 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Add regexp_extract supported in TableAPI and SQL</summary>
+      <description>regex_extract is a very useful function, it returns a string based on a regex pattern and a index.For example : regexp_extract('foothebar', 'foo(.*?)(bar)', 2) // returns 'bar.'It is provided as a UDF in Hive, more details please see&amp;#91;1&amp;#93;.&amp;#91;1&amp;#93;: https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.SqlExpressionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.ScalarFunctionsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.functions.ScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.sql.ScalarSqlFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.expressions.stringExpressions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.FunctionGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.BuiltInMethods.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.scala.expressionDsl.scala</file>
+      <file type="M">docs.dev.table.functions.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9991" opendate="2018-7-29 00:00:00" fixdate="2018-9-29 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Add regexp_replace supported in TableAPI and SQL</summary>
+      <description>regexp_replace is a very userful function to process String. For example :regexp_replace("foobar", "oo|ar", "") //returns 'fb.'It is supported as a UDF in Hive, more details please see&amp;#91;1&amp;#93;.&amp;#91;1&amp;#93;: https://cwiki.apache.org/confluence/display/Hive/LanguageManual+UDF </description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.SqlExpressionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.ScalarFunctionsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.functions.ScalarFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.sql.ScalarSqlFunctions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.expressions.stringExpressions.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.FunctionGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.calls.BuiltInMethods.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.scala.expressionDsl.scala</file>
+      <file type="M">docs.dev.table.functions.md</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

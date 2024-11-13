@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="22171" opendate="2019-4-5 00:00:00" fixdate="2019-4-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Release 1.2.12</summary>
+      <description>Last planned release out of 1.2 line, so bit different on steps this time.</description>
+      <version>1.2.12</version>
+      <fixedVersion>1.2.12</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.site.xdoc.downloads.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22272" opendate="2019-4-19 00:00:00" fixdate="2019-4-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Checkstyle errors in hbase-backup</summary>
+      <description>There are a few Checkstyle errors in hbase-backup, which should be fixed.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0-alpha-1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-backup.src.test.java.org.apache.hadoop.hbase.backup.TestBackupMerge.java</file>
+      <file type="M">hbase-backup.src.main.java.org.apache.hadoop.hbase.backup.impl.BackupSystemTable.java</file>
+      <file type="M">hbase-backup.src.main.java.org.apache.hadoop.hbase.backup.impl.BackupCommands.java</file>
+      <file type="M">hbase-backup.src.main.java.org.apache.hadoop.hbase.backup.BackupDriver.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23238" opendate="2019-10-31 00:00:00" fixdate="2019-12-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Additional test and checks for null references on ScannerCallableWithReplicas</summary>
+      <description>One of our customers running a 1.2 based version is facing NPE when scanning data from a MR job. It happens when the map task is finalising:...2019-09-10 14:17:22,238 INFO [main] org.apache.hadoop.mapred.MapTask: Ignoring exception during close for org.apache.hadoop.mapred.MapTask$NewTrackingRecordReader@3a5b7d7ejava.lang.NullPointerException at org.apache.hadoop.hbase.client.ScannerCallableWithReplicas.setClose(ScannerCallableWithReplicas.java:99) at org.apache.hadoop.hbase.client.ClientScanner.close(ClientScanner.java:730) at org.apache.hadoop.hbase.mapreduce.TableRecordReaderImpl.close(TableRecordReaderImpl.java:178) at org.apache.hadoop.hbase.mapreduce.TableRecordReader.close(TableRecordReader.java:89) at org.apache.hadoop.hbase.mapreduce.MultiTableInputFormatBase$1.close(MultiTableInputFormatBase.java:112) at org.apache.hadoop.mapred.MapTask$NewTrackingRecordReader.close(MapTask.java:529) at org.apache.hadoop.mapred.MapTask.closeQuietly(MapTask.java:2039)...2019-09-10 14:18:24,601 FATAL [IPC Server handler 5 on 35745] org.apache.hadoop.mapred.TaskAttemptListenerImpl: Task: attempt_1566832111959_6047_m_000000_3 - exited : java.lang.NullPointerException at org.apache.hadoop.hbase.client.ScannerCallableWithReplicas.setClose(ScannerCallableWithReplicas.java:99) at org.apache.hadoop.hbase.client.ClientScanner.nextScanner(ClientScanner.java:264) at org.apache.hadoop.hbase.client.ClientScanner.possiblyNextScanner(ClientScanner.java:248) at org.apache.hadoop.hbase.client.ClientScanner.loadCache(ClientScanner.java:542) at org.apache.hadoop.hbase.client.ClientScanner.next(ClientScanner.java:371) at org.apache.hadoop.hbase.mapreduce.TableRecordReaderImpl.nextKeyValue(TableRecordReaderImpl.java:222) at org.apache.hadoop.hbase.mapreduce.TableRecordReader.nextKeyValue(TableRecordReader.java:147) at org.apache.hadoop.hbase.mapreduce.MultiTableInputFormatBase$1.nextKeyValue(MultiTableInputFormatBase.java:139)...After some investigation, we found out that 1.2 based deployments will consistently face this problem under the following conditions:1) The sum of all the given row KVs size targeted to be returned in the scan is larger than max result size;2) At same time, the scan filter has exhausted, so that all remaining KVs should be filtered and not returned;We could simulate this with the UT being proposed in this PR. When checking newer branches, though, I could verify this specific problem is not present on newer branches, I believe it was indirectly sorted by changes from HBASE-17489.Nevertheless, I think it would still be useful to have this extra test and checks added as a safeguard measure. </description>
+      <version>1.2.12</version>
+      <fixedVersion>3.0.0-alpha-1,2.3.0,1.6.0,2.2.3,2.1.9</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestScannersFromClientSide.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

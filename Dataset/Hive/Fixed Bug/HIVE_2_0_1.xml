@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HIVE">
+  <bug id="13108" opendate="2016-2-20 00:00:00" fixdate="2016-3-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Operators: SORT BY randomness is not safe with network partitions</summary>
+      <description>SORT BY relies on a transient Random object, which is initialized once per deserialize operation.This results in complications during a network partition and when Tez/Spark reuses a cached plan.</description>
+      <version>1.2.1,1.3.0,2.0.0,2.0.1</version>
+      <fixedVersion>1.3.0,2.0.1,2.1.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.ReduceSinkOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13264" opendate="2016-3-11 00:00:00" fixdate="2016-6-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JDBC driver makes 2 Open Session Calls for every open session</summary>
+      <description>When HTTP is used as the transport mode by the Hive JDBC driver, we noticed that there is an additional open/close session just to validate the connection. TCLIService.Iface client = new TCLIService.Client(new TBinaryProtocol(transport)); TOpenSessionResp openResp = client.OpenSession(new TOpenSessionReq()); if (openResp != null) { client.CloseSession(new TCloseSessionReq(openResp.getSessionHandle())); }The open session call is a costly one and should not be used to test transport.</description>
+      <version>1.2.1,2.0.1</version>
+      <fixedVersion>2.1.1,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">jdbc.src.java.org.apache.hive.jdbc.HiveConnection.java</file>
+      <file type="M">itests.hive-minikdc.src.test.java.org.apache.hive.minikdc.TestJdbcWithMiniKdc.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13621" opendate="2016-4-27 00:00:00" fixdate="2016-5-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>compute stats in certain cases fails with NPE</summary>
+      <description>FAILED: NullPointerException nulljava.lang.NullPointerException at org.apache.hadoop.hive.ql.stats.StatsUtils.getColStatistics(StatsUtils.java:693) at org.apache.hadoop.hive.ql.stats.StatsUtils.convertColStats(StatsUtils.java:739) at org.apache.hadoop.hive.ql.stats.StatsUtils.getTableColumnStats(StatsUtils.java:728) at org.apache.hadoop.hive.ql.stats.StatsUtils.collectStatistics(StatsUtils.java:183) at org.apache.hadoop.hive.ql.stats.StatsUtils.collectStatistics(StatsUtils.java:136) at org.apache.hadoop.hive.ql.stats.StatsUtils.collectStatistics(StatsUtils.java:124)</description>
+      <version>2.0.1,2.1.0</version>
+      <fixedVersion>2.1.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.stats.annotation.StatsRulesProcFactory.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.Operator.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.hbase.HBaseUtils.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13884" opendate="2016-5-28 00:00:00" fixdate="2016-7-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disallow queries in HMS fetching more than a configured number of partitions</summary>
+      <description>Currently the PartitionPruner requests either all partitions or partitions based on filter expression. In either scenarios, if the number of partitions accessed is large there can be significant memory pressure at the HMS server end.We already have a config hive.limit.query.max.table.partition that enforces limits on number of partitions that may be scanned per operator. But this check happens after the PartitionPruner has already fetched all partitions.We should add an option at PartitionPruner level to disallow queries that attempt to access number of partitions beyond a configurable limit.Note that hive.mapred.mode=strict disallow queries without a partition filter in PartitionPruner, but this check accepts any query with a pruning condition, even if partitions fetched are large. In multi-tenant environments, admins could use more control w.r.t. number of partitions allowed based on HMS memory capacity.One option is to have PartitionPruner first fetch the partition names (instead of partition specs) and throw an exception if number of partitions exceeds the configured value. Otherwise, fetch the partition specs.Looks like the existing listPartitionNames call could be used if extended to take partition filter expressions like getPartitionsByExpr call does.</description>
+      <version>None</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">metastore.src.test.org.apache.hadoop.hive.metastore.DummyRawStoreForJdoConnection.java</file>
+      <file type="M">metastore.src.test.org.apache.hadoop.hive.metastore.DummyRawStoreControlledCommit.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.RawStore.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.ObjectStore.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.MetaStoreDirectSql.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.HiveMetaStore.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.hbase.HBaseStore.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.metastore.TestRemoteHiveMetaStore.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.metastore.TestHiveMetaStore.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13885" opendate="2016-5-28 00:00:00" fixdate="2016-6-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hive session close is not resetting thread name</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>2.1.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">service.src.java.org.apache.hive.service.cli.session.HiveSessionImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13964" opendate="2016-6-7 00:00:00" fixdate="2016-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a parameter to beeline to allow a properties file to be passed in</summary>
+      <description>HIVE-6652 removed the ability to pass in a properties file as a beeline parameter. It may be a useful feature to be able to pass the file in is a parameter, such as --property-file.</description>
+      <version>2.0.1</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">beeline.src.test.org.apache.hive.beeline.TestBeelineArgParsing.java</file>
+      <file type="M">beeline.src.main.resources.BeeLine.properties</file>
+      <file type="M">beeline.src.java.org.apache.hive.beeline.BeeLine.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13987" opendate="2016-6-9 00:00:00" fixdate="2016-6-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clarify current error shown when HS2 is down</summary>
+      <description>When HS2 is down and a query is run, the following error is shown in beeline:0: jdbc:hive2://localhost:10000&gt; show tables;Error: org.apache.thrift.transport.TTransportException (state=08S01,code=0)It may be more helpful to also indicate that the reason for this is that HS2 is down, such as:0: jdbc:hive2://localhost:10000&gt; show tables;HS2 may be unavailable, check server statusError: org.apache.thrift.transport.TTransportException (state=08S01,code=0)</description>
+      <version>2.0.1</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">beeline.src.main.resources.BeeLine.properties</file>
+      <file type="M">beeline.src.java.org.apache.hive.beeline.BeeLine.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14001" opendate="2016-6-13 00:00:00" fixdate="2016-6-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>beeline doesn&amp;#39;t give out an error when takes either "-e" or "-f" in command instead of both</summary>
+      <description>When providing both arguments there should be an error message</description>
+      <version>0.10.0,2.0.1</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">beeline.src.test.org.apache.hive.beeline.TestBeelineArgParsing.java</file>
+      <file type="M">beeline.src.java.org.apache.hive.beeline.BeeLine.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1402" opendate="2010-6-12 00:00:00" fixdate="2010-6-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add parallel ORDER BY to Hive</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.12.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.udf.UDAFPercentile.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.PartitionDesc.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.MapredWork.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.SkewJoinResolver.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.PhysicalOptimizer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.PhysicalContext.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.MetadataOnlyOptimizer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.MapJoinResolver.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.IndexWhereResolver.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingInferenceOptimizer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.BucketingSortingCtx.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.OperatorUtils.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.FetchOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.ExecDriver.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+      <file type="M">build-common.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14032" opendate="2016-6-16 00:00:00" fixdate="2016-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>INSERT OVERWRITE command failed with case sensitive partition key names</summary>
+      <description></description>
+      <version>2.0.1</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.insert1.overwrite.partitions.q.out</file>
+      <file type="M">ql.src.test.queries.clientpositive.insert1.overwrite.partitions.q</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14039" opendate="2016-6-16 00:00:00" fixdate="2016-9-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HiveServer2: Make the usage of server with JDBC thirft serde enabled, backward compatible for older clients</summary>
+      <description></description>
+      <version>2.0.1</version>
+      <fixedVersion>2.1.1,2.2.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">service.src.java.org.apache.hive.service.cli.session.HiveSessionImpl.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.session.SessionState.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.TaskCompiler.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hive.jdbc.TestJdbcWithMiniHS2.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14074" opendate="2016-6-22 00:00:00" fixdate="2016-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RELOAD FUNCTION should update dropped functions</summary>
+      <description>Due to HIVE-2573, functions are stored in a per-session registry and only loaded in from the metastore when hs2 or hive cli is started. Running RELOAD FUNCTION in the current session is a way to force a reload of the functions, so that changes that occurred in other running sessions will be reflected in the current session, without having to restart the current session. However, while functions that are created in other sessions will now appear in the current session, functions that have been dropped are not removed from the current session's registry. It seems inconsistent that created functions are updated while dropped functions are not.</description>
+      <version>2.0.1</version>
+      <fixedVersion>2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.metadata.Hive.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14153" opendate="2016-7-1 00:00:00" fixdate="2016-7-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Beeline: beeline history doesn&amp;#39;t work on Hive2</summary>
+      <description>The up arrow on console is supposed to display history, which is broken currently. Changes in HIVE-6758 broke it.</description>
+      <version>1.2.1,2.0.0,2.0.1,2.1.0</version>
+      <fixedVersion>1.3.0,2.1.1,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.beeline</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14224" opendate="2016-7-13 00:00:00" fixdate="2016-7-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LLAP rename query specific log files once a query is complete</summary>
+      <description>Once a query is complete, rename the query specific log file so that YARN can aggregate the logs (once it's configured to do so).</description>
+      <version>None</version>
+      <fixedVersion>2.2.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">llap-server.src.test.org.apache.hadoop.hive.llap.daemon.impl.TaskExecutorTestHelpers.java</file>
+      <file type="M">llap-server.src.main.resources.llap-daemon-log4j2.properties</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.daemon.impl.QueryTracker.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.daemon.impl.QueryInfo.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.daemon.impl.QueryIdentifier.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.daemon.impl.LlapDaemon.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.daemon.impl.ContainerRunnerImpl.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.cli.LlapServiceDriver.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14322" opendate="2016-7-24 00:00:00" fixdate="2016-8-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Postgres db issues after Datanucleus 4.x upgrade</summary>
+      <description>With the upgrade to datanucleus 4.x versions in HIVE-6113, hive does not work properly with postgres.The nullable fields in the database have string "NULL::character varying" instead of real NULL values. This causes various issues.One example is -hive&gt; create table t(i int);OKTime taken: 1.9 secondshive&gt; create view v as select * from t;OKTime taken: 0.542 secondshive&gt; select * from v;FAILED: SemanticException Unable to fetch table v. java.net.URISyntaxException: Relative path in absolute URI: NULL::character%20varying</description>
+      <version>2.0.0,2.0.1,2.1.0</version>
+      <fixedVersion>2.0.2,2.1.1,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14328" opendate="2016-7-25 00:00:00" fixdate="2016-7-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change branch1 to branch-1 for pre-commit tests</summary>
+      <description>NO PRECOMMIT TESTS</description>
+      <version>None</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.jenkins-submit-build.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14335" opendate="2016-7-26 00:00:00" fixdate="2016-7-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TaskDisplay&amp;#39;s return value is not getting deserialized properly</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>2.1.1,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">service.src.test.org.apache.hive.service.cli.CLIServiceTest.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.QueryDisplay.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14336" opendate="2016-7-26 00:00:00" fixdate="2016-7-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make usage of VectorUDFAdaptor configurable</summary>
+      <description>Add a Hive configuration variable:hive.vectorized.adaptor.usage.mode = {none, chosen, all}for configuring whether to attempt vectorization using the VectorUDFAdaptor.</description>
+      <version>None</version>
+      <fixedVersion>2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.VectorSMBMapJoinOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.VectorMapJoinBaseOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.VectorizationContext.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.VectorGroupByOperator.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14433" opendate="2016-8-4 00:00:00" fixdate="2016-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>refactor LLAP plan cache avoidance and fix issue in merge processor</summary>
+      <description>Map and reduce processors do this: if (LlapProxy.isDaemon()) { cache = new org.apache.hadoop.hive.ql.exec.mr.ObjectCache(); // do not cache plan...but merge processor just gets the plan. If it runs in LLAP, it can get a cached plan. Need to move this logic into ObjectCache itself, via a isPlan arg or something. That will also fix this issue for merge processor</description>
+      <version>2.0.1,2.1.1,2.2.0</version>
+      <fixedVersion>2.1.1,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.tez.ReduceRecordProcessor.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.tez.MergeFileRecordProcessor.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.tez.MapRecordProcessor.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.ObjectCacheFactory.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.MapJoinOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14566" opendate="2016-8-18 00:00:00" fixdate="2016-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LLAP IO reads timestamp wrongly</summary>
+      <description>HIVE-10127 is causing incorrect results when orc_merge12.q is run in llap.It reads timestamp wrongly.LLAP IO Enabledhive&gt; select atimestamp1 from alltypesorc3xcols limit 10;OK1969-12-31 15:59:46.674NULL1969-12-31 15:59:55.7871969-12-31 15:59:44.1871969-12-31 15:59:50.4341969-12-31 16:00:15.0071969-12-31 16:00:07.0211969-12-31 16:00:04.9631969-12-31 15:59:52.1761969-12-31 15:59:44.569LLAP IO Disabledhive&gt; select atimestamp1 from alltypesorc3xcols limit 10;OK1969-12-31 15:59:46.674NULL1969-12-31 15:59:55.7871969-12-31 15:59:44.1871969-12-31 15:59:50.4341969-12-31 16:00:14.0071969-12-31 16:00:06.0211969-12-31 16:00:03.9631969-12-31 15:59:52.1761969-12-31 15:59:44.569</description>
+      <version>2.0.1,2.1.0,2.2.0</version>
+      <fixedVersion>2.1.1,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.io.orc.encoded.EncodedTreeReaderFactory.java</file>
+      <file type="M">orc.src.java.org.apache.orc.impl.TreeReaderFactory.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.io.metadata.OrcStripeMetadata.java</file>
+      <file type="M">llap-server.src.java.org.apache.hadoop.hive.llap.io.decode.OrcEncodedDataConsumer.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14790" opendate="2016-9-19 00:00:00" fixdate="2016-9-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Jenkins is not displaying test results because &amp;#39;set -e&amp;#39; is aborting the script too soon</summary>
+      <description>NO PRECOMMIT TESTSJenkins is not displaying test results because 'set -e' is aborting the script too soon</description>
+      <version>None</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.jenkins-execute-build.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14822" opendate="2016-9-22 00:00:00" fixdate="2016-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add support for credential provider for jobs launched from Hiveserver2</summary>
+      <description>When using encrypted passwords via the Hadoop Credential Provider, HiveServer2 currently does not correctly forward enough information to the job configuration for jobs to read those secrets. If your job needs to access any secrets, like S3 credentials, then there's no convenient and secure way to configure this today.You could specify the decryption key in files like mapred-site.xml that HiveServer2 uses, but this would place the encryption password on local disk in plaintext, which can be a security concern.To solve this problem, HiveServer2 should modify job configuration to include the environment variable settings needed to decrypt the passwords. Specifically, it will need to modify: For MR2 jobs: yarn.app.mapreduce.am.admin.user.env mapreduce.admin.user.env For Spark jobs: spark.yarn.appMasterEnv.HADOOP_CREDSTORE_PASSWORD spark.executorEnv.HADOOP_CREDSTORE_PASSWORD HiveServer2 can get the decryption password from its own environment, the same way it does for its own credential provider store today.Additionally, it can be desirable for HiveServer2 to have a separate encrypted password file than what is used by the job. HiveServer2 may have secrets that the job should not have, such as the metastore database password or the password to decrypt its private SSL certificate. It is also best practices to have separate passwords on separate files. To facilitate this, Hive will also accept: A configuration for a path to a credential store to use for jobs. This should already be uploaded in HDFS. (hive.server2.job.keystore.location or a better name) If this is not specified, then HS2 will simply use the value of hadoop.security.credential.provider.path. An environment variable for the password to decrypt the credential store (HIVE_JOB_KEYSTORE_PASSWORD or better). If this is not specified, then HS2 will simply use the standard environment variable for decrypting the Hadoop Credential Provider.</description>
+      <version>None</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">spark-client.src.main.java.org.apache.hive.spark.client.SparkClientImpl.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.spark.RemoteHiveSparkClient.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.spark.LocalHiveSparkClient.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.spark.HiveSparkClientFactory.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.mr.ExecDriver.java</file>
+      <file type="M">common.src.java.org.apache.hive.common.util.HiveStringUtils.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConfUtil.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.Constants.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.common.FileUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14827" opendate="2016-9-23 00:00:00" fixdate="2016-2-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Micro benchmark for Parquet vectorized reader</summary>
+      <description>We need a microbenchmark to evaluate the throughput and execution time for Parquet vectorized reader.</description>
+      <version>None</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">itests.hive-jmh.src.main.java.org.apache.hive.benchmark.storage.ColumnarStorageBench.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15090" opendate="2016-10-28 00:00:00" fixdate="2016-11-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Temporary DB failure can stop ExpiredTokenRemover thread</summary>
+      <description>In HIVE-13090 we decided that we should not close the metastore if there is an unexpected exception during the expired token removal process, but that fix leaves a running metastore without ExpiredTokenRemover thread.To fix this I will move the catch inside the running loop, and hope the thread could recover from the exception</description>
+      <version>1.3.0,2.0.1,2.1.0,2.2.0</version>
+      <fixedVersion>2.1.1,2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">shims.common.src.main.java.org.apache.hadoop.hive.thrift.TokenStoreDelegationTokenSecretManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15096" opendate="2016-10-29 00:00:00" fixdate="2016-11-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>hplsql registerUDF conflicts with pom.xml</summary>
+      <description>in hplsql code, registerUDF code is sql.add("ADD JAR " + dir + "hplsql.jar"); sql.add("ADD JAR " + dir + "antlr-runtime-4.5.jar"); sql.add("ADD FILE " + dir + Conf.SITE_XML);but pom configufation is &lt;parent&gt; &lt;groupId&gt;org.apache.hive&lt;/groupId&gt; &lt;artifactId&gt;hive&lt;/artifactId&gt; &lt;version&gt;2.2.0-SNAPSHOT&lt;/version&gt; &lt;relativePath&gt;../pom.xml&lt;/relativePath&gt; &lt;/parent&gt; &lt;artifactId&gt;hive-hplsql&lt;/artifactId&gt; &lt;packaging&gt;jar&lt;/packaging&gt; &lt;name&gt;Hive HPL/SQL&lt;/name&gt; &lt;dependency&gt; &lt;groupId&gt;org.antlr&lt;/groupId&gt; &lt;artifactId&gt;antlr4-runtime&lt;/artifactId&gt; &lt;version&gt;4.5&lt;/version&gt; &lt;/dependency&gt;when run hplsql , errors occur as below Error while processing statement: /opt/apps/apache-hive-2.0.0-bin/lib/hplsql.jar does not exist</description>
+      <version>2.0.0,2.0.1,2.1.0</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hplsql.src.main.java.org.apache.hive.hplsql.Exec.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15227" opendate="2016-11-17 00:00:00" fixdate="2016-11-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Optimize join + gby into semijoin</summary>
+      <description>Calcite has a rule which can do this transformation. Lets take advantage of this since Hive has native Left semi join operator.</description>
+      <version>None</version>
+      <fixedVersion>2.2.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.spark.join31.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.multiMapJoin2.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.join31.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.cbo.rp.auto.join1.q.out</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.CalcitePlanner.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="161" opendate="2008-12-11 00:00:00" fixdate="2008-1-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>for list column x that is sometimes null, select x.y will cause a nullpointerexception</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">serde.src.test.org.apache.hadoop.hive.serde2.thrift.test.CreateSequenceFile.java</file>
+      <file type="M">ql.src.test.results.clientpositive.input.testxpath3.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.input.testxpath.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.input.dynamicserde.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.input5.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.input17.q.out</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.ExprNodeFieldEvaluator.java</file>
+      <file type="M">data.files.complex.seq</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16107" opendate="2017-3-3 00:00:00" fixdate="2017-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JDBC: HttpClient should retry one more time on NoHttpResponseException</summary>
+      <description>Hive's JDBC client in HTTP transport mode doesn't retry on NoHttpResponseException. We've seen the exception being thrown to the JDBC end user when used with Knox as the proxy, when Knox upgraded its jetty version, which has a smaller value for jetty connector idletimeout, and as a result closes the HTTP connection on server side. The next jdbc query on the client, throws a NoHttpResponseException. However, subsequent queries reconnect, but the JDBC driver should ideally handle this by retrying.</description>
+      <version>2.0.1,2.1.1</version>
+      <fixedVersion>2.3.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">jdbc.src.java.org.apache.hive.jdbc.HiveConnection.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hive.jdbc.TestJdbcWithMiniHS2.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1624" opendate="2010-9-8 00:00:00" fixdate="2010-9-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Patch to allows scripts in S3 location</summary>
+      <description>I want to submit a patch which allows user to run scripts located in S3.This patch enables Hive to download the hive scripts located in S3 buckets and execute them. This saves users the effort of copying scripts to HDFS before executing them.ThanksVaibhav</description>
+      <version>None</version>
+      <fixedVersion>0.7.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.session.SessionState.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16554" opendate="2017-4-27 00:00:00" fixdate="2017-5-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ACID: Make HouseKeeperService threads daemon</summary>
+      <description></description>
+      <version>2.0.1,2.1.1</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.txn.compactor.HouseKeeperServiceBase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16556" opendate="2017-4-27 00:00:00" fixdate="2017-5-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Modify schematool scripts to initialize and create METASTORE_DB_PROPERTIES table</summary>
+      <description>sub-task to modify schema tool and its related changes so that the new table is added to the schema when schematool initializes or upgrades the schema.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">metastore.scripts.upgrade.postgres.upgrade-2.3.0-to-3.0.0.postgres.sql</file>
+      <file type="M">metastore.scripts.upgrade.postgres.hive-schema-3.0.0.postgres.sql</file>
+      <file type="M">metastore.scripts.upgrade.oracle.upgrade-2.3.0-to-3.0.0.oracle.sql</file>
+      <file type="M">metastore.scripts.upgrade.oracle.hive-schema-3.0.0.oracle.sql</file>
+      <file type="M">metastore.scripts.upgrade.mysql.upgrade-2.3.0-to-3.0.0.mysql.sql</file>
+      <file type="M">metastore.scripts.upgrade.mysql.hive-schema-3.0.0.mysql.sql</file>
+      <file type="M">metastore.scripts.upgrade.mssql.upgrade-2.3.0-to-3.0.0.mssql.sql</file>
+      <file type="M">metastore.scripts.upgrade.mssql.hive-schema-3.0.0.mssql.sql</file>
+      <file type="M">metastore.scripts.upgrade.derby.upgrade-2.3.0-to-3.0.0.derby.sql</file>
+      <file type="M">metastore.scripts.upgrade.derby.hive-schema-3.0.0.derby.sql</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hive.beeline.TestSchemaTool.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="16557" opendate="2017-4-28 00:00:00" fixdate="2017-5-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Vectorization: Specialize ReduceSink empty key case</summary>
+      <description>Gopal pointed out that native Vectorization of ReduceSink is missing the empty key case.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.spark.vector.outer.join1.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.windowing.navfn.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.tez.vectorization.limit.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vector.outer.join2.q.out</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.reducesink.VectorReduceSinkCommonOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.reducesink.VectorReduceSinkLongOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.reducesink.VectorReduceSinkMultiKeyOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.reducesink.VectorReduceSinkObjectHashOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.reducesink.VectorReduceSinkStringOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.vector.reducesink.VectorReduceSinkUniformHashOperator.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.physical.Vectorizer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.ReduceSinkDesc.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.VectorReduceSinkDesc.java</file>
+      <file type="M">ql.src.test.queries.clientpositive.windowing.navfn.q</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.llap.vector.nohybridgrace.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorization.0.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorization.limit.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorization.short.regress.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorized.case.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorized.date.funcs.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorized.dynamic.semijoin.reduction.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorized.mapjoin2.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorized.ptf.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vectorized.timestamp.funcs.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.auto.smb.mapjoin.14.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.between.columns.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.between.in.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.binary.join.groupby.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.char.simple.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.coalesce.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.count.distinct.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.empty.where.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.groupby.grouping.id3.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.groupby.mapjoin.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.inner.join.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.join30.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.join.part.col.char.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.leftsemi.mapjoin.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.order.null.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.outer.join0.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.outer.join1.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.outer.join2.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.partition.diff.num.cols.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.ptf.part.simple.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.tablesample.rows.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.vector.varchar.simple.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vectorization.0.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vectorization.short.regress.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vectorized.case.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vectorized.ptf.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vectorized.timestamp.funcs.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vector.between.in.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.vector.count.distinct.q.out</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

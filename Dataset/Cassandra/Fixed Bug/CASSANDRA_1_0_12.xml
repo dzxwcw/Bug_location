@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="4534" opendate="2012-8-13 00:00:00" fixdate="2012-8-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>old-style mapred interface doesn&amp;#39;t set key limit correctly</summary>
+      <description>next(ByteBuffer key, SortedMap&lt;ByteBuffer, IColumn&gt; value) calls clear/put/rewind, but not flip or limit.</description>
+      <version>1.0.12,1.1.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.hadoop.ColumnFamilyRecordReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4568" opendate="2012-8-22 00:00:00" fixdate="2012-8-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>countPendingHints JMX operation is returning garbage for the key</summary>
+      <description>countPendingHints JMX operation should return a map from key: endpoint IP address to value: number of pending hints. It is returning garbage for the key (looks like binary data concerning the hint itself). The value looks correct.Steps to reproduce:1) Set up a two-node cluster. 2) Disable gossip on the second node. `nodetool ring` output from node 1:Address DC Rack Status State Load Effective-Ownership Token 85070591730234615865843651857942052864 192.168.1.162 datacenter1 rack1 Up Normal 21.46 KB 100.00% 0 192.168.1.130 datacenter1 rack1 Down Normal 6.67 KB 100.00% 85070591730234615865843651857942052864 3) While the second node is still down, create a keyspace with RF=2 and a CF within this keyspace. Then insert two records into the CF:Connected to Test Cluster at 192.168.1.162:9160.&amp;#91;cqlsh 2.2.0 | Cassandra 1.1.2 | CQL spec 2.0.0 | Thrift protocol 19.32.0&amp;#93;Use HELP for help.cqlsh&gt; create KEYSPACE demo WITH strategy_class = 'SimpleStrategy' AND strategy_options:replication_factor = 2;cqlsh&gt; use demo;cqlsh:demo&gt; create table users (username varchar primary key, password varchar);cqlsh:demo&gt; insert into users (username, password) values (scott, tiger);cqlsh:demo&gt; insert into users (username, password) values (root, password);4) Use a JMX client to execute the countPendingHints operation:jblangston:~ jblangston$ java -jar cmdline-jmxclient-0.10.3.jar - localhost:7199 org.apache.cassandra.db:type=HintedHandoffManager countPendingHints08/22/2012 14:21:37 -0500 org.archive.jmx.Client countPendingHints: {@B^h ?? ?[b??scottdemoscott?????password?ߞHtigerdemoF?P?? ?[b??rootdemoroot?????password?ߞ?Wpassworddemo=2}5) Notice the output. The value (2) is correct but the key is garbage instead of an endpoint IP address.</description>
+      <version>1.0.12,1.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4602" opendate="2012-9-2 00:00:00" fixdate="2012-9-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Stack Size on Sun JVM 1.6.0_33 must be at least 160k</summary>
+      <description>I started a fresh Cassandra 1.1.4 install with Sun JVM 1.6.35.On startup I got this in output.logThe stack size specified is too small, Specify at least 160kCannot create Java VMService exit with a return value of 1Remembering CASSANDRA-4275 I monkeyed around and started the JVM with -Xss160k the same as Java 7. I then gotERROR [WRITE-/192.168.1.12] 2012-08-31 01:43:29,865 AbstractCassandraDaemon.java (line 134) Exception in thread Thread[WRITE-/192.168.1.12,5,main]java.lang.StackOverflowError at java.net.SocketOutputStream.socketWrite0(Native Method) at java.net.SocketOutputStream.socketWrite(Unknown Source) at java.net.SocketOutputStream.write(Unknown Source) at java.io.BufferedOutputStream.flushBuffer(Unknown Source) at java.io.BufferedOutputStream.flush(Unknown Source) at java.io.DataOutputStream.flush(Unknown Source) at org.apache.cassandra.net.OutboundTcpConnection.writeConnected(OutboundTcpConnection.java:156) at org.apache.cassandra.net.OutboundTcpConnection.run(OutboundTcpConnection.java:126)Same as CASSANDRA-4442At which point I dropped back to Java 6.33. CASSANDRA-4457 bumped the stack size to 180 for java 7, should we also do this for Java 6.33+ ?</description>
+      <version>1.0.12,1.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4631" opendate="2012-9-7 00:00:00" fixdate="2012-9-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>minimum stack size for u34 and later is 180k</summary>
+      <description>We currently only set the stack to 180k for java 7, but it looks like java 6 u34 and later now need this too. Let's just set them all to 180k.</description>
+      <version>1.0.12,1.1.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5533" opendate="2013-5-2 00:00:00" fixdate="2013-5-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>explicitly set javac source/target attributes to 1.6 (for 1.0/1.1/1.2)</summary>
+      <description></description>
+      <version>1.0.12</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

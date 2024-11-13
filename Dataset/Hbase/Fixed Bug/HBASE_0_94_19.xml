@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="11008" opendate="2014-4-16 00:00:00" fixdate="2014-4-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Align bulk load, flush, and compact to require Action.CREATE</summary>
+      <description>Over in HBASE-10958 we noticed that it might make sense to require Action.CREATE for bulk load, flush, and compact since it is also required for things like enable and disable.This means the following changes: preBulkLoadHFile goes from WRITE to CREATE compact/flush go from ADMIN to ADMIN or CREATE</description>
+      <version>None</version>
+      <fixedVersion>0.99.0,0.98.2,0.96.3,0.94.20</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.docbkx.security.xml</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.security.access.TestAccessController.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.security.access.AccessController.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11096" opendate="2014-4-29 00:00:00" fixdate="2014-5-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>stop method of Master and RegionServer coprocessor is not invoked</summary>
+      <description>the stop method of coprocessor specified by "hbase.coprocessor.master.classes" and "hbase.coprocessor.regionserver.classes" is not invoked.If coprocessor allocates OS resources, it could cause master/regionserver resource leak or hang during exit.</description>
+      <version>0.96.2,0.98.1,0.94.19</version>
+      <fixedVersion>0.99.0,0.98.3,0.94.21</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionServerCoprocessorHost.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.MasterCoprocessorHost.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.coprocessor.CoprocessorHost.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11324" opendate="2014-6-11 00:00:00" fixdate="2014-6-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update 2.5.2.8. Managed Compactions</summary>
+      <description>2.5.2.8. Managed CompactionsThis says that managed compactions happen every day but that is no longer accurate. Yank this section and point them to the compaction section instead I think.</description>
+      <version>None</version>
+      <fixedVersion>0.99.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.docbkx.configuration.xml</file>
+      <file type="M">src.main.docbkx.book.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15158" opendate="2016-1-22 00:00:00" fixdate="2016-2-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change order in which we do write pipeline operations; do all under row locks!</summary>
+      <description>Change how we do our write pipeline. I want to do all write pipeline ops under row lock so I lean on this fact fixing performance regression in check-and-set type operations like increment, append, and checkAnd* (see sibling issue HBASE-15082).To be specific, we write like this now:# take rowlock# start mvcc# append to WAL# add to memstore# let go of rowlock# sync WAL# in case of error: rollback memstoreInstead, write like this:# take rowlock# start mvcc# append to WAL# sync WAL# add to memstore# let go of rowlock... no need to do rollback.The old ordering was put in place because it got better performance in a time when WAL was different and before row locks were read/write (HBASE-12751).Testing in branch-1 shows that a reordering and skipping mvcc waits gets us back to the performance we had before we unified mvcc and sequenceid (HBASE-8763). Tests in HBASE-15046 show that at the macro level using our usual perf tools, reordering pipeline seems to cause no slowdown (see HBASE-15046). A rough compare of increments with reordered write pipeline seems to have us getting back a bunch of our performance (see tail of https://issues.apache.org/jira/browse/HBASE-15082?focusedCommentId=15111703&amp;page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-15111703 and subsequent comment).</description>
+      <version>None</version>
+      <fixedVersion>2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestHRegion.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.wal.WALKey.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.WALUtil.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.HLogKey.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.TestHBaseFsckOneRS.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.TestCoprocessorScanPolicy.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.NoOpScanPolicyObserver.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.coprocessor.TestRegionObserverScannerOpenHook.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.RegionSplitter.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.HBaseFsck.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.FSWALEntry.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.FSHLog.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.StoreScanner.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RowProcessor.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.Region.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.KeyValueScanner.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.DefaultMemStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.AssignmentManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.mapreduce.CellCounter.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.RpcServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.HFileReaderImpl.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.HFileBlockIndex.java</file>
+      <file type="M">hbase-examples.src.main.java.org.apache.hadoop.hbase.coprocessor.example.ZooKeeperScanPolicyObserver.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.TagUtil.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.HConstants.java</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.CellUtil.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.Scan.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7457" opendate="2012-12-29 00:00:00" fixdate="2012-12-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix javadoc warnings in hadoopqa tool, it complains about unsafe accesses</summary>
+      <description>I see this in hadoopqa output and it seems to be causing the two warnings we currently see in hadoopqa reports:2 warnings[WARNING] Javadoc Warnings[WARNING] /home/jenkins/jenkins-slave/workspace/PreCommit-HBASE-Build/trunk/hbase-common/src/main/java/org/apache/hadoop/hbase/util/Bytes.java:43: warning: sun.misc.Unsafe is Sun proprietary API and may be removed in a future release[WARNING] import sun.misc.Unsafe;[WARNING] ^[WARNING] /home/jenkins/jenkins-slave/workspace/PreCommit-HBASE-Build/trunk/hbase-common/src/main/java/org/apache/hadoop/hbase/util/Bytes.java:1032: warning: sun.misc.Unsafe is Sun proprietary API and may be removed in a future release[WARNING] static final Unsafe theUnsafe;[WARNING] ^</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-support.test-patch.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7458" opendate="2012-12-29 00:00:00" fixdate="2012-3-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>TestReplicationWithCompression fails intermittently in both PreCommit and trunk builds</summary>
+      <description>TestReplicationWithCompression has been failing often.Here are few examples:https://builds.apache.org/job/PreCommit-HBASE-Build/3755/testReport/https://builds.apache.org/job/HBase-TRUNK/3672/testReport/org.apache.hadoop.hbase.replication/TestReplicationWithCompression/testDeleteTypes/https://builds.apache.org/job/HBase-0.94/677/testReport/junit/org.apache.hadoop.hbase.replication/TestReplicationWithCompression/queueFailover/</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.TestReplicationBase.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

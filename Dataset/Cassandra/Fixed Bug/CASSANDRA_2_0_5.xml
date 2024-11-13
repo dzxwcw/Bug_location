@@ -1,0 +1,416 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2238" opendate="2011-2-24 00:00:00" fixdate="2011-12-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow nodetool to print out hostnames given an option</summary>
+      <description>Give nodetool the option of either displaying IPs or hostnames for the nodes in a ring.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4268" opendate="2012-5-21 00:00:00" fixdate="2012-12-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose full stop() operation through JMX</summary>
+      <description>We already expose ways to stop just the RPC server or gossip. This would fully shutdown the process.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4288" opendate="2012-5-25 00:00:00" fixdate="2012-1-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>prevent thrift server from starting before gossip has settled</summary>
+      <description>A serious problem is that there is no co-ordination whatsoever between gossip and the consumers of gossip. In particular, on a large cluster with hundreds of nodes, it takes several seconds for gossip to settle because the gossip stage is CPU bound. This leads to a node starting up and accessing thrift traffic long before it has any clue of what up and down. This leads to client-visible timeouts (for nodes that are down but not identified as such) and UnavailableException (for nodes that are up but not yet identified as such). This is really bad in general, but in particular for clients doing non-idempotent writes (counter increments).I was going to fix this as part of more significant re-writing in other tickets having to do with gossip/topology/etc, but that's not going to happen. So, the attached patch is roughly what we're running with in production now to make restarts bearable. The minimum wait time is both for ensuring that gossip has time to start becoming CPU bound if it will be, and the reason it's large is to allow for down nodes to be identified as such in most typical cases with a default phi conviction threshold (untested, we actually ran with a smaller number of 5 seconds minimum, but from past experience I believe 15 seconds is enough).The patch is tested on our 1.1 branch. It applies on trunk, and the diff is against trunk, but I have not tested it against trunk.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="4375" opendate="2012-6-26 00:00:00" fixdate="2012-1-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>FD incorrectly using RPC timeout to ignore gossip heartbeats</summary>
+      <description>Short version: You can't run a cluster with short RPC timeouts because nodes just constantly flap up/down.Long version:CASSANDRA-3273 tried to fix a problem resulting from the way the failure detector works, but did so by introducing a much more sever bug: With low RPC timeouts, that are lower than the typical gossip propagation time, a cluster will just constantly have all nodes flapping other nodes up and down.The cause is this:+ // in the event of a long partition, never record an interval longer than the rpc timeout,+ // since if a host is regularly experiencing connectivity problems lasting this long we'd+ // rather mark it down quickly instead of adapting+ private final double MAX_INTERVAL_IN_MS = DatabaseDescriptor.getRpcTimeout();And then:- tLast_ = value; - arrivalIntervals_.add(interArrivalTime); + if (interArrivalTime &lt;= MAX_INTERVAL_IN_MS)+ arrivalIntervals_.add(interArrivalTime);+ else+ logger_.debug("Ignoring interval time of {}", interArrivalTime);Using the RPC timeout to ignore unreasonably long intervals is not correct, as the RPC timeout is completely orthogonal to gossip propagation delay (see CASSANDRA-3927 for a quick description of how the FD works).In practice, the propagation delay ends up being in the 0-3 second range on a cluster with good local latency. With a low RPC timeout of say 200 ms, very few heartbeat updates come in fast enough that it doesn't get ignored by the failure detector. This in turn means that the FD records a completely skewed average heartbeat interval, which in turn means that nodes almost always get flapped on interpret() unless they happen to just have had their heartbeat updated. Then they flap back up whenever the next heartbeat comes in (since it gets brought up immediately).In our build, we are replacing the FD with an implementation that simply uses a fixed N second time to convict, because this is just one of many ways in which the current FD hurts, while we still haven't found a way it actually helps relative to the trivial fixed-second conviction policy.For upstream, assuming people won't agree on changing it to a fixed timeout, I suggest, at minimum, never using a value lower than something like 10 seconds or something, when determining whether to ignore. Slightly better is to make it a config option.(I should note that if propagation delays are significantly off from the expected level, other things than the FD already breaks - such as the whole concept of RING_DELAY, which assumes the propagation time is roughly constant with e.g. cluster size.)</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6053" opendate="2013-9-18 00:00:00" fixdate="2013-1-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>system.peers table not updated after decommissioning nodes in C* 2.0</summary>
+      <description>After decommissioning my cluster from 20 to 9 nodes using opscenter, I found all but one of the nodes had incorrect system.peers tables.This became a problem (afaik) when using the python-driver, since this queries the peers table to set up its connection pool. Resulting in very slow startup times, because of timeouts.The output of nodetool didn't seem to be affected. After removing the incorrect entries from the peers tables, the connection issues seem to have disappeared for us. Would like some feedback on if this was the right way to handle the issue or if I'm still left with a broken cluster.Attached is the output of nodetool status, which shows the correct 9 nodes. Below that the output of the system.peers tables on the individual nodes.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.service.LeaveAndBootstrapTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6131" opendate="2013-10-2 00:00:00" fixdate="2013-1-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JAVA_HOME on cassandra-env.sh is ignored on Debian packages</summary>
+      <description>I've just got upgraded to 2.0.1 package from the apache repositories using apt. I had the JAVA_HOME environment variable set in /etc/cassandra/cassandra-env.sh but after the upgrade it only worked by setting it on /usr/sbin/cassandra script. I can't configure java 7 system wide, only for cassandra.Off-toppic: Thanks for getting rid of the jsvc mess.</description>
+      <version>2.0.5</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.init</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6158" opendate="2013-10-7 00:00:00" fixdate="2013-12-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Nodetool command to purge hints</summary>
+      <description>The only way to truncate all hints in Cassandra is to truncate the hints CF in system table. It would be cleaner to have a nodetool command for it. Also ability to selectively remove hints by host or DC would also be nice rather than removing all the hints.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.HintedHandOffTest.java</file>
+      <file type="M">src.resources.org.apache.cassandra.tools.NodeToolHelp.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManagerMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6418" opendate="2013-11-27 00:00:00" fixdate="2013-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>auto_snapshots are not removable via &amp;#39;nodetool clearsnapshot&amp;#39;</summary>
+      <description>Snapshots of deleted CFs created via the "auto_snapshot" configuration parameter appear to not be tracked. The result is that 'nodetool clearsnapshot &lt;keyspace with deleted CFs&gt;' does nothing, and short of manually removing the files from the filesystem, deleted CFs remain indefinitely taking up space.I'm not sure if this is intended, but it seems pretty counter-intuitive. I haven't found any documentation that indicates "auto_snapshots" would be ignored by 'nodetool clearsnapshot'.</description>
+      <version>2.0.5</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Keyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Directories.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6465" opendate="2013-12-9 00:00:00" fixdate="2013-1-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DES scores fluctuate too much for cache pinning</summary>
+      <description>To quote the conf:# if set greater than zero and read_repair_chance is &lt; 1.0, this will allow# 'pinning' of replicas to hosts in order to increase cache capacity.# The badness threshold will control how much worse the pinned host has to be# before the dynamic snitch will prefer other replicas over it. This is# expressed as a double which represents a percentage. Thus, a value of# 0.2 means Cassandra would continue to prefer the static snitch values# until the pinned host was 20% worse than the fastest.dynamic_snitch_badness_threshold: 0.1An assumption of this feature is that scores will vary by less than dynamic_snitch_badness_threshold during normal operations. Attached is the result of polling a node for the scores of 6 different endpoints at 1 Hz for 15 minutes. The endpoints to sample were chosen with `nodetool getendpoints` for row that is known to get reads. The node was acting as a coordinator for a few hundred req/second, so it should have sufficient data to work with. Other traces on a second cluster have produced similar results. The scores vary by far more than I would expect, as show by the difficulty of seeing anything useful in that graph. The difference between the best and next-best score is usually &gt; 10% (default dynamic_snitch_badness_threshold).Neither ClientRequest nor ColumFamily metrics showed wild changes during the data gathering period.Attachments: jython script cobbled together to gather the data (based on work on the mailing list from Maki Watanabe a while back) csv of DES scores for 6 endpoints, polled about once a second Attempt at making a graph</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.DynamicEndpointSnitch.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6470" opendate="2013-12-10 00:00:00" fixdate="2013-1-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ArrayIndexOutOfBoundsException on range query from client</summary>
+      <description>schema: CREATE TABLE inboxkeyspace.inboxes(user_id bigint, message_id bigint, thread_id bigint, network_id bigint, read boolean, PRIMARY KEY(user_id, message_id)) WITH CLUSTERING ORDER BY (message_id DESC);CREATE INDEX ON inboxkeyspace.inboxes(read);query: SELECT thread_id, message_id, network_id FROM inboxkeyspace.inboxes WHERE user_id = ? AND message_id &lt; ? AND read = ? LIMIT ? The query works if run via cqlsh. However, when run through the datastax client, on the client side we get a timeout exception and on the server side, the Cassandra log shows this exception: ERROR [ReadStage:4190] 2013-12-10 13:18:03,579 CassandraDaemon.java (line 187) Exception in thread Thread[ReadStage:4190,5,main]java.lang.RuntimeException: java.lang.ArrayIndexOutOfBoundsException: 0 at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:1940) at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615) at java.lang.Thread.run(Thread.java:722)Caused by: java.lang.ArrayIndexOutOfBoundsException: 0 at org.apache.cassandra.db.filter.SliceQueryFilter.start(SliceQueryFilter.java:261) at org.apache.cassandra.db.index.composites.CompositesSearcher.makePrefix(CompositesSearcher.java:66) at org.apache.cassandra.db.index.composites.CompositesSearcher.getIndexedIterator(CompositesSearcher.java:101) at org.apache.cassandra.db.index.composites.CompositesSearcher.search(CompositesSearcher.java:53) at org.apache.cassandra.db.index.SecondaryIndexManager.search(SecondaryIndexManager.java:537) at org.apache.cassandra.db.ColumnFamilyStore.search(ColumnFamilyStore.java:1669) at org.apache.cassandra.db.PagedRangeCommand.executeLocally(PagedRangeCommand.java:109) at org.apache.cassandra.service.StorageProxy$LocalRangeSliceRunnable.runMayThrow(StorageProxy.java:1423) at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:1936) ... 3 more</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.DataRange.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6495" opendate="2013-12-17 00:00:00" fixdate="2013-1-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LOCAL_SERIAL use QUORUM consistency level to validate expected columns</summary>
+      <description>If CAS is done at LOCAL_SERIAL consistency level, only the nodes from the local data center should be involved. Here we are using QUORAM to validate the expected columns. This will require nodes from more than one DC. We should use LOCAL_QUORAM here when CAS is done at LOCAL_SERIAL. Also if we have 2 DCs with DC1:3,DC2:3, a single DC down will cause CAS to not work even for LOCAL_SERIAL.</description>
+      <version>2.0.5</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6503" opendate="2013-12-18 00:00:00" fixdate="2013-1-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstables from stalled repair sessions become live after a reboot and can resurrect deleted data</summary>
+      <description>The sstables streamed in during a repair session don't become active until the session finishes. If something causes the repair session to hang for some reason, those sstables will hang around until the next reboot, and become active then. If you don't reboot for 3 months, this can cause data to resurrect, as GC grace has expired, so tombstones for the data in those sstables may have already been collected.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamInSession.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.IncomingStreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamTransferTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamReceiveTask.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.StreamMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.messages.FileMessage.java</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.compress.CompressedStreamReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.FileUtils.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTable.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.Descriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamSession.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6505" opendate="2013-12-19 00:00:00" fixdate="2013-1-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>counters++ global shards 2.0 back port</summary>
+      <description>CASSANDRA-6504 introduces a new type of shard - 'global' - to 2.1. To enable live upgrade from 2.0 to 2.1, it's necessary that 2.0 nodes are able to understand the new 'global' shards in the counter contexts.2.0 nodes will not produce 'global' shards, but must contain the merge logic.It isn't a trivial code change ("non-trivial code in a non-trivial part of the code"), hence this separate JIRA issue.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.streaming.StreamingTransferTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.CounterMutationTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.CounterColumnTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.context.CounterContextTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.AbstractSSTableSimpleWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CounterUpdateColumn.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.CounterColumn.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.context.CounterContext.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.PrecompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.ParallelCompactionIterable.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6517" opendate="2013-12-20 00:00:00" fixdate="2013-1-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Loss of secondary index entries if nodetool cleanup called before compaction</summary>
+      <description>From time to time we had the feeling of not getting all results that should have been returned using secondary indexes. Now we tracked down some situations and found out, it happened:1) To primary keys that were already deleted and have been re-created later on2) After our nightly maintenance scripts were runningWe can reproduce now the following szenario: create a row entry with an indexed column included query it and use the secondary index criteria -&gt; Success delete it, query again -&gt; entry gone as expected re-create it with the same key, query it -&gt; success againNow use in exactly that sequencenodetool cleanupnodetool flushnodetool compactWhen issuing the query now, we don't get the result using the index. The entry is indeed available in it's table when I just ask for the key. Below is the exact copy-paste output from CQL when I reproduced the problem with an example entry on on of our tables.mwerrch@mstc01401:/opt/cassandra$ current/bin/cqlsh Connected to 14-15-Cluster at localhost:9160.&amp;#91;cqlsh 4.1.0 | Cassandra 2.0.3 | CQL spec 3.1.1 | Thrift protocol 19.38.0&amp;#93; Use HELP for help.cqlsh&gt; use mwerrch;cqlsh:mwerrch&gt; desc tables;B4Container_Democqlsh:mwerrch&gt; desc table "B4Container_Demo";CREATE TABLE "B4Container_Demo" ( key uuid, archived boolean, bytes int, computer int, deleted boolean, description text, doarchive boolean, filename text, first boolean, frames int, ifversion int, imported boolean, jobid int, keepuntil bigint, nextchunk text, node int, recordingkey blob, recstart bigint, recstop bigint, simulationid bigint, systemstart bigint, systemstop bigint, tapelabel bigint, version blob, PRIMARY KEY (key)) WITH COMPACT STORAGE AND bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='demo' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=604800 AND index_interval=128 AND read_repair_chance=1.000000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND default_time_to_live=0 AND speculative_retry='NONE' AND memtable_flush_period_in_ms=0 AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'LZ4Compressor'};CREATE INDEX mwerrch_Demo_computer ON "B4Container_Demo" (computer);CREATE INDEX mwerrch_Demo_node ON "B4Container_Demo" (node);CREATE INDEX mwerrch_Demo_recordingkey ON "B4Container_Demo" (recordingkey);cqlsh:mwerrch&gt; INSERT INTO "B4Container_Demo" (key,computer,node) VALUES (78c70562-1f98-3971-9c28-2c3d8e09c10f, 50, 50); cqlsh:mwerrch&gt; select key,node,computer from "B4Container_Demo" where computer=50; key | node | computer-------------------------------------------------- 78c70562-1f98-3971-9c28-2c3d8e09c10f | 50 | 50(1 rows)cqlsh:mwerrch&gt; DELETE FROM "B4Container_Demo" WHERE key=78c70562-1f98-3971-9c28-2c3d8e09c10f;cqlsh:mwerrch&gt; select key,node,computer from "B4Container_Demo" where computer=50;(0 rows)cqlsh:mwerrch&gt; INSERT INTO "B4Container_Demo" (key,computer,node) VALUES (78c70562-1f98-3971-9c28-2c3d8e09c10f, 50, 50); cqlsh:mwerrch&gt; select key,node,computer from "B4Container_Demo" where computer=50; key | node | computer-------------------------------------------------- 78c70562-1f98-3971-9c28-2c3d8e09c10f | 50 | 50(1 rows)**********************************Now we execute (maybe from a different shell so we don't have to close this session) from /opt/cassandra/current/bin directory:./nodetool cleanup./nodetool flush./nodetool compactGoing back to our CQL session the result will no longer be available if queried via the index:*********************************cqlsh:mwerrch&gt; select key,node,computer from "B4Container_Demo" where computer=50;(0 rows)</description>
+      <version>2.0.5</version>
+      <fixedVersion>Feature/2iIndex,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.RangeTombstoneTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.PrecompactedRow.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6529" opendate="2013-12-26 00:00:00" fixdate="2013-1-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader shows no progress or errors when pointed at a bad directory</summary>
+      <description>With sstableloader, the source directory is supposed to be in the format &lt;keyspace_name&gt;/&lt;table_name&gt;/. If you incorrectly just put the sstables in a &lt;keyspace_name&gt;/ directory, the sstableloader process will not show any progress, errors, or other output, it will simply hang.This was initially reported on the user ML here: http://www.mail-archive.com/user@cassandra.apache.org/msg33916.html</description>
+      <version>2.0.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6531" opendate="2013-12-27 00:00:00" fixdate="2013-12-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Failure to start after unclean shutdown - java.lang.IllegalArgumentException: bufferSize must be positive</summary>
+      <description>We had a severe power outage in the lab that resulted in unclean shutdown of the Cassandra servers. After the power was back I tried to start the cluster. Two out of 6 nodes cannot start because of this exception: INFO 20:47:11,003 Initializing system.local INFO [main] 2013-12-27 20:47:11,003 ColumnFamilyStore.java (line 251) Initializing system.local INFO 20:47:11,006 Opening /hadoop/disk1/cassandra/data/system/local/system-local-jb-2478 (5836 bytes) INFO [SSTableBatchOpen:1] 2013-12-27 20:47:11,006 SSTableReader.java (line 223) Opening /hadoop/disk1/cassandra/data/system/local/system-local-jb-2478 (5836 bytes) INFO 20:47:11,006 Opening /hadoop/disk4/cassandra/data/system/local/system-local-jb-2479 (144 bytes) INFO [SSTableBatchOpen:2] 2013-12-27 20:47:11,006 SSTableReader.java (line 223) Opening /hadoop/disk4/cassandra/data/system/local/system-local-jb-2479 (144 bytes)ERROR 20:47:12,366 Exception encountered during startupjava.lang.IllegalArgumentException: bufferSize must be positive at org.apache.cassandra.io.util.RandomAccessReader.&lt;init&gt;(RandomAccessReader.java:67) at org.apache.cassandra.io.compress.CompressedRandomAccessReader.&lt;init&gt;(CompressedRandomAccessReader.java:76) at org.apache.cassandra.io.compress.CompressedRandomAccessReader.open(CompressedRandomAccessReader.java:55) at org.apache.cassandra.io.sstable.SSTableReader.openDataReader(SSTableReader.java:1363) at org.apache.cassandra.io.sstable.SSTableScanner.&lt;init&gt;(SSTableScanner.java:67) at org.apache.cassandra.io.sstable.SSTableReader.getScanner(SSTableReader.java:1147) at org.apache.cassandra.db.RowIteratorFactory.getIterator(RowIteratorFactory.java:69) at org.apache.cassandra.db.ColumnFamilyStore.getSequentialIterator(ColumnFamilyStore.java:1526) at org.apache.cassandra.db.ColumnFamilyStore.getRangeSlice(ColumnFamilyStore.java:1645) at org.apache.cassandra.db.RangeSliceCommand.executeLocally(RangeSliceCommand.java:137) at org.apache.cassandra.cql3.statements.SelectStatement.executeInternal(SelectStatement.java:236) at org.apache.cassandra.cql3.statements.SelectStatement.executeInternal(SelectStatement.java:1) at org.apache.cassandra.cql3.QueryProcessor.processInternal(QueryProcessor.java:255) at org.apache.cassandra.db.SystemKeyspace.getUnfinishedCompactions(SystemKeyspace.java:206) at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:261) at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:461) at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:504)Collecting the logs now, will attach to the issue in a moment.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.SequentialWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.compress.CompressionMetadata.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6550" opendate="2014-1-4 00:00:00" fixdate="2014-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* should be able to throttle batchlog processing</summary>
+      <description>Was going to do it in CASSANDRA-6134, but this is important enough to be handled separately, and in 1.2, too.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6554" opendate="2014-1-7 00:00:00" fixdate="2014-1-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>During upgrade from 1.2 -&gt; 2.0, upgraded node sees other nodes as Down</summary>
+      <description>During an upgrade from 1.2.13 to 2.0.3/2.0.4, the upgraded node sees the remaining nodes of the cluster as Down.automaton@ip-10-139-1-113:~$ nodetool statusDatacenter: datacenter1=======================Status=Up/Down|/ State=Normal/Leaving/Joining/Moving-- Address Load Owns Host ID Token RackUN 10.139.1.113 98.94 MB 33.3% 33b1cd06-e17b-4332-8066-0c6c401e0cf3 -9223372036854775808 rack1DN 10.139.11.168 97.51 MB 33.3% ec97c163-8f2d-4019-a3d1-55df5e4037d4 -3074457345618258603 rack1DN 10.238.221.115 97.34 MB 33.3% 73a76d3f-73ef-481d-b603-0833c0ff80c2 3074457345618258602 rack1automaton@ip-10-139-1-113:~$ nodetool gossipinfo/10.238.221.115 SEVERITY:0.0 RPC_ADDRESS:0.0.0.0 DC:datacenter1 RELEASE_VERSION:1.2.13 LOAD:1.02066255E8 STATUS:NORMAL,3074457345618258602 SCHEMA:8b351435-81ef-3a14-adf7-8555e2f19ecd NET_VERSION:6 RACK:rack1 HOST_ID:73a76d3f-73ef-481d-b603-0833c0ff80c2/10.139.1.113 RPC_ADDRESS:0.0.0.0 SEVERITY:0.0 DC:datacenter1 RELEASE_VERSION:2.0.4 LOAD:1.03750451E8 STATUS:NORMAL,-9223372036854775808 SCHEMA:dfafb212-5b8f-31cb-a80b-2ba58fcef73d NET_VERSION:7 RACK:rack1 HOST_ID:33b1cd06-e17b-4332-8066-0c6c401e0cf3/10.139.11.168 SEVERITY:0.0 RPC_ADDRESS:0.0.0.0 DC:datacenter1 RELEASE_VERSION:1.2.13 LOAD:1.02245066E8 STATUS:NORMAL,-3074457345618258603 SCHEMA:8b351435-81ef-3a14-adf7-8555e2f19ecd NET_VERSION:6 RACK:rack1 HOST_ID:ec97c163-8f2d-4019-a3d1-55df5e4037d4</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6569" opendate="2014-1-10 00:00:00" fixdate="2014-1-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Batchlog replays copy the entire batchlog table into the heap</summary>
+      <description>The current batchlog replay path will read the entire batchlog table into the heap. This is pretty bad. This was compounded by CASSANDRA-5762, which caused the SELECT statement used by the batchlog replay to bring the entire row into memory instead of just the selected columns.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6571" opendate="2014-1-10 00:00:00" fixdate="2014-1-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Quickly restarted nodes can list others as down indefinitely</summary>
+      <description>In a healthy cluster, if a node is restarted quickly, it may list other nodes as down when it comes back up and never list them as up. I reproduced it on a small cluster running in Docker containers.1. Have a healthy 5 node cluster:$ nodetool statusDatacenter: datacenter1=======================Status=Up/Down/ State=Normal/Leaving/Joining/Moving&amp;#8211; Address Load Tokens Owns (effective) Host ID RackUN 192.168.100.1 40.88 KB 256 38.3% 92930ef6-1b29-49f0-a8cd-f962b55dca1b rack1UN 192.168.100.254 80.63 KB 256 39.6% ef15a717-9d60-48fb-80a9-e0973abdd55e rack1UN 192.168.100.3 87.78 KB 256 40.8% 4e6765db-97ed-4429-a9f4-8e29de247f18 rack1UN 192.168.100.2 75.22 KB 256 40.6% e89bc581-5345-4abd-88ba-7018371940fc rack1UN 192.168.100.4 80.83 KB 256 40.8% 466a9798-d484-44f0-aae8-bb2b78d80331 rack12. Kill a node and restart it quickly:kill -9 &lt;pid&gt; &amp;&amp; start-cassandra3. Wait for the node to come back and more often than not, it lists one or more other nodes as down indefinitely:$ nodetool statusDatacenter: datacenter1=======================Status=Up/Down/ State=Normal/Leaving/Joining/Moving&amp;#8211; Address Load Tokens Owns (effective) Host ID RackUN 192.168.100.1 40.88 KB 256 38.3% 92930ef6-1b29-49f0-a8cd-f962b55dca1b rack1UN 192.168.100.254 80.63 KB 256 39.6% ef15a717-9d60-48fb-80a9-e0973abdd55e rack1DN 192.168.100.3 87.78 KB 256 40.8% 4e6765db-97ed-4429-a9f4-8e29de247f18 rack1DN 192.168.100.2 75.22 KB 256 40.6% e89bc581-5345-4abd-88ba-7018371940fc rack1DN 192.168.100.4 80.83 KB 256 40.8% 466a9798-d484-44f0-aae8-bb2b78d80331 rack1From trace logging, here's what I think is going on:1. The nodes are all happy gossiping2. Restart node X. When it comes back up it starts gossiping with the other nodes.3. Before node X marks node Y as alive, X sends an echo message (introduced in CASSANDRA-3533)4. The echo message is received by Y. To reply, Y attempts to reuse a connection to X. The connection is dead, but the message is attempted anyway but fails.5. X never receives the echo back, so Y isn't marked as alive.6. X gossips to Y again, but because the endpoint isAlive() returns true, it never calls markAlive() to properly set Y as alive.I tried to fix this by defaulting isAlive=false in the constructor of EndpointState. This made it less likely to mark a node as down but it still happens.The workaround is to leave a node down for a while so the connections die on the remaining nodes.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6592" opendate="2014-1-15 00:00:00" fixdate="2014-10-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>IllegalArgumentException when Preparing Statements</summary>
+      <description>When preparing a lot of statements with the python native driver, I occasionally get an error response with an error that corresponds to the following stacktrace in the cassandra logs:ERROR [Native-Transport-Requests:126] 2014-01-11 13:58:05,503 ErrorMessage.java (line 210) Unexpected exception during requestjava.lang.IllegalArgumentException at com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.checkArgument(ConcurrentLinkedHashMap.java:259) at com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap$BoundedEntryWeigher.weightOf(ConcurrentLinkedHashMap.java:1448) at com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.put(ConcurrentLinkedHashMap.java:764) at com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap.put(ConcurrentLinkedHashMap.java:743) at org.apache.cassandra.cql3.QueryProcessor.storePreparedStatement(QueryProcessor.java:255) at org.apache.cassandra.cql3.QueryProcessor.prepare(QueryProcessor.java:221) at org.apache.cassandra.transport.messages.PrepareMessage.execute(PrepareMessage.java:77) at org.apache.cassandra.transport.Message$Dispatcher.messageReceived(Message.java:287) at org.jboss.netty.channel.SimpleChannelUpstreamHandler.handleUpstream(SimpleChannelUpstreamHandler.java:70) at org.jboss.netty.channel.DefaultChannelPipeline.sendUpstream(DefaultChannelPipeline.java:564) at org.jboss.netty.channel.DefaultChannelPipeline$DefaultChannelHandlerContext.sendUpstream(DefaultChannelPipeline.java:791) at org.jboss.netty.handler.execution.ChannelUpstreamEventRunnable.doRun(ChannelUpstreamEventRunnable.java:43) at org.jboss.netty.handler.execution.ChannelEventRunnable.run(ChannelEventRunnable.java:67) at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:895) at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:918) at java.lang.Thread.run(Thread.java:662)Looking at the CLHM source, this means we're giving the statement a weight that's less than 1. I'll also note that these errors frequently happen in clumps of 2 or 3 at a time.</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.BatchStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6595" opendate="2014-1-16 00:00:00" fixdate="2014-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid special casing received/expected counts in CAS timeout exceptions</summary>
+      <description>For CAS, we send a few timeouts with -1 as received and expected counts, but it's kind of confusing from a user perspective (meaning that it could easily break user code that check those numbers just because they didn't expected a negative number). Suggesting to return 0 for received and whatever we block for for the CL involved for required instead.</description>
+      <version>2.0.5</version>
+      <fixedVersion>Feature/LightweightTransactions</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6597" opendate="2014-1-16 00:00:00" fixdate="2014-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tombstoned cells warning log improvement</summary>
+      <description>The "tombstone_warn_threshold" logs warnings about reads encountering too many tombstones but doesn't tell you in which CF.Since the large amount of tombstones could be caused by a bad design, it would be useful to know which CF was being read.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.SliceQueryFilter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6598" opendate="2014-1-16 00:00:00" fixdate="2014-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>upgradesstables does not upgrade indexes causing startup error.</summary>
+      <description>Upgrading a cluster from 1.1.12 -&gt; 1.2.13 -&gt; 2.0 HEAD fails due to upgradesstables not upgrading the index files.To reproduce:# Make sure ccm has all the versions we need:ccm create -v git:cassandra-2.0 testccm remove ccm create -v git:cassandra-1.2.13 testccm remove# Create a 1.1.12 cluster:ccm create -v git:cassandra-1.1.12 test# Set cluster partitioner:perl -p -i -e 's/partitioner: null/partitioner: RandomPartitioner/gi' ~/.ccm/test/cluster.confccm populate -n 1ccm startccm node1 stress -- --operation=INSERT --family-type=Standard --num-keys=10000 --create-index=KEYS --compression=SnappyCompressor --compaction-strategy=LeveledCompactionStrategyccm flushccm node1 drainccm status# Wait until node1 shows DOWN.# Set cluster version:perl -p -i -e 's/git_cassandra-1.1.12/git_cassandra-1.2.13/gi' ~/.ccm/test/cluster.conf# Upgrade node1:ccm node1 updateconfccm node1 start# Upgrade sstables:~/.ccm/test/node1/bin/nodetool -p 7100 upgradesstablesls ~/.ccm/test/node1/data/Keyspace1/Standard1/# Note the versions on files. Data has been upgraded to version *ic* but indexes are left on version *hf*.# Upgrade to 2.0:ccm flushccm node1 drainccm status# Wait until node1 shows DOWN.# Set cluster version:perl -p -i -e 's/git_cassandra-1.2.13/git_cassandra-2.0/gi' ~/.ccm/test/cluster.confccm node1 updateconfccm node1 startOn this last upgrade attempt, cassandra 2.0 complains that the version for the indexes is incorrect:java.lang.RuntimeException: Can't open incompatible SSTable! Current version jb, found file: /home/ryan/.ccm/test/node1/data/Keyspace1/Standard1/Keyspace1-Standard1.Idx1-hf-1 at org.apache.cassandra.db.ColumnFamilyStore.createColumnFamilyStore(ColumnFamilyStore.java:411) at org.apache.cassandra.db.ColumnFamilyStore.createColumnFamilyStore(ColumnFamilyStore.java:393) at org.apache.cassandra.db.index.AbstractSimplePerColumnSecondaryIndex.init(AbstractSimplePerColumnSecondaryIndex.java:52) at org.apache.cassandra.db.index.SecondaryIndexManager.addIndexedColumn(SecondaryIndexManager.java:274) at org.apache.cassandra.db.ColumnFamilyStore.&lt;init&gt;(ColumnFamilyStore.java:279) at org.apache.cassandra.db.ColumnFamilyStore.createColumnFamilyStore(ColumnFamilyStore.java:416) at org.apache.cassandra.db.ColumnFamilyStore.createColumnFamilyStore(ColumnFamilyStore.java:388) at org.apache.cassandra.db.Keyspace.initCf(Keyspace.java:309) at org.apache.cassandra.db.Keyspace.&lt;init&gt;(Keyspace.java:266) at org.apache.cassandra.db.Keyspace.open(Keyspace.java:110) at org.apache.cassandra.db.Keyspace.open(Keyspace.java:88) at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:273) at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:462) at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:549)The same test can be done starting from 1.2 upgrading to 2.0. The index files do not upgrade in this scenario either, however, there is not the same error, possibly because 2.0 is tolerant of version 1.2 indexes?</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6609" opendate="2014-1-22 00:00:00" fixdate="2014-1-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce Bloom Filter Garbage Allocation</summary>
+      <description>Just spotted that we allocate potentially large amounts of garbage on bloom filter lookups, since we allocate a new long[] for each hash() and to store the bucket indexes we visit, in a manner that guarantees they are allocated on heap. With a lot of sstables and many requests, this could easily be hundreds of megabytes of young gen churn per second.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.obs.OffHeapBitSet.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.MurmurHash.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.Murmur3BloomFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.FBUtilities.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.BloomFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.Murmur3Partitioner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6615" opendate="2014-1-24 00:00:00" fixdate="2014-1-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Changing the IP of a node on a live cluster leaves gossip infos and throws Exceptions</summary>
+      <description>Following this procedure : https://engineering.eventbrite.com/changing-the-ip-address-of-a-cassandra-node-with-auto_bootstrapfalse/ to change the IP of a node, we encountered an issue : logs contains: "java.lang.RuntimeException: Host ID collision between active endpoint /127.0.0.5 and /127.0.0.3" logs also indicate that the old IP is being removed of the cluster (FatClient timeout), then added again... nodetool gossipinfo still list old IP (even a few hours after...) the old IP is still seen as "UP" in the cluster... (according to the logs...)Below is a small shell script which allows to reproduce the scenario...#! /bin/bashCLUSTER=$1ccm create $CLUSTER --cassandra-dir=.ccm populate -n 2ccm startccm add node3 -i 127.0.0.3 -j 7300 -bccm node3 startccm node3 ringccm node3 stopsed -i 's/127.0.0.3/127.0.0.5/g' ~/.ccm/$CLUSTER/node3/node.conf sed -i 's/127.0.0.3/127.0.0.5/g' ~/.ccm/$CLUSTER/node3/conf/cassandra.yamlccm node3 startsleep 3nodetool --host 127.0.0.5 --port 7300 gossipinfo</description>
+      <version>1.2.14,2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6628" opendate="2014-1-28 00:00:00" fixdate="2014-2-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra crashes on Solaris sparcv9 using java 64bit</summary>
+      <description>When running cassandra 2.0.4 (and other versions) on Solaris and java 64 bit, JVM crashes. Issue is described once in CASSANDRA-4646 but closed as invalid.The reason for this crash is some memory allignment related problems and incorrect sun.misc.Unsafe usage. If you look into DirectByteBuffer in jdk, you will see that it checks os.arch before using getLong methods.I have a patch, which check for the os.arch and if it is not one of the known, it reads longs and ints byte by byte.Although patch fixes the problem in cassandra, it will still crash without similar fixes in the lz4 library. I already provided the patch for Unsafe usage in lz4.</description>
+      <version>2.0.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.FastByteComparisons.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.util.Memory.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="6641" opendate="2014-1-30 00:00:00" fixdate="2014-1-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Switch stress to use ITransportFactory to obtain client connections</summary>
+      <description>CASSANDRA-6062 &amp; CASSANDRA-6378 changed cassandra-cli and sstableloader respectively to use o.a.c.thrift.ITransportFactory rather than o.a.thrift.transport.TTransportFactory implementations. This ticket is to do likewise for cassandra-stress, so that users can have more control over the connection options when running stress.</description>
+      <version>2.0.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.Session.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliOptions.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.StressSettings.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.SettingsTransport.java</file>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.settings.Legacy.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

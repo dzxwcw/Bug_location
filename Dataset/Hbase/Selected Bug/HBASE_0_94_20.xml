@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="HBASE">
+  
+  <bug fixdate="2014-7-16 01:00:00" id="11355" opendate="2014-6-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>a couple of callQueue related improvements</summary>
+      <description>In one of my in-memory read only testing(100% get requests), one of the top scalibility bottleneck came from the single callQueue. A tentative sharing this callQueue according to the rpc handler number showed a big throughput improvement(the original get() qps is around 60k, after this one and other hotspot tunning, i got 220k get() qps in the same single region server) in a YCSB read only scenario.Another stuff we can do is seperating the queue into read call queue and write call queue, we had done it in our internal branch, it would helpful in some outages, to avoid all read or all write requests ran out of all handler threads.One more stuff is changing the current blocking behevior once the callQueue is full, considering the full callQueue almost means the backend processing is slow somehow, so a fail-fast here should be more reasonable if we using HBase as a low latency processing system. see "callQueue.put(call)"</description>
+      <version>0.99.0,0.94.20</version>
+      <fixedVersion>0.99.0,0.98.4</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.SimpleRpcScheduler.java</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+      <file type="M">hbase-common.src.main.java.org.apache.hadoop.hbase.util.ReflectionUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-3-22 01:00:00" id="11571" opendate="2014-7-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bulk load handling from secondary region replicas</summary>
+      <description>We should be replaying the bulk load events from the primary region replica in the secondary region replica so that the bulk loaded files will be made visible in the secondaries. This will depend on HBASE-11567 and HBASE-11568</description>
+      <version>None</version>
+      <fixedVersion>1.1.0,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestHRegionReplayEvents.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestBulkLoad.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.Store.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-7-23 01:00:00" id="11575" opendate="2014-7-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pseudo distributed mode does not work as documented</summary>
+      <description>After master-RS colocation, now the pseudo dist-mode does not work as documented since you cannot start a region server in the same port 16020. I think we can either select a random port (and info port) for the master's region server, or document how to do a pseudo-distributed setup in the book. jxiang wdyt?</description>
+      <version>None</version>
+      <fixedVersion>0.99.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.main.docbkx.getting.started.xml</file>
+      <file type="M">conf.regionservers</file>
+      <file type="M">bin.local-regionservers.sh</file>
+      <file type="M">bin.local-master-backup.sh</file>
+      <file type="M">bin.hbase-config.sh</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

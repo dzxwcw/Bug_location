@@ -1,0 +1,856 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="11825" opendate="2019-3-5 00:00:00" fixdate="2019-3-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Resolve name clash of StateTTL TimeCharacteristic class</summary>
+      <description>The StateTTL feature introduced the class org.apache.flink.api.common.state.TimeCharacteristic which clashes with org.apache.flink.streaming.api.TimeCharacteristic. This is a problem for two reasons:1. Users get confused because the mistakenly import org.apache.flink.api.common.state.TimeCharacteristic.2. When using the StateTTL feature, users need to spell out the package name for org.apache.flink.api.common.state.TimeCharacteristic because the other class is most likely already imported.Since org.apache.flink.streaming.api.TimeCharacteristic is one of the most used classes of the DataStream API, we should make sure that users can use it without import problems.These error are hard to spot and confusing for many users. I see two ways to resolve the issue:1. drop org.apache.flink.api.common.state.TimeCharacteristic and use org.apache.flink.streaming.api.TimeCharacteristic throwing an exception if an incorrect characteristic is used.2. rename the class org.apache.flink.api.common.state.TimeCharacteristic to some other name.</description>
+      <version>1.7.2,1.8.1</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.state.StateTtlConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12200" opendate="2019-4-15 00:00:00" fixdate="2019-4-15 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>[Table API] Support UNNEST for MAP types</summary>
+      <description>In case if the input dataset has the following schema :Row(a: Integer, b: Long, c: Map&lt;String, String&gt;)I would like to have the ability to execute the SQL query like:SELECT a, k, v FROM src, UNNEST(c) as m (k,v)Currently, the UNNEST operator is supported only for ARRAY and MULTISET I would like to propose adding the support of UNNEST functionality for MAP types.</description>
+      <version>1.7.2,1.7.3,1.8.0,1.8.1</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.runtime.batch.sql.JoinITCase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.util.ExplodeFunctionUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.rules.logical.LogicalUnnestRule.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12736" opendate="2019-6-5 00:00:00" fixdate="2019-7-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ResourceManager may release TM with allocated slots</summary>
+      <description>The ResourceManager looks out for TaskManagers that have not had any slots allocated on them for a while, as these could be released to safe resources. If such a TM is found the RM checks via an RPC call whether the TM still holds any partitions. If no partition is held then the TM is released.However, in the RPC callback no check is made whether the TM is actually still idle. In the meantime a slot could've been allocated on the TM.</description>
+      <version>1.7.2,1.8.1,1.9.0</version>
+      <fixedVersion>1.7.3,1.8.2,1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TestingTaskExecutorGatewayBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.taskexecutor.TestingTaskExecutorGateway.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.SlotManagerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.SlotManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12855" opendate="2019-6-15 00:00:00" fixdate="2019-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Stagger TumblingProcessingTimeWindow processing to distribute workload</summary>
+      <description>Flink natively triggers all panes belonging to same window at the same time. In other words, all panes are aligned and their triggers all fire simultaneously, causing the thundering herd effect.This new feature provides the option that panes could be staggered across partitioned streams, so that their workloads are distributed.Attachment: proof of concept working</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.windowing.TumblingProcessingTimeWindowsTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12856" opendate="2019-6-15 00:00:00" fixdate="2019-6-15 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Introduce planner rule to push projection into TableSource</summary>
+      <description>This issue aims to support push projection into ProjectableTableSource or NestedFieldsProjectableTableSource to reduce output fields of a TableSource</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.util.testTableSources.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.plan.schema.TableSourceTable.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.plan.rules.FlinkStreamRuleSets.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.plan.rules.FlinkBatchRuleSets.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12889" opendate="2019-6-18 00:00:00" fixdate="2019-7-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Job keeps in FAILING state</summary>
+      <description>There is a topology of 3 operator, such as, source, parser, and persist. Occasionally, 5 subtasks of the source encounters exception and turns to failed, at the same time, one subtask of the parser runs into exception and turns to failed too. The jobmaster gets a message of the parser's failed. The jobmaster then try to cancel all the subtask, most of the subtasks of the three operator turns to canceled except the 5 subtasks of the source, because the state of the 5 ones is already FAILED before jobmaster try to cancel it. Then the jobmaster can not reach a final state but keeps in  Failing state meanwhile the subtask of the source kees in canceling state.  The job run on a flink 1.7 cluster on yarn, and there is only one tm with 10 slots. The attached files contains a jm log , tm log and the ui picture. The exception timestamp is about 2019-06-16 13:42:28.</description>
+      <version>1.7.2,1.8.1,1.9.0</version>
+      <fixedVersion>1.7.3,1.8.2,1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.StreamTask.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12981" opendate="2019-6-25 00:00:00" fixdate="2019-8-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Ignore NaN values in histogram&amp;#39;s percentile implementation</summary>
+      <description>Histogram metrics use "long" values and therefore, there is no Double.NaN in DescriptiveStatistics' data and there is no need to cleanse it while working with it.</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12983" opendate="2019-6-25 00:00:00" fixdate="2019-8-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replace descriptive histogram&amp;#39;s storage back-end</summary>
+      <description>DescriptiveStatistics relies on their ResizableDoubleArray for storing double values for their histograms. However, this is constantly resizing an internal array and seems to have quite some overhead.Additionally, we're not using SynchronizedDescriptiveStatistics which, according to its docs, we should. Currently, we seem to be somewhat safe because ResizableDoubleArray has some synchronized parts but these are scheduled to go away with commons.math version 4.Internal tests with the current implementation, one based on a linear array of twice the histogram size (and moving values back to the start once the window reaches the end), and one using a circular array (wrapping around with flexible start position) has shown these numbers using the optimised code from FLINK-10236, FLINK-12981, and FLINK-12982: only adding values to the histogramBenchmark Mode Cnt Score Error UnitsHistogramBenchmarks.dropwizardHistogramAdd thrpt 30 47985.359 ± 25.847 ops/msHistogramBenchmarks.descriptiveHistogramAdd thrpt 30 70158.792 ± 276.858 ops/ms--- with FLINK-10236, FLINK-12981, and FLINK-12982 ---HistogramBenchmarks.descriptiveHistogramAdd thrpt 30 75303.040 ± 475.355 ops/msHistogramBenchmarks.descrHistogramCircularAdd thrpt 30 200906.902 ± 384.483 ops/msHistogramBenchmarks.descrHistogramLinearAdd thrpt 30 189788.728 ± 233.283 ops/ms after adding each value, also retrieving a common set of metrics:Benchmark Mode Cnt Score Error UnitsHistogramBenchmarks.dropwizardHistogram thrpt 30 400.274 ± 4.930 ops/msHistogramBenchmarks.descriptiveHistogram thrpt 30 124.533 ± 1.060 ops/ms--- with FLINK-10236, FLINK-12981, and FLINK-12982 ---HistogramBenchmarks.descriptiveHistogram thrpt 30 251.895 ± 1.809 ops/msHistogramBenchmarks.descrHistogramCircular thrpt 30 301.068 ± 2.077 ops/msHistogramBenchmarks.descrHistogramLinear thrpt 30 234.050 ± 5.485 ops/ms</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogramStatistics.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.metrics.DescriptiveStatisticsHistogram.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="12984" opendate="2019-6-25 00:00:00" fixdate="2019-8-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Only call Histogram#getStatistics() once per set of retrieved statistics</summary>
+      <description>In some occasions, Histogram#getStatistics() was called multiple times to retrieve different statistics. However, at least the Dropwizard implementation has some constant overhead per call and we should maybe rather interpret this method as returning a point-in-time snapshot of the histogram in order to get consistent values when querying them.</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-metrics.flink-metrics-prometheus.src.main.java.org.apache.flink.metrics.prometheus.AbstractPrometheusReporter.java</file>
+      <file type="M">flink-metrics.flink-metrics-jmx.src.test.java.org.apache.flink.metrics.jmx.JMXReporterTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13066" opendate="2019-7-2 00:00:00" fixdate="2019-7-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>append hive-site.xml to path of Hive conf dir</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.pyflink.table.catalog.py</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.catalog.hive.HiveCatalog.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.catalog.hive.factories.HiveCatalogFactory.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13067" opendate="2019-7-3 00:00:00" fixdate="2019-7-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix broken links to contributing docs</summary>
+      <description>As contributing links change on https://github.com/apache/flink-web, all links to contributing related docs have become broken. We need to fix these broken links.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.redirects.windows.md</file>
+      <file type="M">docs.redirects.setup.quickstart.md</file>
+      <file type="M">docs.redirects.filesystems.md</file>
+      <file type="M">docs.redirects.example.quickstart.md</file>
+      <file type="M">docs.internals.components.zh.md</file>
+      <file type="M">docs.internals.components.md</file>
+      <file type="M">docs.index.zh.md</file>
+      <file type="M">docs.index.md</file>
+      <file type="M">docs.dev.table.connect.zh.md</file>
+      <file type="M">docs.dev.table.connect.md</file>
+      <file type="M">docs.dev.projectsetup.scala.api.quickstart.zh.md</file>
+      <file type="M">docs.dev.projectsetup.scala.api.quickstart.md</file>
+      <file type="M">docs.dev.projectsetup.java.api.quickstart.zh.md</file>
+      <file type="M">docs.dev.projectsetup.java.api.quickstart.md</file>
+      <file type="M">docs.dev.libs.ml.contribution.guide.zh.md</file>
+      <file type="M">docs.dev.libs.ml.contribution.guide.md</file>
+      <file type="M">docs.dev.libs.gelly.index.zh.md</file>
+      <file type="M">docs.dev.libs.gelly.index.md</file>
+      <file type="M">.github.PULL.REQUEST.TEMPLATE.md</file>
+      <file type="M">.github.CONTRIBUTING.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13185" opendate="2019-7-10 00:00:00" fixdate="2019-7-10 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Bump Calcite dependency to 1.20.0 in sql parser &amp; flink planner</summary>
+      <description>blink planner had upgraded calcite version to 1.20.0 (before version is 1.19.0), and blink planner will support DDL in FLINK-1.9 which depends on flink-sql-parser. so calcite version in flink-sql-parser should also be upgrade to 1.20.0.walterddr, FLINK-11935 will not be fixed in this issue, because supporting DDL in blink planner is blocked by this.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.utils.TableTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.runtime.stream.table.RetractionITCase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.plan.TimeIndicatorConversionTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.plan.RetractionRulesTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.plan.ExpressionReductionRulesTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.TableSourceTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.table.TemporalTableJoinTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.table.OverWindowTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.table.JoinTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.table.GroupWindowTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.sql.UnionTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.sql.TemporalTableJoinTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.sql.SetOperatorsTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.sql.OverWindowTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.sql.JoinTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.stream.sql.GroupWindowTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.table.stringexpr.SetOperatorsTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.table.SetOperatorsTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.table.GroupWindowTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.table.CalcTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.sql.SingleRowJoinTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.sql.SetOperatorsTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.sql.GroupWindowTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.sql.GroupingSetsTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.sql.CalcTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.logical.FlinkLogicalWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.logical.FlinkLogicalCorrelate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.logical.FlinkLogicalAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.datastream.DataStreamCorrelate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetCorrelate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.CommonCorrelate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.logical.rel.LogicalWindowTableAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.logical.rel.LogicalWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.catalog.BasicOperatorTable.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.calcite.FlinkRelBuilderFactory.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.catalog.FunctionCatalogOperatorTable.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.calcite.sql.validate.SqlValidatorImpl.java</file>
+      <file type="M">flink-table.flink-table-planner.pom.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.pom.xml</file>
+      <file type="M">flink-table.flink-sql-parser.src.test.java.org.apache.flink.sql.parser.FlinkSqlParserImplTest.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.codegen.includes.parserImpls.ftl</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.codegen.data.Parser.tdd</file>
+      <file type="M">flink-table.flink-sql-parser.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1319" opendate="2014-12-10 00:00:00" fixdate="2014-6-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add static code analysis for UDFs</summary>
+      <description>Flink's Optimizer takes information that tells it for UDFs which fields of the input elements are accessed, modified, or frwarded/copied. This information frequently helps to reuse partitionings, sorts, etc. It may speed up programs significantly, as it can frequently eliminate sorts and shuffles, which are costly.Right now, users can add lightweight annotations to UDFs to provide this information (such as adding @ConstandFields("0-&gt;3, 1, 2-&gt;1").We worked with static code analysis of UDFs before, to determine this information automatically. This is an incredible feature, as it "magically" makes programs faster.For record-at-a-time operations (Map, Reduce, FlatMap, Join, Cross), this works surprisingly well in many cases. We used the "Soot" toolkit for the static code analysis. Unfortunately, Soot is LGPL licensed and thus we did not include any of the code so far.I propose to add this functionality to Flink, in the form of a drop-in addition, to work around the LGPL incompatibility with ALS 2.0. Users could simply download a special "flink-code-analysis.jar" and drop it into the "lib" folder to enable this functionality. We may even add a script to "tools" that downloads that library automatically into the lib folder. This should be legally fine, since we do not redistribute LGPL code and only dynamically link it (the incompatibility with ASL 2.0 is mainly in the patentability, if I remember correctly).Prior work on this has been done by aljoscha and skunert, which could provide a code base to start with.AppendixHompage to Soot static analysis toolkit: http://www.sable.mcgill.ca/soot/Papers on static analysis and for optimization: http://stratosphere.eu/assets/papers/EnablingOperatorReorderingSCA_12.pdf and http://stratosphere.eu/assets/papers/openingTheBlackBoxes_12.pdfQuick introduction to the Optimizer: http://stratosphere.eu/assets/papers/2014-VLDBJ_Stratosphere_Overview.pdf (Section 6)Optimizer for Iterations: http://stratosphere.eu/assets/papers/spinningFastIterativeDataFlows_12.pdf (Sections 4.3 and 5.3)</description>
+      <version>None</version>
+      <fixedVersion>0.9,0.10.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-test-utils.src.main.java.org.apache.flink.test.util.TestEnvironment.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.Utils.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.UdfOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.TwoInputUdfOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.SingleInputUdfOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.ReduceOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.MapOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.JoinOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.GroupReduceOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.GroupCombineOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.FlatMapOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.FilterOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.CrossOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.CoGroupOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.functions.SemanticPropUtil.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.functions.FunctionAnnotation.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.ExecutionEnvironment.java</file>
+      <file type="M">flink-java.pom.xml</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.ExecutionConfig.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13192" opendate="2019-7-10 00:00:00" fixdate="2019-8-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add tests for different Hive table formats</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.connectors.hive.TableEnvHiveConnectorTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.catalog.hive.HiveCatalog.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.connectors.hive.HiveTableOutputFormat.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13347" opendate="2019-7-22 00:00:00" fixdate="2019-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>should handle new JoinRelType(SEMI/ANTI) in switch case</summary>
+      <description>Calcite 1.20 introduces SEMI &amp; ANTI to JoinRelType, blink planner &amp; flink planner should handle them in each switch case</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.runtime.join.WindowJoinUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.datastream.DataStreamWindowJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.datastream.DataStreamJoinToCoProcessTranslator.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.CommonJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.plan.nodes.CommonCorrelate.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13369" opendate="2019-7-22 00:00:00" fixdate="2019-7-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Recursive closure cleaner ends up with stackOverflow in case of circular dependency</summary>
+      <description></description>
+      <version>1.8.1,1.9.0</version>
+      <fixedVersion>1.8.2,1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.functions.ClosureCleanerTest.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.ClosureCleaner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13429" opendate="2019-7-25 00:00:00" fixdate="2019-7-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SQL Client end-to-end test fails</summary>
+      <description>The SQL Client test does not work on the current master and hangs when executing CEP SQL. We reproduced this on two machines.At commit 475c30cd4064a7bc2e32c963b6ca58e7623251c6 it was working.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-api-java-bridge.src.main.java.org.apache.flink.table.sources.wmstrategies.BoundedOutOfOrderTimestamps.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13498" opendate="2019-7-30 00:00:00" fixdate="2019-8-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reduce Kafka producer startup time by aborting transactions in parallel</summary>
+      <description>When a Flink job with a Kafka producer starts up without previous state, it currently starts 5 * kafkaPoolSize number of Kafka producers (per sink instance) to abort potentially existing transactions from a first run without a completed snapshot.Apparently, this is quite slow and it is also done sequentially. Until there is a better way of aborting these transactions with Kafka, we could do this in parallel quite easily and at least make use of lingering CPU resources.</description>
+      <version>1.8.1,1.9.0</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kafka.src.main.java.org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.11.src.main.java.org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer011.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13519" opendate="2019-7-31 00:00:00" fixdate="2019-10-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Elasticsearch Connector sample code for Scala on version 6.x will not work</summary>
+      <description>The Scala example in the documentation for the Elasticsearch Connector, version 6.x, will not work. The class ElasticsearchSinkFunction&amp;#91;String&amp;#93; requires a RuntimeContext and a RequestIndexer, which the example omits.Also, type needs to be in inverse quotes as it's a Scala keyword.It should look like the following:def process(element: String, ctx: RuntimeContext, indexer: RequestIndexer) { val json = new java.util.HashMap[String, String] json.put("data", element) val rqst: IndexRequest = Requests.indexRequest .index("testarindex") .`type`("_doc") .source(json) indexer.add(rqst) } </description>
+      <version>1.7.2,1.8.0,1.8.1</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.connectors.elasticsearch.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13524" opendate="2019-8-1 00:00:00" fixdate="2019-10-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Typo in Builder method name from Elasticsearch example</summary>
+      <description>The Builder method name from class ElasticsearchSink has got a typo (missing 'd') in the Elasticsearch connector section for Scala (ES version 6.x).new ElasticsearchSink.Builer[String](should be:new ElasticsearchSink.Builder[String](</description>
+      <version>1.8.1</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.connectors.elasticsearch.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13543" opendate="2019-8-2 00:00:00" fixdate="2019-8-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enable reuse forks for integration tests in blink planner</summary>
+      <description>As discussed in https://github.com/apache/flink/pull/9180 , we find that with enabling reuse forks we can save ~20min (50min -&gt; 30min) for blink planner test.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner-blink.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13544" opendate="2019-8-2 00:00:00" fixdate="2019-8-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Set parallelism of table sink operator to input transformation parallelism</summary>
+      <description>Currently, there are a lot of TableSink connectors uses dataStream.addSink() without setParallelism explicitly. This will use default parallelism of the environment. However, the parallelism of input transformation might not be env.parallelism, for example, global aggregation has 1 parallelism. In this case, it will lead to data reorder, and result in incorrect result.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-walkthroughs.flink-walkthrough-common.src.main.java.org.apache.flink.walkthrough.common.table.SpendReportTableSink.java</file>
+      <file type="M">flink-table.flink-table-api-java-bridge.src.main.java.org.apache.flink.table.sinks.OutputFormatTableSink.java</file>
+      <file type="M">flink-table.flink-table-api-java-bridge.src.main.java.org.apache.flink.table.sinks.CsvTableSink.java</file>
+      <file type="M">flink-connectors.flink-jdbc.src.main.java.org.apache.flink.api.java.io.jdbc.JDBCUpsertTableSink.java</file>
+      <file type="M">flink-connectors.flink-jdbc.src.main.java.org.apache.flink.api.java.io.jdbc.JDBCAppendTableSink.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.KafkaTableSinkBase.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch-base.src.main.java.org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchUpsertTableSinkBase.java</file>
+      <file type="M">flink-connectors.flink-connector-cassandra.src.main.java.org.apache.flink.streaming.connectors.cassandra.CassandraAppendTableSink.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13587" opendate="2019-8-5 00:00:00" fixdate="2019-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix some transformation names are not set in blink planner</summary>
+      <description>Currently, there are some transformation names are not set in blink planner. For example, LookupJoin transformation uses "LookupJoin" directly which loses a lot of informatoion.</description>
+      <version>None</version>
+      <fixedVersion>1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecTemporalJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.utils.TableTestBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.ValuesTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.UnnestTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.SortLimitTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.SetOperatorsTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.RankTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.MiniBatchIntervalInferTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.LimitTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.join.WindowJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.join.JoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.subquery.SubQuerySemiJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.ProjectPruneAggregateCallRuleTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.LogicalUnnestRuleTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.FlinkPruneEmptyRulesTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.FlinkLimit0RemoveRuleTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.FlinkAggregateRemoveRuleTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.rules.logical.CalcPruneAggregateCallRuleTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.ValuesTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.UnnestTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.SortLimitTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.SetOperatorsTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.LimitTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.join.SortMergeJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.join.NestedLoopJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.planner.plan.batch.sql.join.BroadcastHashJoinTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.api.stream.ExplainTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.org.apache.flink.table.api.batch.ExplainTest.xml</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.resources.explain.testGetStatsFromCatalog.out</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.utils.ScanUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.utils.RelExplainUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.utils.FlinkRelOptUtil.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.utils.ExecNodePlanDumper.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecWindowJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecWatermarkAssigner.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecValues.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecTemporalSort.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.java.org.apache.flink.table.planner.plan.utils.RelDisplayNameWriterImpl.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.codegen.CorrelateCodeGenerator.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.delegation.BatchPlanner.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.delegation.StreamPlanner.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.calcite.Expand.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.common.CommonCalc.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.common.CommonLookupJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.common.CommonPhysicalJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.FlinkRelNode.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecCalc.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecCorrelate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecExpand.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecGroupAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecHashAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecHashAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecHashJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecHashWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecHashWindowAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecLimit.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecLocalHashAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecLocalHashWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecLocalSortAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecLocalSortWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecNestedLoopJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecOverAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecRank.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecSort.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecSortAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecSortAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecSortLimit.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecSortMergeJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecSortWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecSortWindowAggregateBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchExecValues.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecCalc.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecCorrelate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecDeduplicate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecExpand.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecGlobalGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecGroupWindowAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecIncrementalGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecLimit.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecLocalGroupAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecMatch.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecOverAggregate.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecRank.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecSort.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamExecSortLimit.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13689" opendate="2019-8-12 00:00:00" fixdate="2019-1-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rest High Level Client for Elasticsearch6.x connector leaks threads if no connection could be established</summary>
+      <description>If the created Elastic Search Rest High Level Client(rhlClient) is unreachable, Current code throws RuntimeException. But, it doesn't close the client which causes thread leak. Current Codeif (!rhlClient.ping()) {     throw new RuntimeException("There are no reachable Elasticsearch nodes!");} Change NeededrhlClient needs to be closed. Steps to Reproduce1. Add the ElasticSearch Sink to the stream. Start the Flink program without starting the ElasticSearch. 2. Program will give error: "Too many open files" and it doesn't write even though you start the Elastic Search later. </description>
+      <version>1.8.1</version>
+      <fixedVersion>1.10.2,1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-elasticsearch7.src.main.java.org.apache.flink.streaming.connectors.elasticsearch7.Elasticsearch7ApiCallBridge.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch6.src.main.java.org.apache.flink.streaming.connectors.elasticsearch6.Elasticsearch6ApiCallBridge.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch5.src.main.java.org.apache.flink.streaming.connectors.elasticsearch5.Elasticsearch5ApiCallBridge.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch2.src.main.java.org.apache.flink.streaming.connectors.elasticsearch2.Elasticsearch2ApiCallBridge.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch-base.src.test.java.org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBaseTest.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch-base.src.main.java.org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBase.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch-base.src.main.java.org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchApiCallBridge.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1369" opendate="2015-1-8 00:00:00" fixdate="2015-2-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>The Pojo Serializers/Comparators fail when using Subclasses or Interfaces</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.9</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.ProjectOperator.java</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.types.TypeInformationGenTest.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleSerializerTest.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorISD3Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorISD2Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorISD1Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorILDXC2Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorILDX1Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorILDC3Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorILD3Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TupleComparatorILD2Test.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.TraversableSerializerTest.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.ScalaSpecialTypesSerializerTest.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.KryoGenericTypeSerializerTest.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.runtime.CaseClassComparatorTest.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.misc.MassiveCaseClassSortingITCase.scala</file>
+      <file type="M">flink-tests.src.test.scala.org.apache.flink.api.scala.io.CollectionInputFormatTest.scala</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-scala.src.main.scala.org.apache.flink.streaming.api.scala.WindowedDataStream.scala</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-scala.src.main.scala.org.apache.flink.streaming.api.scala.StreamJoinOperator.scala</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-scala.src.main.scala.org.apache.flink.streaming.api.scala.StreamExecutionEnvironment.scala</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-scala.src.main.scala.org.apache.flink.streaming.api.scala.StreamCrossOperator.scala</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-scala.src.main.scala.org.apache.flink.streaming.api.scala.DataStream.scala</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.test.java.org.apache.flink.streaming.util.MockContext.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.test.java.org.apache.flink.streaming.util.MockCoContext.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.test.java.org.apache.flink.streaming.api.AggregationFunctionTest.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.util.keys.KeySelectorUtil.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.StreamVertex.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.StreamingRuntimeContext.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamvertex.CoStreamVertex.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.streamrecord.StreamRecordSerializer.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.StreamGraph.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.invokable.StreamInvokable.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.invokable.operator.ProjectInvokable.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.invokable.operator.GroupedWindowInvokable.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.invokable.operator.co.CoInvokable.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.function.source.FileSourceFunction.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.function.aggregation.SumAggregator.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.function.aggregation.ComparableAggregator.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.function.aggregation.AggregationFunction.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.datastream.temporaloperator.StreamJoinOperator.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.api.datastream.DataStream.java</file>
+      <file type="M">flink-staging.flink-hadoop-compatibility.src.test.java.org.apache.flink.test.hadoopcompatibility.mapred.wrapper.HadoopTupleUnwrappingIteratorTest.java</file>
+      <file type="M">flink-staging.flink-hadoop-compatibility.src.main.java.org.apache.flink.hadoopcompatibility.mapred.wrapper.HadoopTupleUnwrappingIterator.java</file>
+      <file type="M">flink-staging.flink-hadoop-compatibility.src.main.java.org.apache.flink.hadoopcompatibility.mapred.HadoopReduceFunction.java</file>
+      <file type="M">flink-staging.flink-hadoop-compatibility.src.main.java.org.apache.flink.hadoopcompatibility.mapred.HadoopReduceCombineFunction.java</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.UnfinishedCoGroupOperation.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.typeutils.TryTypeInfo.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.typeutils.TrySerializer.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.typeutils.TraversableTypeInfo.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.typeutils.OptionTypeInfo.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.typeutils.EitherTypeInfo.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.typeutils.CaseClassTypeInfo.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.joinDataSet.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.ExecutionEnvironment.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.CrossDataSet.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.codegen.TypeInformationGen.scala</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.codegen.TypeAnalyzer.scala</file>
+      <file type="M">flink-scala.src.main.java.org.apache.flink.api.scala.operators.ScalaCsvOutputFormat.java</file>
+      <file type="M">flink-scala.src.main.java.org.apache.flink.api.scala.operators.ScalaCsvInputFormat.java</file>
+      <file type="M">flink-scala.src.main.java.org.apache.flink.api.scala.operators.ScalaAggregateOperator.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.sort.MassiveStringValueSortingITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.sort.MassiveStringSortingITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.sort.LargeRecordHandlerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.sort.LargeRecordHandlerITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.sort.ExternalSortLargeRecordsITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.drivers.ReduceDriverTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.drivers.ReduceCombineDriverTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.drivers.GroupReduceDriverTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.drivers.AllReduceDriverTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.drivers.AllGroupReduceDriverTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.util.DistributedRuntimeUDFContext.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.sort.LargeRecordHandler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.RegularPactTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.PactTaskContext.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.DataSourceTask.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.operators.chaining.ChainedDriver.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.iterative.task.AbstractIterativePactTask.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.type.extractor.TypeExtractorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.TypeInfoParserTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.WritableSerializerTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.WritableComparatorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.ValueComparatorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleSerializerTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorISD3Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorISD2Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorISD1Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorILDXC2Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorILDX1Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorILDC3Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorILD3Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.TupleComparatorILD2Test.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.PojoSerializerTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.PojoGenericTypeSerializerTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.PojoComparatorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.MultidimensionalArraySerializerTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.KryoWithCustomSerializersTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.KryoVersusAvroMinibenchmark.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.KryoGenericTypeSerializerTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.KryoGenericTypeComparatorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.KryoGenericArraySerializerTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.runtime.CopyableValueComparatorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.typeutils.CompositeTypeTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.io.TypeSerializerFormatTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.java.io.CollectionInputFormatTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.common.operators.base.ReduceOperatorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.common.operators.base.JoinOperatorBaseTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.common.operators.base.GroupReduceOperatorTest.java</file>
+      <file type="M">flink-java.src.test.java.org.apache.flink.api.common.operators.base.CoGroupOperatorCollectionTest.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.WritableTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.ValueTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.TypeExtractor.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.TupleTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.runtime.PojoSerializer.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.runtime.KryoSerializer.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.RecordTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.PojoTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.ObjectArrayTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.MissingTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.InputTypeConfigurable.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.GenericTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.typeutils.EnumTypeInfo.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.translation.PlanProjectOperator.java</file>
+      <file type="M">flink-compiler.src.main.java.org.apache.flink.compiler.postpass.JavaApiPostPass.java</file>
+      <file type="M">flink-compiler.src.main.java.org.apache.flink.compiler.util.NoOpBinaryUdfOp.java</file>
+      <file type="M">flink-compiler.src.main.java.org.apache.flink.compiler.util.NoOpUnaryUdfOp.java</file>
+      <file type="M">flink-core.pom.xml</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.ExecutionConfig.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.functions.RuntimeContext.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.functions.util.AbstractRuntimeUDFContext.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.functions.util.RuntimeUDFContext.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.BulkIterationBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.CoGroupOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.CollectorMapOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.CrossOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.DeltaIterationBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.FilterOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.FlatMapOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.GroupReduceOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.JoinOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.MapOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.MapPartitionOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.PartitionOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.base.ReduceOperatorBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.CollectionExecutor.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.DualInputOperator.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.GenericDataSinkBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.GenericDataSourceBase.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.SingleInputOperator.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.operators.Union.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.typeinfo.AtomicType.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.typeinfo.BasicTypeInfo.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.typeinfo.NothingTypeInfo.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.typeinfo.PrimitiveArrayTypeInfo.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.typeinfo.TypeInformation.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.typeutils.CompositeType.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.functions.util.RuntimeUDFContextTest.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.operators.base.FlatMapOperatorCollectionTest.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.operators.base.JoinOperatorBaseTest.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.operators.base.MapOperatorTest.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.operators.base.PartitionMapOperatorTest.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.typeutils.SerializerTestBase.java</file>
+      <file type="M">flink-java8.src.test.java.org.apache.flink.api.java.type.lambdas.LambdaExtractionTest.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.CollectionEnvironment.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.DataSet.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.ExecutionEnvironment.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.io.CsvOutputFormat.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.io.LocalCollectionOutputFormat.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.io.TypeSerializerInputFormat.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.io.TypeSerializerOutputFormat.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.CrossOperator.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.operators.JoinOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13718" opendate="2019-8-14 00:00:00" fixdate="2019-8-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Disable HBase tests</summary>
+      <description>The HBase tests are categorically failing on Java 11. Given that HBase itself does not support Java 11 at this point we should just disable these tests for the time being.HBaseConnectorITCase.activateHBaseCluster:81-&gt;HBaseTestingClusterAutostarter.registerHBaseMiniClusterInClasspath:189-&gt;HBaseTestingClusterAutostarter.addDirectoryToClassPath:224 We should get a URLClassLoader HBaseLookupFunctionITCase.activateHBaseCluster:95-&gt;HBaseTestingClusterAutostarter.registerHBaseMiniClusterInClasspath:189-&gt;HBaseTestingClusterAutostarter.addDirectoryToClassPath:224 We should get a URLClassLoader HBaseSinkITCase.activateHBaseCluster:91-&gt;HBaseTestingClusterAutostarter.registerHBaseMiniClusterInClasspath:189-&gt;HBaseTestingClusterAutostarter.addDirectoryToClassPath:224 We should get a URLClassLoader</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-hbase.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13762" opendate="2019-8-18 00:00:00" fixdate="2019-8-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add the exception throwable in the interface methods of ValveOutputHandler</summary>
+      <description>It is only for simplifying the implementations of specific methods to not wrap the exception into RuntimeException.</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.streamstatus.StatusWatermarkValveTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.streamstatus.StatusWatermarkValve.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.io.StreamTwoInputSelectableProcessor.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.io.StreamOneInputProcessor.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13796" opendate="2019-8-20 00:00:00" fixdate="2019-9-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove unused variable</summary>
+      <description></description>
+      <version>1.8.1</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn.src.main.java.org.apache.flink.yarn.YarnResourceManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13797" opendate="2019-8-20 00:00:00" fixdate="2019-8-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add missing format arguments to logging messages</summary>
+      <description>A few log format strings are missing arguments.</description>
+      <version>1.8.1</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.functions.source.MessageAcknowledgingSourceBase.java</file>
+      <file type="M">flink-mesos.src.main.java.org.apache.flink.mesos.runtime.clusterframework.LaunchableMesosWorker.java</file>
+      <file type="M">flink-filesystems.flink-hadoop-fs.src.main.java.org.apache.flink.runtime.fs.hdfs.HadoopFsFactory.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13868" opendate="2019-8-27 00:00:00" fixdate="2019-9-27 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Job vertex add taskmanager id in rest api</summary>
+      <description>In web, user want to see subtask run in which taskmanager. But now there is no taskmanager's id, user have to judge it by host and port. </description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.messages.job.SubtaskExecutionAttemptDetailsInfoTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.messages.JobVertexDetailsInfoTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.handler.job.SubtaskExecutionAttemptDetailsHandlerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.rest.handler.job.SubtaskCurrentAttemptDetailsHandlerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.job.SubtaskExecutionAttemptDetailsInfo.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.messages.JobVertexDetailsInfo.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.rest.handler.job.JobVertexDetailsHandler.java</file>
+      <file type="M">flink-runtime-web.src.test.resources.rest.api.v1.snapshot</file>
+      <file type="M">docs..includes.generated.rest.v1.dispatcher.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13941" opendate="2019-9-2 00:00:00" fixdate="2019-9-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Prevent data-loss by not cleaning up small part files from S3.</summary>
+      <description></description>
+      <version>1.8.0,1.8.1,1.9.0</version>
+      <fixedVersion>1.8.2,1.9.1,1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.functions.sink.filesystem.BucketTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.functions.sink.filesystem.Bucket.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13968" opendate="2019-9-5 00:00:00" fixdate="2019-9-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add travis check for the correctness of the binary licensing</summary>
+      <description>Since the binary licensing must be updated manually whenever the packaging of flink-dist or contained jars is modified we should add an automatic check to ensure the licensing is updated appropriately.</description>
+      <version>None</version>
+      <fixedVersion>1.8.3,1.9.1,1.10.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.travis.controller.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13973" opendate="2019-9-5 00:00:00" fixdate="2019-8-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Checkpoint recovery failed after user set uidHash</summary>
+      <description>Checkpoint recovery failed after user set uidHash, the possible reasons are as follows:If altOperatorID is not null, operatorState will be obtained by altOperatorID and will not be given</description>
+      <version>1.8.0,1.8.1,1.9.0,1.13.0</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.StateAssignmentOperation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14176" opendate="2019-9-24 00:00:00" fixdate="2019-10-24 01:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>add taskmanager link in vertex‘s page of taskmanager</summary>
+      <description>Add taskmanager's link in vertex's page of taskmanager, so user could go to taskmanegr's page.</description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.overview.taskmanagers.job-overview-drawer-taskmanagers.component.html</file>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.interfaces.job-vertex-task-manager.ts</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14301" opendate="2019-9-30 00:00:00" fixdate="2019-11-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add documentation for functions categories and new function resolution orders</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.10.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.dev.table.functions.udfs.zh.md</file>
+      <file type="M">docs.dev.table.functions.udfs.md</file>
+      <file type="M">docs.dev.table.functions.builtinFunctions.zh.md</file>
+      <file type="M">docs.dev.table.functions.builtinFunctions.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14445" opendate="2019-10-18 00:00:00" fixdate="2019-10-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Python module build failed when making sdist</summary>
+      <description>From the description of error-log from building python module in travis, it seems invocation failed for sdist-make and then the phase of building python module exited.The instance log: https://api.travis-ci.com/v3/job/246710918/log.txt</description>
+      <version>None</version>
+      <fixedVersion>1.9.2,1.10.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.setup.py</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17254" opendate="2020-4-20 00:00:00" fixdate="2020-4-20 01:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>Improve the PyFlink documentation and examples to use SQL DDL for source/sink definition</summary>
+      <description>Currently there are two ways to register a table sink/source in PyFlink table API:1) TableEnvironment.connect2) TableEnvironment.sql_updateI think it's better to provide documentation and examples on how to use 2) in PyFlink.</description>
+      <version>None</version>
+      <fixedVersion>1.9.4,1.10.1,1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.pyflink.table.examples.batch.word.count.py</file>
+      <file type="M">docs.getting-started.walkthroughs.python.table.api.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17256" opendate="2020-4-20 00:00:00" fixdate="2020-5-20 01:00:00" resolution="Resolved">
+    <buginformation>
+      <summary>Suppport keyword arguments in the PyFlink Descriptor API</summary>
+      <description>Keyword arguments is a very commonly used feature in Python. We should support it in the PyFlink Descriptor API to make the API more user friendly for Python users.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-python.pyflink.table.tests.test.descriptor.py</file>
+      <file type="M">flink-python.pyflink.table.descriptors.py</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

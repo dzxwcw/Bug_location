@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2015-8-19 01:00:00" id="10131" opendate="2015-8-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>consistently sort DCs in nodetool:status</summary>
+      <description>It's kind of annoying that the order flip flops as I look at different clusters.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeTool.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-9-1 01:00:00" id="10238" opendate="2015-9-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Consolidating racks violates the RF contract</summary>
+      <description>I have only tested this on 2.0 so far, but I suspect it will affect multiple versions.Repro: create a datacenter with rf&gt;1 create more than one rack in this datacenter consolidate these racks into 1 getendpoints will reveal the RF in practice is 1, even though other tools will report the original RF that was setRestarting Cassandra will resolve this.</description>
+      <version>2.0.17,2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.locator.TokenMetadataTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.YamlFileNetworkTopologySnitch.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.TokenMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.locator.PropertyFileSnitch.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-9-5 01:00:00" id="10272" opendate="2015-9-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BATCH statement is broken in cqlsh</summary>
+      <description>BEGIN BATCH .... APPLY BATCH is not parsed correctly.Steps:CREATE KEYSPACE Excelsior WITH REPLICATION={'class':'SimpleStrategy','replication_factor':1};CREATE TABLE excelsior.data (id int primary key);BEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0); APPLY BATCH ;ErrorSyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 0:-1 mismatched input '&lt;EOF&gt;' expecting K_APPLY"&gt;SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:0 no viable alternative at input 'APPLY' ([APPLY]...)"&gt;While BEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0) APPLY BATCH ;without ; after insert works.Consequently neitherBEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0);INSERT INTO excelsior.data (id) VALUES (0); APPLY BATCH ;Error:SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 0:-1 mismatched input '&lt;EOF&gt;' expecting K_APPLY"&gt;SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:0 no viable alternative at input 'APPLY' ([APPLY]...)"&gt;norBEGIN BATCH INSERT INTO excelsior.data (id) VALUES (0);INSERT INTO excelsior.data (id) VALUES (0) APPLY BATCH ;ErrorSyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 0:-1 mismatched input '&lt;EOF&gt;' expecting K_APPLY"&gt;SyntaxException: &lt;ErrorMessage code=2000 [Syntax error in CQL query] message="line 1:43 missing EOF at 'APPLY' (...(id) VALUES (0) [APPLY] BATCH...)"&gt;works.It was OK in 2.2.0 and 3.0 beta 1.3.0-beta2-tentative also affected.</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-9-14 01:00:00" id="10330" opendate="2015-9-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Gossipinfo could return more useful information</summary>
+      <description>For instance, the version for each state, which can be useful for diagnosing the reason for any missing states. Also instead of just omitting the TOKENS state, let's indicate whether the state was actually present or not.</description>
+      <version>2.0.17,2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2015-9-17 01:00:00" id="10366" opendate="2015-9-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Added gossip states can shadow older unseen states</summary>
+      <description>In CASSANDRA-6135 we added cloneWithHigherVersion to ensure that if another thread added states to gossip while we were notifying we would increase our version to ensure the existing states wouldn't get shadowed. This however, was not entirely perfect since it's possible that after the clone, but before the addition another thread will insert an even newer state, thus shadowing the others. A common case (of this rare one) is when STATUS and TOKENS are added a bit later in SS.setGossipTokens, where something in another thread injects a new state (likely SEVERITY) just before the addition after the clone.</description>
+      <version>2.0.17,2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-9-17 01:00:00" id="7410" opendate="2014-6-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pig support for BulkOutputFormat as a parameter in url</summary>
+      <description>Add BulkOutputFormat support in Pig url</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.pig.org.apache.cassandra.pig.PigTestBase.java</file>
+      <file type="M">test.pig.org.apache.cassandra.pig.CqlTableTest.java</file>
+      <file type="M">test.conf.cassandra.yaml</file>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.pig.CqlStorage.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.pig.CqlNativeStorage.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlBulkRecordWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.hadoop.cql3.CqlBulkOutputFormat.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-8-13 01:00:00" id="8611" opendate="2015-1-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>give streaming_socket_timeout_in_ms a non-zero default</summary>
+      <description>Sometimes as mentioned in CASSANDRA-8472 streams will hang. We have streaming_socket_timeout_in_ms which can retry after a timeout. It would be good to make a default non-zero value. We don't want to paper over problems, but streams sometimes hang and you don't want long running streaming operations to just fail - as in repairs or bootstraps.streaming_socket_timeout_in_ms should be based on the tcp idle timeout so it shouldn't be a problem to set it to on the order of minutes. Also the socket should only be open during the actual streaming and not during operations such as merkle tree generation. We can set it to a conservative value and people can set it more aggressively as needed. Disabling as a default, in my opinion, is too conservative.</description>
+      <version>2.1.10,2.2.2,3.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.Config.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-8-23 01:00:00" id="9232" opendate="2015-4-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"timestamp" is considered as a reserved keyword in cqlsh completion</summary>
+      <description>cqlsh seems to treat "timestamp" as a reserved keyword when used as an identifier:cqlsh:ks1&gt; create table t1 (int int primary key, ascii ascii, bigint bigint, blob blob, boolean boolean, date date, decimal decimal, double double, float float, inet inet, text text, time time, timestamp timestamp, timeuuid timeuuid, uuid uuid, varchar varchar, varint varint);Leads to the following completion when building an INSERT statement:cqlsh:ks1&gt; insert into t1 (int, "timestamp" ascii bigint blob boolean date decimal double float inet text time timeuuid uuid varchar varint"timestamp" is a keyword but not a reserved one and should therefore not be proposed as a quoted string. It looks like this error happens only for timestamp. Not a big deal of course, but it might be worth reviewing the keywords treated as reserved in cqlsh, especially with the many changes introduced in 3.0.</description>
+      <version>2.1.10,2.2.1,3.0beta2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-9-16 01:00:00" id="9838" opendate="2015-7-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to update an element in a static list</summary>
+      <description>I created a table in cassandra (my_table) which has a static list column sizes_list. I created a new row and initialized the list sizes_list as having one element. UPDATE my_table SET sizes_list = sizes_list + &amp;#91;0&amp;#93; WHERE view_id = 0x01Now I m trying to update the element at index '0' with a statement like thisinsert into my_table (my_id, is_deleted , col_id1, col_id2) values (0x01, False, 0x00, 0x00);UPDATE my_table SET sizes_list[0] = 100 WHERE my_id = 0x01 ;Now I see an error like this: InvalidRequest: code=2200 &amp;#91;Invalid query&amp;#93; message="List index 0 out of bound, list has size 0"If I change my list to a non-static list, it works fine!</description>
+      <version>2.1.10,2.2.2,3.0.0rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.CollectionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+    </fixedFiles>
+  </bug>
+  
+</bugrepository>

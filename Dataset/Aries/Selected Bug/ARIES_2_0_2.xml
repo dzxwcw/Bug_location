@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="ARIES">
+  
+  <bug fixdate="2015-8-5 01:00:00" id="1366" opendate="2015-8-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>subsystem bundle (uber bundle) exports wrong package versions</summary>
+      <description>uber bundle for R6 exports as: org.apache.aries.subsystem;version="1.1"should export as 1.2.0 as the API bundle does.</description>
+      <version>subsystem-2.0.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-bundle.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2010-2-2 01:00:00" id="139" opendate="2010-2-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>webbundle url handler must convert a war or a bundle</summary>
+      <description>The webbundle url handler must follow different rules when converting a war file or an existing bundle.</description>
+      <version>None</version>
+      <fixedVersion>0.1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">web.web-urlhandler.src.test.java.org.apache.aries.web.converter.impl.WabConverterTest.java</file>
+      <file type="M">web.web-urlhandler.src.main.java.org.apache.aries.web.converter.impl.WarToWabConverterImpl.java</file>
+      <file type="M">web.web-itests.src.test.java.org.apache.aries.web.converter.itest.WabConverterITest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-10-4 01:00:00" id="1397" opendate="2015-9-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use capability set with preferred provider repository.</summary>
+      <description>These measurements use the same test as in ARIES-1396. The time it took to install 1 application was measured. The application consisted of 300 bundles. 200 of the bundles each exported 50 packages. 100 of the bundles each imported 50 packages. This gives a total of 5000 requirements and 10,000 capabilities. 100 of the exporting bundles serve as preferred providers.Before, finding providers from the preferred provider repository took 3305 ms, or 25.0%. After making use of the capability set, it took 948 ms, or 8.6%.BaselineAverage time across 1 trials: 12974.0 msAverage time across 1 trials: 12597.0 msAverage time across 1 trials: 12760.0 msAverage time across 1 trials: 12573.0 msAverage time across 1 trials: 12339.0 ms12648.6Preferred Provider Repository Using Capability SetAverage time across 1 trials: 10917.0 msAverage time across 1 trials: 10562.0 msAverage time across 1 trials: 10743.0 msAverage time across 1 trials: 10718.0 msAverage time across 1 trials: 10471.0 ms10682.2A 15.6% improvement.</description>
+      <version>subsystem-2.0.2</version>
+      <fixedVersion>subsystem-core-2.0.4,subsystem-bundle-2.0.4</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.PreferredProviderRepository.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2015-10-9 01:00:00" id="1399" opendate="2015-9-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Trunk fails OSGi R6 CT</summary>
+      <description>The Subsystems implementation is currently failing three tests in the R6 CT as a result of some of the recent performance tunings:org.osgi.test.cases.subsystem.junit.SharingPolicySubsystemTests.test3A1a_BundleIsolationApplicationorg.osgi.test.cases.subsystem.junit.SharingPolicySubsystemTests.test3A1b_BundleIsolationFeaturesorg.osgi.test.cases.subsystem.junit.SharingPolicySubsystemTests.test3A1a_BundleIsolationCompositeIt fails all three for the same reason. The tests explicitly install a bundle using the region bundle context of the root subsystem. The bundle is subsequently started. Using a synchronous bundle listener, the tests reasonably expect to see INSTALLED, RESOLVED, STARTING, and ACTIVE bundle events. However, the RESOLVED event is missing. It is missing because:(1) The Bundle Event Hook, registered with a service ranking of Integer.MAX_VALUE, correctly identifies the event as pertaining to an explicitly installed bundle and acts accordingly.(2) As normal, the bundle is wrapped by a Bundle Revision Resource in order to compute the service capabilities and requirements if the Application Modeller service is present. Previously, the capabilities and requirements were not cached but (lazily) computed with each request. Today, they are computed once and cached at instantiation.(3) Computing the service capabilities and requirements requires searching for Blueprint XML files through Bundle.findEntries which results in the framework attempting to resolve the bundle.(4) Region Digraph, through its own bundle event hook, receives the RESOLVED event before the INSTALLED event. Because this is an unknown bundle, the event is filtered and not delivered to any listeners, synchronous or otherwise.There are at least a few possible solutions to the problem.(1) Have the Bundle Event Hook explicitly add the bundle to the region using Region.addBundle(Bundle) as part of handling the INSTALLED event. This would solve the immediate issue but promote out of order event delivery to other hooks and listeners.(2) Prevent bundles under these circumstances from resolving altogether. This would solve the immediate issue and prevent out of order event delivery, but eliminate the possibility of searching fragment bundles for Blueprint XML files. (3) Lazily compute service dependencies and requirements in Bundle Revision Resource as before but still cache them. This would solve the immediate issue, resemble how things already were before performance tuning, not contribute to out of order event delivery, and leave open the possibility of searching fragments for Blueprint XML files.</description>
+      <version>None</version>
+      <fixedVersion>subsystem-core-2.0.4,subsystem-bundle-2.0.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.BundleRevisionResource.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.ThreadLocalSubsystem.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.SystemRepository.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.SubsystemResolverHook.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.RegionContextBundleHelper.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.BundleResourceUninstaller.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.BundleResourceInstaller.java</file>
+      <file type="M">subsystem.subsystem-core.src.main.java.org.apache.aries.subsystem.core.internal.BundleEventHook.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2009-10-2 01:00:00" id="14" opendate="2009-10-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Refactor IBM JNDI donation to fit into Aries</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>0.1</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

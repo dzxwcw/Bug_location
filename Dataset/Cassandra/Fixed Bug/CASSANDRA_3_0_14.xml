@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="12847" opendate="2016-10-27 00:00:00" fixdate="2016-5-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh DESCRIBE output doesn&amp;#39;t properly quote index names</summary>
+      <description>CASSANDRA-8365 fixed the CQL grammar so that quoting index names preserves case. The output of DESCRIBE in cqlsh wasn't updated however so this doesn't round-trip properly.</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.cassandra-driver-internal-only-3.5.0.post0-d8d0456.zip</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">lib.cassandra-driver-internal-only-3.7.0.post0-2481531.zip</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13004" opendate="2016-12-6 00:00:00" fixdate="2016-6-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Corruption while adding/removing a column to/from the table</summary>
+      <description>We had the following schema in production. CREATE TYPE IF NOT EXISTS discord_channels.channel_recipient ( nick text);CREATE TYPE IF NOT EXISTS discord_channels.channel_permission_overwrite ( id bigint, type int, allow_ int, deny int);CREATE TABLE IF NOT EXISTS discord_channels.channels ( id bigint, guild_id bigint, type tinyint, name text, topic text, position int, owner_id bigint, icon_hash text, recipients map&lt;bigint, frozen&lt;channel_recipient&gt;&gt;, permission_overwrites map&lt;bigint, frozen&lt;channel_permission_overwrite&gt;&gt;, bitrate int, user_limit int, last_pin_timestamp timestamp, last_message_id bigint, PRIMARY KEY (id));And then we executed the following alter.ALTER TABLE discord_channels.channels ADD application_id bigint;And one row (that we can tell) got corrupted at the same time and could no longer be read from the Python driver. [E 161206 01:56:58 geventreactor:141] Error decoding response from Cassandra. ver(4); flags(0000); stream(27); op(8); offset(9); len(887); buffer: '\x84\x00\x00\x1b\x08\x00\x00\x03w\x00\x00\x00\x02\x00\x00\x00\x01\x00\x00\x00\x0f\x00\x10discord_channels\x00\x08channels\x00\x02id\x00\x02\x00\x0eapplication_id\x00\x02\x00\x07bitrate\x00\t\x00\x08guild_id\x00\x02\x00\ticon_hash\x00\r\x00\x0flast_message_id\x00\x02\x00\x12last_pin_timestamp\x00\x0b\x00\x04name\x00\r\x00\x08owner_id\x00\x02\x00\x15permission_overwrites\x00!\x00\x02\x000\x00\x10discord_channels\x00\x1cchannel_permission_overwrite\x00\x04\x00\x02id\x00\x02\x00\x04type\x00\t\x00\x06allow_\x00\t\x00\x04deny\x00\t\x00\x08position\x00\t\x00\nrecipients\x00!\x00\x02\x000\x00\x10discord_channels\x00\x11channel_recipient\x00\x01\x00\x04nick\x00\r\x00\x05topic\x00\r\x00\x04type\x00\x14\x00\nuser_limit\x00\t\x00\x00\x00\x01\x00\x00\x00\x08\x03\x8a\x19\x8e\xf8\x82\x00\x01\xff\xff\xff\xff\x00\x00\x00\x04\x00\x00\xfa\x00\x00\x00\x00\x08\x00\x00\xfa\x00\x00\xf8G\xc5\x00\x00\x00\x00\x00\x00\x00\x08\x03\x8b\xc0\xb5nB\x00\x02\x00\x00\x00\x08G\xc5\xffI\x98\xc4\xb4(\x00\x00\x00\x03\x8b\xc0\xa8\xff\xff\xff\xff\x00\x00\x01&lt;\x00\x00\x00\x06\x00\x00\x00\x08\x03\x81L\xea\xfc\x82\x00\n\x00\x00\x00$\x00\x00\x00\x08\x03\x81L\xea\xfc\x82\x00\n\x00\x00\x00\x04\x00\x00\x00\x01\x00\x00\x00\x04\x00\x00\x08\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x03\x8a\x1e\xe6\x8b\x80\x00\n\x00\x00\x00$\x00\x00\x00\x08\x03\x8a\x1e\xe6\x8b\x80\x00\n\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x040\x07\xf8Q\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x03\x8a\x1f\x1b{\x82\x00\x00\x00\x00\x00$\x00\x00\x00\x08\x03\x8a\x1f\x1b{\x82\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x07\xf8Q\x00\x00\x00\x04\x10\x00\x00\x00\x00\x00\x00\x08\x03\x8a\x1fH6\x82\x00\x01\x00\x00\x00$\x00\x00\x00\x08\x03\x8a\x1fH6\x82\x00\x01\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x05\xe8A\x00\x00\x00\x04\x10\x02\x00\x00\x00\x00\x00\x08\x03\x8a+=\xca\xc0\x00\n\x00\x00\x00$\x00\x00\x00\x08\x03\x8a+=\xca\xc0\x00\n\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x08\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x08\x03\x8a\x8f\x979\x80\x00\n\x00\x00\x00$\x00\x00\x00\x08\x03\x8a\x8f\x979\x80\x00\n\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x04\x00 \x08\x01\x00\x00\x00\x04\xc4\xb4(\x00\xff\xff\xff\xff\x00\x00\x00O[f\x80Q\x07general\x05\xf8G\xc5\xffI\x98\xc4\xb4(\x00\xf8O[f\x80Q\x00\x00\x00\x02\x04\xf8O[f\x80Q\x00\xf8G\xc5\xffI\x98\x01\x00\x00\xf8O[f\x80Q\x00\x00\x00\x00\xf8G\xc5\xffI\x97\xc4\xb4(\x06\x00\xf8O\x7fe\x1fm\x08\x03\x00\x00\x00\x01\x00\x00\x00\x00\x04\x00\x00\x00\x00'And then in cqlsh when trying to read the row we got this. /usr/bin/cqlsh.py:632: DateOverFlowWarning: Some timestamps are larger than Python datetime can represent. Timestamps are displayed in milliseconds from epoch.Traceback (most recent call last): File "/usr/bin/cqlsh.py", line 1301, in perform_simple_statement result = future.result() File "/usr/share/cassandra/lib/cassandra-driver-internal-only-3.5.0.post0-d8d0456.zip/cassandra-driver-3.5.0.post0-d8d0456/cassandra/cluster.py", line 3650, in result raise self._final_exceptionUnicodeDecodeError: 'utf8' codec can't decode byte 0x80 in position 2: invalid start byteWe tried to read the data and it would refuse to read the name column (the UTF8 error) and the last_pin_timestamp column had an absurdly large value.We ended up rewriting the whole row as we had the data in another place and it fixed the problem. However there is clearly a race condition in the schema change sub-system.Any ideas?</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.MessageIn.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ReadResponse.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ColumnFilter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.commitlog.CommitLogDescriptor.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13209" opendate="2017-2-10 00:00:00" fixdate="2017-6-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>test failure in cqlsh_tests.cqlsh_copy_tests.CqlshCopyTest.test_bulk_round_trip_blogposts_with_max_connections</summary>
+      <description>example failure:http://cassci.datastax.com/job/cassandra-2.1_dtest/528/testReport/cqlsh_tests.cqlsh_copy_tests/CqlshCopyTest/test_bulk_round_trip_blogposts_with_max_connectionsError Messageerrors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------dtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6jdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}dtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6jdtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directorydtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuWdtest: DEBUG: Done setting configuration options:{ 'initial_token': None, 'num_tokens': '32', 'phi_convict_threshold': 5, 'range_request_timeout_in_ms': 10000, 'read_request_timeout_in_ms': 10000, 'request_timeout_in_ms': 10000, 'truncate_request_timeout_in_ms': 10000, 'write_request_timeout_in_ms': 10000}cassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodescassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discoveredcassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovereddtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------Stacktrace File "/usr/lib/python2.7/unittest/case.py", line 329, in run testMethod() File "/home/automaton/cassandra-dtest/dtest.py", line 1090, in wrapped f(obj) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2571, in test_bulk_round_trip_blogposts_with_max_connections copy_from_options={'NUMPROCESSES': 2}) File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2500, in _test_bulk_round_trip num_records = create_records() File "/home/automaton/cassandra-dtest/cqlsh_tests/cqlsh_copy_tests.py", line 2473, in create_records ret = rows_to_list(self.session.execute(count_statement))[0][0] File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 1998, in execute return self.execute_async(query, parameters, trace, custom_payload, timeout, execution_profile, paging_state).result() File "/home/automaton/src/cassandra-driver/cassandra/cluster.py", line 3784, in result raise self._final_exception"errors={'127.0.0.4': 'Client request timeout. See Session.execute[_async](timeout)'}, last_host=127.0.0.4\n-------------------- &gt;&gt; begin captured logging &lt;&lt; --------------------\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-792s6j\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ndtest: DEBUG: removing ccm cluster test at: /tmp/dtest-792s6j\ndtest: DEBUG: clearing ssl stores from [/tmp/dtest-792s6j] directory\ndtest: DEBUG: cluster ccm directory: /tmp/dtest-uNMsuW\ndtest: DEBUG: Done setting configuration options:\n{ 'initial_token': None,\n 'num_tokens': '32',\n 'phi_convict_threshold': 5,\n 'range_request_timeout_in_ms': 10000,\n 'read_request_timeout_in_ms': 10000,\n 'request_timeout_in_ms': 10000,\n 'truncate_request_timeout_in_ms': 10000,\n 'write_request_timeout_in_ms': 10000}\ncassandra.policies: INFO: Using datacenter 'datacenter1' for DCAwareRoundRobinPolicy (via host '127.0.0.1'); if incorrect, please specify a local_dc to the constructor, or limit contact points to local cluster nodes\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.3 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.2 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.5 datacenter1&gt; discovered\ncassandra.cluster: INFO: New Cassandra host &lt;Host: 127.0.0.4 datacenter1&gt; discovered\ndtest: DEBUG: Running stress with user profile /home/automaton/cassandra-dtest/cqlsh_tests/blogposts.yaml\n--------------------- &gt;&gt; end captured logging &lt;&lt; ---------------------"</description>
+      <version>2.2.10,3.0.14,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13236" opendate="2017-2-17 00:00:00" fixdate="2017-5-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>corrupt flag error after upgrade from 2.2 to 3.0.10</summary>
+      <description>After upgrade from 2.2.5 to 3.0.9/10 we're getting a bunch of errors like this:ERROR [SharedPool-Worker-1] 2017-02-17 12:58:43,859 Message.java:617 - Unexpected exception during request; channel = [id: 0xa8b98684, /10.0.70.104:56814 =&gt; /10.0.80.24:9042]java.io.IOError: java.io.IOException: Corrupt flags value for unfiltered partition (isStatic flag set): 160 at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer$1.computeNext(UnfilteredRowIteratorSerializer.java:222) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer$1.computeNext(UnfilteredRowIteratorSerializer.java:210) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.utils.AbstractIterator.hasNext(AbstractIterator.java:47) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.db.transform.BaseRows.hasNext(BaseRows.java:129) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.statements.SelectStatement.processPartition(SelectStatement.java:749) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.statements.SelectStatement.process(SelectStatement.java:711) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.statements.SelectStatement.processResults(SelectStatement.java:400) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.statements.SelectStatement.execute(SelectStatement.java:265) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.statements.SelectStatement.execute(SelectStatement.java:224) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.statements.SelectStatement.execute(SelectStatement.java:76) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.QueryProcessor.processStatement(QueryProcessor.java:206) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.QueryProcessor.processPrepared(QueryProcessor.java:487) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.cql3.QueryProcessor.processPrepared(QueryProcessor.java:464) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.transport.messages.ExecuteMessage.execute(ExecuteMessage.java:130) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.transport.Message$Dispatcher.channelRead0(Message.java:513) [apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.transport.Message$Dispatcher.channelRead0(Message.java:407) [apache-cassandra-3.0.10.jar:3.0.10] at io.netty.channel.SimpleChannelInboundHandler.channelRead(SimpleChannelInboundHandler.java:105) [netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:333) [netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.AbstractChannelHandlerContext.access$700(AbstractChannelHandlerContext.java:32) [netty-all-4.0.23.Final.jar:4.0.23.Final] at io.netty.channel.AbstractChannelHandlerContext$8.run(AbstractChannelHandlerContext.java:324) [netty-all-4.0.23.Final.jar:4.0.23.Final] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) [na:1.8.0_72] at org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService$FutureTask.run(AbstractLocalAwareExecutorService.java:164) [apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.concurrent.SEPWorker.run(SEPWorker.java:105) [apache-cassandra-3.0.10.jar:3.0.10] at java.lang.Thread.run(Thread.java:745) [na:1.8.0_72]Caused by: java.io.IOException: Corrupt flags value for unfiltered partition (isStatic flag set): 160 at org.apache.cassandra.db.rows.UnfilteredSerializer.deserialize(UnfilteredSerializer.java:374) ~[apache-cassandra-3.0.10.jar:3.0.10] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer$1.computeNext(UnfilteredRowIteratorSerializer.java:217) ~[apache-cassandra-3.0.10.jar:3.0.10] ... 23 common frames omitted</description>
+      <version>3.0.14,3.11.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.AbstractSSTableIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13276" opendate="2017-2-27 00:00:00" fixdate="2017-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Regression on CASSANDRA-11416: can&amp;#39;t load snapshots of tables with dropped columns</summary>
+      <description>I'm running Cassandra 3.10 and running into the exact same issue described in CASSANDRA-11416: 1. A table is created with columns 'a' and 'b'2. Data is written to the table3. Drop column 'b'4. Take a snapshot5. Drop the table6. Run the snapshot schema.cql to recreate the table and the run the alter7. Try to restore the snapshot data using sstableloadersstableloader yields the error:java.lang.RuntimeException: Unknown column b during deserialization</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.NativeSSTableLoaderClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13434" opendate="2017-4-12 00:00:00" fixdate="2017-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add PID file directive in /etc/init.d/cassandra</summary>
+      <description>As mentioned in CASSANDRA-10920, we should add directive for pid file in header that allows creating a unit file with the correct PIDFile=.. entry. Else systemd won't be able to tell if Cassandra is still running.# pidfile: /var/run/cassandra/cassandra.pid</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13435" opendate="2017-4-12 00:00:00" fixdate="2017-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect status check use when stopping Cassandra</summary>
+      <description>Function status from /etc/rc.d/init.d/functions will delegate to systemctl status and we can't keep using the output to determine the status result. This should be changed to match the return value instead, which is supposed to return 3 for non-running processes</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13441" opendate="2017-4-12 00:00:00" fixdate="2017-4-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Schema version changes for each upgraded node in a rolling upgrade, causing migration storms</summary>
+      <description>In versions &lt; 3.0, during a rolling upgrade (say 2.0 -&gt; 2.1), the first node to upgrade to 2.1 would add the new tables, setting the new 2.1 version ID, and subsequently upgraded hosts would settle on that version.When a 3.0 node upgrades and writes its own new-in-3.0 system tables, it'll write the same tables that exist in the schema with brand new timestamps. As written, this will cause all nodes in the cluster to change schema (to the version with the newest timestamp). On a sufficiently large cluster with a non-trivial schema, this could cause (literally) millions of migration tasks to needlessly bounce across the cluster.</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/DistributedMetadata</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.MigrationManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13493" opendate="2017-5-3 00:00:00" fixdate="2017-5-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RPM Init: Service startup ordering</summary>
+      <description>Currently, Cassandra is setup to start before network and name services come up, and setup to be town down after them, dangerously close to the final shutdown call.A service daemon which may use network-based storage, and serves requests over a network needs to start clearly after network and network mounts, and come down clearly after.</description>
+      <version>2.2.10,3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">redhat.cassandra</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13518" opendate="2017-5-10 00:00:00" fixdate="2017-5-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader doesn&amp;#39;t support non default storage_port and ssl_storage_port.</summary>
+      <description>Currently these 2 ports are using hardcoded default ports: https://github.com/apache/cassandra/blob/8b3a60b9a7dbefeecc06bace617279612ec7092d/src/java/org/apache/cassandra/config/Config.java#L128-L129The proposed fix is to add command line option for these two ports like what NATIVE_PORT_OPTION currently does</description>
+      <version>3.0.14,3.11.0</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13525" opendate="2017-5-11 00:00:00" fixdate="2017-5-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ReverseIndexedReader may drop rows during 2.1 to 3.0 upgrade</summary>
+      <description>During an upgrade from 2.1 (or 2.2) to 3.0 (or 3.x) queries which perform reverse iteration may silently drop rows from their results. This can happen before sstableupgrade is run and when the sstables are indexed.</description>
+      <version>3.0.14,3.11.0</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnfilteredDeserializer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13542" opendate="2017-5-22 00:00:00" fixdate="2017-6-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool scrub/cleanup/upgradesstables exit code</summary>
+      <description>We exit nodetool with success if we fail marking sstables as compacting</description>
+      <version>3.0.14,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

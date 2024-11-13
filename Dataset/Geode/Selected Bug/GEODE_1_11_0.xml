@@ -1,0 +1,1053 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="GEODE">
+  
+  
+  
+  <bug fixdate="2018-4-10 01:00:00" id="4274" opendate="2018-1-10 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add geode-examples job to CI</summary>
+      <description>The concourse pipeline should test geode-examples.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.develop.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2018-8-20 01:00:00" id="5601" opendate="2018-8-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AcceptanceTests are run in parallel without using containers, resulting in port conflicts</summary>
+      <description>org.apache.geode.management.internal.cli.commands.DeployWithLargeJarTest &gt; deployLargeSetOfJars FAILED org.junit.ComparisonFailure: expected:&lt;[0]&gt; but was:&lt;[1]&gt; at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method) at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62) at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45) at org.apache.geode.test.junit.rules.gfsh.GfshScript.awaitIfNecessary(GfshScript.java:117) at org.apache.geode.test.junit.rules.gfsh.GfshRule.execute(GfshRule.java:135) at org.apache.geode.test.junit.rules.gfsh.GfshScript.execute(GfshScript.java:106) at org.apache.geode.management.internal.cli.commands.DeployWithLargeJarTest.deployLargeSetOfJars(DeployWithLargeJarTest.java:41)Passes: https://concourse.apachegeode-ci.info/teams/main/pipelines/pr-develop/jobs/AcceptanceTest/builds/721Fails: https://concourse.apachegeode-ci.info/teams/main/pipelines/pr-develop/jobs/AcceptanceTest/builds/728</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.scripts.execute.tests.sh</file>
+      <file type="M">ci.pipelines.shared.jinja.variables.yml</file>
+      <file type="M">ci.pipelines.pull-request.jinja.template.yml</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-8-23 01:00:00" id="7120" opendate="2019-8-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Adjust pipeline values to avoid timeouts and out of memory failures</summary>
+      <description>Adjust pipeline values to avoid timeouts and out of memory failures: Increase distributedTest RAM memory from 180 to 250 Increase rsync timeout from 5m to 10m Increase acceptanceTest timeout from 45m to 1hThe distributedTest RAM needs to be increased to avoid Jetty/Tomcat out of memory failures when forking new processes:org.apache.geode.session.tests.Jetty9CachingClientServerTest &gt; containersShouldHavePersistentSessionData FAILED java.lang.RuntimeException: Something very bad happened when trying to start container JETTY9_client-server_containersShouldHavePersistentSessionData_0_a6ebd229-072b-47db-a9bf-ca3713175f05_&lt;unknown&gt; Caused by: java.lang.RuntimeException: Something very bad happened to this container when starting. Check the cargo_logs folder for container logs. Caused by: java.io.IOException: Unable to run modify_war script, command: [/tmp/geode_container_install17845041006471328987/cargo_modules/Apache_Geode_Modules-1.11.0-SNAPSHOT-AppServer/bin/modify_war, -J, -Xmx2096m, -w, /home/geode/geode/geode-assembly/build/distributedTest254/../../../extensions/session-testing-war/build/libs/session-testing-war.war, -t, client-server, -o, /tmp/geode_container_install17845041006471328987/cargo_wars/JETTY9_client-server_containersShouldHavePersistentSessionData_0_a6ebd229-072b-47db-a9bf-ca3713175f053692095078744488223.war, -p, gemfire.cache.enable_local_cache=true, -p, gemfire.property.log-file=/home/geode/geode/geode-assembly/build/distributedTest254/cargo_logs/JETTY9_client-server_containersShouldHavePersistentSessionData_0_a6ebd229-072b-47db-a9bf-ca3713175f05/gemfire.log, -p, gemfire.property.cache-xml-file=/home/geode/geode/geode-assembly/build/distributedTest254/cargo_logs/JETTY9_client-server_containersShouldHavePersistentSessionData_0_a6ebd229-072b-47db-a9bf-ca3713175f05/cache-client.xml] log file: ERROR: Error updating web.xml ng: INFO: os::commit_memory(0x000000077d000000, 2147483648, 0) failed; error='Not enough space' (errno=12)The actual failure from OpenJDK is:OpenJDK 64-Bit Server VM warning: INFO: os::commit_memory(0x00007f74a4ba4000, 65536, 1) failed; error='Not enough space' (errno=12) [thread 26510 also had an error]The rsync timeout needs to be increased to avoid these timeouts:BUILD SUCCESSFUL in 12s1 actionable task: 1 up-to-date+ rsync -e 'ssh -i instance-data/sshkey -o ConnectionAttempts=60 -o StrictHostKeyChecking=no' -ah geode@10.0.0.116:geode /tmp/build/1a3d1be6/geode-results/rsync error: received SIGINT, SIGTERM, or SIGHUP (code 20) at rsync.c(642) [generator=3.1.3]rsync error: received SIGUSR1 (code 19) at main.c(1440) [receiver=3.1.3]rsync: [generator] write error: Broken pipe (32)timeout exceededThe acceptanceTest timeout needs to be increased from 45m to 1h:&gt; Task :geode-connectors:acceptanceTestWARNING: An illegal reflective access operation has occurredWARNING: Illegal reflective access by org.apache.geode.internal.size.ObjectTraverser (file:/home/geode/geode/geode-core/build/libs/geode-core-1.11.0-SNAPSHOT.jar) to field java.lang.String.valueWARNING: Please consider reporting this to the maintainers of org.apache.geode.internal.size.ObjectTraverserWARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operationsWARNING: All illegal access operations will be denied in a future releaseWARNING: An illegal reflective access operation has occurredWARNING: Illegal reflective access by org.apache.geode.internal.size.ObjectTraverser (file:/home/geode/geode/geode-core/build/libs/geode-core-1.11.0-SNAPSHOT.jar) to field java.lang.String.valueWARNING: Please consider reporting this to the maintainers of org.apache.geode.internal.size.ObjectTraverserWARNING: Use --illegal-access=warn to enable warnings of further illegal reflective access operationsWARNING: All illegal access operations will be denied in a future releasetimeout exceeded</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Wish</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.shared.jinja.variables.yml</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-9-26 01:00:00" id="7127" opendate="2019-8-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add GFSH arguments for starting AEQ in a paused state</summary>
+      <description>Related to https://issues.apache.org/jira/browse/GEODE-7124There should be a new variable/argument for creating an AEQ in a paused state. </description>
+      <version>None</version>
+      <fixedVersion>1.9.2,1.10.0,1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.ListAsyncEventQueuesTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.CreateAsyncEventQueueCommandTest.java</file>
+      <file type="M">geode-core.src.main.resources.org.apache.geode.internal.sanctioned-geode-core-serializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.i18n.CliStrings.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.CreateAsyncEventQueueFunction.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.domain.AsyncEventQueueDetails.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.ListAsyncEventQueuesCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CreateAsyncEventQueueCommand.java</file>
+      <file type="M">geode-core.src.distributedTest.java.org.apache.geode.management.internal.cli.commands.ListAsyncEventQueuesCommandDUnitTest.java</file>
+      <file type="M">geode-core.src.distributedTest.java.org.apache.geode.management.internal.cli.commands.CreateAsyncEventQueueCommandDUnitTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.ListAsyncEventQueuesFunction.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-9-26 01:00:00" id="7128" opendate="2019-8-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add GFSH command for resuming an AEQ from a paused state</summary>
+      <description>Related to https://issues.apache.org/jira/browse/GEODE-7126andGEODE-7127There should be a way to resume an existing AEQ from a paused state.  This would probably require a new command</description>
+      <version>None</version>
+      <fixedVersion>1.9.2,1.10.0,1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.cli.ConverterHint.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.ResumeAsyncEventQueueDispatcherCommandTest.java</file>
+      <file type="M">geode-core.src.main.resources.org.apache.geode.internal.sanctioned-geode-core-serializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.i18n.CliStrings.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.functions.ResumeAsyncEventQueueDispatcherFunction.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.ResumeAsyncEventQueueDispatcherCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CommandAvailabilityIndicator.java</file>
+      <file type="M">geode-core.src.distributedTest.java.org.apache.geode.management.internal.cli.commands.ResumeAsyncEventQueueDispatcherDUnitTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2019-8-27 01:00:00" id="7139" opendate="2019-8-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cleanup the common tags on the meters.</summary>
+      <description>Change the following common tags: Cluster_id = cluster Member_name = member host_name = hostfor better consistency.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.metrics.CacheMeterRegistryFactoryTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.metrics.CacheMeterRegistryFactoryBindersTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.metrics.CacheMeterRegistryFactory.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-9-29 01:00:00" id="7146" opendate="2019-8-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Document Aggregate Function Limitations</summary>
+      <description>Make sure the docs cover the concerns about things that can't be done with aggregate functions.Some of the concerns/limitations to add in the documentation: Can't be used in CQ. What happens if SUM result is higher than Double.MAX_VALUE. What happens if COUNT result is higher than Long.MAX_VALUE. What happens if AVG result is Infinity (floating-point operation that overflows). What happens if the intermediate count, when calculating the AVG operation, is higher than Long.MAX_VALUE. What happens if the intermediate summation, when calculating the AVG operation, is higher than Double.MAX_VALUE.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.getting.started.querying.quick.reference.html.md.erb</file>
+      <file type="M">geode-docs.developing.query.select.the.select.statement.html.md.erb</file>
+      <file type="M">geode-docs.developing.query.additional.supported.keywords.html.md.erb</file>
+      <file type="M">geode-docs.developing.continuous.querying.implementing.continuous.querying.html.md.erb</file>
+      <file type="M">geode-book.master.middleman.source.subnavs.geode-subnav.erb</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-9-12 01:00:00" id="7204" opendate="2019-9-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add documentation for Asynchronous Event Queue pause-event-processing configuration</summary>
+      <description>With the work done for https://issues.apache.org/jira/browse/GEODE-7121 we've added the new configuration attribute to Async Event Queues. We should add references to this in our documentation for cache-xml, the AsyncEventQueueFactory class, and the create/alter async-event-queue commands.</description>
+      <version>None</version>
+      <fixedVersion>1.9.2,1.10.0,1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.tools.modules.gfsh.quick.ref.commands.by.area.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.resume.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.create.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.alter.html.md.erb</file>
+      <file type="M">geode-docs.tools.modules.gfsh.cache.xml.2.gfsh.html.md.erb</file>
+      <file type="M">geode-docs.reference.topics.cache.xml.html.md.erb</file>
+      <file type="M">geode-docs.managing.security.implementing.authorization.html.md.erb</file>
+      <file type="M">geode-docs.configuring.cluster.config.gfsh.persist.html.md.erb</file>
+      <file type="M">geode-book.master.middleman.source.subnavs.geode-subnav.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-12-17 01:00:00" id="7212" opendate="2019-9-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide - Authorization - update security permissions</summary>
+      <description>"Fine-grained security" changes were implemented in v1.3, but docs &amp; Wiki were only recently updated. Pick up these changes in the user guide. See https://cwiki.apache.org/confluence/display/GEODE/Finer+grained+security.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.managing.security.implementing.authorization.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-10-1 01:00:00" id="7261" opendate="2019-10-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Geode V1 admin rest does not start with Spring 5.x jars on the classpath</summary>
+      <description>The geode-web war includes several spring jars, but does not include spring-core. With Jetty debug logging enabled we can see the following error: [vm0] 07:30:50.469 [RMI TCP Connection(1)-127.0.0.1] DEBUG org.eclipse.jetty.servlet.ServletHandler - EXCEPTION [vm0] java.lang.NoClassDefFoundError: org/springframework/core/ErrorCoded [vm0] at java.lang.ClassLoader.defineClass1(Native Method) [vm0] at java.lang.ClassLoader.defineClass(ClassLoader.java:763) [vm0] at java.security.SecureClassLoader.defineClass(SecureClassLoader.java:142) [vm0] at java.net.URLClassLoader.defineClass(URLClassLoader.java:468) [vm0] at java.net.URLClassLoader.access$100(URLClassLoader.java:74) [vm0] at java.net.URLClassLoader$1.run(URLClassLoader.java:369) [vm0] at java.net.URLClassLoader$1.run(URLClassLoader.java:363)In addition, the war file also include commons-logging which causes the war logging to be redirected to stderr.</description>
+      <version>1.9.0,1.9.1,1.10.0,1.11.0</version>
+      <fixedVersion>1.9.2,1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-web.src.test.resources.expected-pom.xml</file>
+      <file type="M">geode-web.build.gradle</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-10-3 01:00:00" id="7272" opendate="2019-10-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Docker image to build and preview the user guide</summary>
+      <description>For building the Geode user guide it is needed to install Ruby and Bookbinder. It would be useful to have a docker image to do this task.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-book.README.md</file>
+      <file type="M">dev-tools.docker.docs.view-docs.sh</file>
+      <file type="M">dev-tools.docker.docs.Dockerfile</file>
+      <file type="M">dev-tools.docker.docs.build-image-common.sh</file>
+      <file type="M">dev-tools.docker.docs.build-docs.sh</file>
+      <file type="M">dev-tools.docker.base.Dockerfile</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-3 01:00:00" id="7273" opendate="2019-10-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Geode transaction should throw TransactionDataNotColocatedException if the transaction is on replicate region then partitioned region</summary>
+      <description>A client transaction should fail with TransactionDataNotColocatedException instead of TransactionDataRebalancedException if transaction worked on the replicate regions first and then worked on an entry in a partitioned region where primary bucket is on another node.User should not work on replicate region first in a transaction, but Geode should throw correct exception as well.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.internal.cache.TXStateProxyImplTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tx.PartitionedTXRegionStub.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.TXStateProxyImpl.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.TXState.java</file>
+      <file type="M">geode-core.src.distributedTest.java.org.apache.geode.internal.cache.ClientServerNotColocatedTransactionDistributedTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-2-14 01:00:00" id="7294" opendate="2019-10-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update dependencies for v1.12</summary>
+      <description>Update all the dependencies we can.  See attached PR.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">static-analysis.pmd-rules.build.gradle</file>
+      <file type="M">geode-wan.build.gradle</file>
+      <file type="M">geode-lucene.src.integrationTest.java.org.apache.geode.cache.lucene.LuceneIndexCreationPersistenceIntegrationTest.java</file>
+      <file type="M">geode-connectors.src.distributedTest.java.org.apache.geode.connectors.jdbc.internal.cli.RegisterDriverCommandDUnitTest.java</file>
+      <file type="M">geode-connectors.src.distributedTest.java.org.apache.geode.connectors.jdbc.internal.cli.ListDriversCommandDUnitTest.java</file>
+      <file type="M">geode-connectors.src.distributedTest.java.org.apache.geode.connectors.jdbc.internal.cli.DeregisterDriverCommandDUnitTest.java</file>
+      <file type="M">geode-connectors.src.distributedTest.java.org.apache.geode.connectors.jdbc.internal.cli.CreateDataSourceCommandDUnitTest.java</file>
+      <file type="M">geode-connectors.build.gradle</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">geode-assembly.geode-assembly-test.src.main.java.org.apache.geode.session.tests.TomcatInstall.java</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-11-15 01:00:00" id="7296" opendate="2019-10-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Geode release scripts</summary>
+      <description>Minor bug fixes</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">dev-tools.release.prepare.rc.sh</file>
+      <file type="M">dev-tools.release.deploy.rc.pipeline.sh</file>
+      <file type="M">dev-tools.release.commit.rc.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-18 01:00:00" id="7322" opendate="2019-10-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>generate wiki page of Cluster Management Service from Swagger page</summary>
+      <description>#WHYwe want to get the latest update of restapi, and update wiki page automatically#WHATfind a programming way to update wiki pageAnd sync the latest update of Swagger to wikirelated:GEODE-7205 : https://issues.apache.org/jira/browse/GEODE-7205</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-management.src.test.script.update-management-wiki.sh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-10-21 01:00:00" id="7331" opendate="2019-10-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve docs on logging (with optional Log4j)</summary>
+      <description>Log4j is in its own module.  Update the docs to reflect changes.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.managing.logging.configuring.log4j2.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-21 01:00:00" id="7332" opendate="2019-10-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add OQL Aggregates link in docs</summary>
+      <description>Small change, but useful. File developing/querying_basics/what_is_a_query_string.html has a list of useful query string building blocks.  Add a link to the descriptions of the OQL aggregates to the list.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.querying.basics.what.is.a.query.string.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-11-23 01:00:00" id="7337" opendate="2019-10-23 00:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Create DescribeQueryService GFSH Command</summary>
+      <description>To complement the addition of the AlterQueryService GFSH command, a command to describe the QueryConfigurationService should be added.The description should include the fully qualified class name of the MethodInvocationAuthorizer currently in use along with any parameters used to create it if applicable. The description should also return the value of the gemfireQueryService.allowUntrustedMethodInvocation system property.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.resources.org.apache.geode.internal.sanctioned-geode-core-serializables.txt</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.CommandAvailabilityIndicator.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.query.management.configuration.QueryConfigService.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.query.internal.QueryConfigurationServiceImpl.java</file>
+      <file type="M">geode-core.src.integrationTest.resources.org.apache.geode.codeAnalysis.excludedClasses.txt</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.management.internal.cli.GfshParserAutoCompletionIntegrationTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-11-23 01:00:00" id="7338" opendate="2019-10-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>create-images pipeline triggers on wrong base container image</summary>
+      <description>build-concourse-docker-image triggers on base-image `openjdk:8`, but the `FROM` statement in the `Dockerfile` is `buildpack-deps:bionic-scm`</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.images.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-12-6 01:00:00" id="734" opendate="2016-1-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gfsh export stack-traces should not require an output file with extension .txt</summary>
+      <description>gfsh export stack-traces requires a file with a .txt extension:gfsh&gt;export stack-traces --file=/tmp/trace.logInvalid file type, the file extension must be ".txt"This seems like a totally arbitrary restriction. Please can it be removed.If the concern is that an existing file might be overwritten then we should have a user prompt indicating that.</description>
+      <version>None</version>
+      <fixedVersion>1.1.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.resources.org.apache.geode.management.internal.cli.commands.golden-help-offline.properties</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.management.internal.cli.commands.ShowStackTraceDUnitTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.web.controllers.MiscellaneousCommandsController.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.i18n.CliStrings.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.cli.commands.MiscellaneousCommands.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-23 01:00:00" id="7340" opendate="2019-10-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove geode-old-versions from Geode compile/runtime dependency list</summary>
+      <description>The geode-old-versions subprojects are downloaded regardless of Gradle target chosen. They are only needed for running the upgrade tests and some acceptance tests. Fix the dependency configurations to only download and extract them if those targets are requested.Primary effect: cleans up the dependency list for compile/runtime</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-wan.build.gradle</file>
+      <file type="M">geode-serialization.build.gradle</file>
+      <file type="M">geode-old-versions.build.gradle</file>
+      <file type="M">geode-lucene.build.gradle</file>
+      <file type="M">geode-logging.build.gradle</file>
+      <file type="M">geode-junit.build.gradle</file>
+      <file type="M">geode-dunit.build.gradle</file>
+      <file type="M">geode-cq.build.gradle</file>
+      <file type="M">geode-core.build.gradle</file>
+      <file type="M">geode-assembly.build.gradle</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-23 01:00:00" id="7341" opendate="2019-10-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Need to provide a way for user to avoid lock memory if not enough memory available</summary>
+      <description>Currently Geode supports ALLOW_MEMORY_OVERCOMMIT when encountering not enough memory available during lock memory. Geode should provide another way to avoid locking memory at all.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.InternalDistributedSystem.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-24 01:00:00" id="7354" opendate="2019-10-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>break dependencies on SystemFailure</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.tcpserver.TcpServerDependenciesTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.tcpserver.TcpServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-24 01:00:00" id="7355" opendate="2019-10-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Break dependencies on DistributionStats</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-logging.build.gradle</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.tcpserver.TcpServerDependenciesTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.membership.MembershipDependenciesJUnitTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.logging.CoreLoggingExecutors.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.TcpServerFactory.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.tcpserver.TcpServer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.PooledExecutorWithDMStats.java</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.distributed.internal.tcpserver.TCPServerSSLJUnitTest.java</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.distributed.internal.tcpserver.TCPClientSSLIntegrationTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-24 01:00:00" id="7357" opendate="2019-10-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>membership-timeout documentation is incorrect</summary>
+      <description>The description for membership-timeout on https://geode.apache.org/docs/guide/110/reference/topics/gemfire_properties.html is incorrect.It describes the member-timeout behavior of an old version of the product, before geode 1.0. Based on this description, a user might assume that an unresponsive member will be kicked out of the system only after 3*member-timeout milliseconds have elapsed. That may have been true before geode 1.0, but the geode has a different failure detection algorithm which will remove members after a minimum of 2*member-timeout milliseconds</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.reference.topics.gemfire.properties.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-10-25 01:00:00" id="7361" opendate="2019-10-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Break dependencies on PoolStatHelper &amp; CoreLoggingExecutors</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.distributed.internal.tcpserver.TcpServerDependenciesTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.tier.sockets.TcpServerFactory.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.distributed.internal.tcpserver.TcpServer.java</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.distributed.internal.tcpserver.TCPServerSSLJUnitTest.java</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.distributed.internal.tcpserver.TCPClientSSLIntegrationTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-12-25 01:00:00" id="7363" opendate="2019-10-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add member type the tags for meterics</summary>
+      <description>This would be good to tell the type of member that is providing the information such as server, locator, embedded cache, or a server with an embedded locator.</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.java.org.apache.geode.metrics.internal.InternalDistributedSystemMetricsServiceTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.metrics.internal.InternalDistributedSystemMetricsServiceBuilderTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.metrics.internal.InternalDistributedSystemMetricsService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-12-25 01:00:00" id="7365" opendate="2019-10-25 00:00:00" resolution="Abandoned">
+    <buginformation>
+      <summary>DistributedTest, AcceptanceTest timing out a lot</summary>
+      <description>examples:https://concourse.apachegeode-ci.info/teams/main/pipelines/apache-develop-main/jobs/DistributedTestOpenJDK8/builds/1231https://concourse.apachegeode-ci.info/teams/main/pipelines/apache-develop-main/jobs/AcceptanceTestOpenJDK11/builds/1214 no tests appear to be hung.  probably just need to increase the timeout on these jobs</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.shared.jinja.variables.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-10-29 01:00:00" id="7373" opendate="2019-10-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add restriction to the type of credentials jmx should accept</summary>
+      <description>Jmx credentials should only be in the form of String or String[]</description>
+      <version>None</version>
+      <fixedVersion>1.11.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.ManagementAgent.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.security.shiro.JMXShiroAuthenticator.java</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.management.internal.security.JmxCredentialTypeTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-12-30 01:00:00" id="7383" opendate="2019-10-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>geode-ci concourse resource doesn&amp;#39;t care about all of ci directory</summary>
+      <description>Currently the geode-ci concourse resource is constrained to only care about parts of the ci directory in the repository. Because this resource does not trigger any jobs directly, it should pay attention to the entire ci directory.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.pull-request.jinja.template.yml</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+      <file type="M">ci.pipelines.examples.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-12-12 01:00:00" id="7446" opendate="2019-11-12 00:00:00" resolution="Done">
+    <buginformation>
+      <summary>Upgrade Spring dependencies from 4.x to 5.x</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">gradle.test.gradle</file>
+      <file type="M">geode-web.src.main.webapp.WEB-INF.geode-mgmt-servlet.xml</file>
+      <file type="M">geode-web-management.src.main.webapp.WEB-INF.management-servlet.xml</file>
+      <file type="M">geode-web-management.src.main.java.org.apache.geode.management.internal.rest.security.RestSecurityConfiguration.java</file>
+      <file type="M">geode-web-management.build.gradle</file>
+      <file type="M">geode-web-api.src.main.webapp.WEB-INF.geode-servlet.xml</file>
+      <file type="M">geode-web-api.src.main.java.org.apache.geode.rest.internal.web.util.JsonWriter.java</file>
+      <file type="M">geode-web-api.src.main.java.org.apache.geode.rest.internal.web.security.RestSecurityConfiguration.java</file>
+      <file type="M">geode-web-api.build.gradle</file>
+      <file type="M">geode-pulse.src.main.webapp.WEB-INF.spring-security.xml</file>
+      <file type="M">geode-pulse.src.main.webapp.WEB-INF.mvc-dispatcher-servlet.xml</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.expected.jars.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.java.org.apache.geode.test.junit.rules.GeodeHttpClientRule.java</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-6-7 01:00:00" id="745" opendate="2016-1-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>include-locators in shutdown command is ignored</summary>
+      <description>The management REST API endpoint for shutdown, does not accept the include-locators parameter, and hence does not shutdown the locators.To reproduce connect to cluster using http:gfshconnect --use-http --url=...shutdown --include-locators=trueObserve that the locators are not shutdown.</description>
+      <version>None</version>
+      <fixedVersion>1.0.0-incubating.M3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.com.gemstone.gemfire.management.internal.web.controllers.MiscellaneousCommandsController.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-6-7 01:00:00" id="748" opendate="2016-1-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unexpected version string returned from gfsh</summary>
+      <description>gfsh version returns a version number with a prepended 'v'. This is inconsistent with the actual versioning which never includes a 'v'.The v should be removed from the specific gfsh command.</description>
+      <version>None</version>
+      <fixedVersion>1.0.0-incubating.M3</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.com.gemstone.gemfire.management.internal.cli.shell.Gfsh.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-12-20 01:00:00" id="7485" opendate="2019-11-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>can not get index with "." in name by REST API for Management</summary>
+      <description>precondition: 1. there is a region named "Foo6" in cluster 2. RESTAPI for Management is on.steps to reproduce1. create index by GFSH, with a "." in index name, such as "Foo6.name2"2. get all the indexes by REST API for Management, &amp;#91;GET&amp;#93;'/management/v1/indexes'3. in the response of &amp;#91;GET&amp;#93;'/management/v1/indexes', a index named "Foo6.name2" will be found in the index list4. and there is a "self" link in the links part of "Foo6.name2", it will be "http://localhost:7070/management/v1/regions/Foo6/indexes/Foo6.name2"5. and then , when you click on this link, you will get an error response: "Index 'Foo6' does not exist."expected result:1. can get a index by click that link.possible cause: 1. maybe RESTAPI for Management can not deal with "." as index name</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-web-management.src.main.java.org.apache.geode.management.internal.rest.controllers.RegionManagementController.java</file>
+      <file type="M">geode-web-management.src.main.java.org.apache.geode.management.internal.rest.controllers.RebalanceOperationController.java</file>
+      <file type="M">geode-web-management.src.main.java.org.apache.geode.management.internal.rest.controllers.MemberManagementController.java</file>
+      <file type="M">geode-web-management.src.main.java.org.apache.geode.management.internal.rest.controllers.GatewayManagementController.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2019-12-22 01:00:00" id="7494" opendate="2019-11-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update ArchUnit from 0.10.2 to 0.12.0</summary>
+      <description>ArchUnit 0.12.0 has been released. We should update the Geode dependency:https://github.com/TNG/ArchUnit/releases/tag/v0.12.0</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Wish</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2015-7-1 01:00:00" id="75" opendate="2015-7-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rebalance independent regions in parallel</summary>
+      <description>Rebalancing a single region happens under a distributed lock by a single coordinator. Multiple non-colocated regions should be able to be rebalanced independently.However, when rebalance is invoked through the API, a single thread goes throw each region one by one and rebalances it.We should provide the ability to parallelize a rebalance invoked through the API, so that each region can be rebalanced in parallel.</description>
+      <version>None</version>
+      <fixedVersion>1.0.0-incubating.M1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">gemfire-core.src.test.java.com.gemstone.gemfire.internal.cache.control.RebalanceOperationDUnitTest.java</file>
+      <file type="M">gemfire-core.src.main.java.com.gemstone.gemfire.internal.cache.control.RebalanceResultsImpl.java</file>
+      <file type="M">gemfire-core.src.main.java.com.gemstone.gemfire.internal.cache.control.RebalanceOperationImpl.java</file>
+      <file type="M">gemfire-core.src.main.java.com.gemstone.gemfire.internal.cache.control.InternalResourceManager.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2019-1-17 01:00:00" id="7588" opendate="2019-12-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>geode-gfsh module is missing geode-all-bom, which results in its dependencies not having versions.</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-gfsh.src.test.resources.expected-pom.xml</file>
+      <file type="M">geode-gfsh.build.gradle</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2019-12-18 01:00:00" id="7596" opendate="2019-12-18 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Separate PR polling from use of Apache repo:status token</summary>
+      <description>GitHub API rate-limits are ruining many good PRs. Try and mitigate our use. If still occurring, escalate to ASF INFRA.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.pull-request.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2019-2-19 01:00:00" id="7599" opendate="2019-12-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Use GCI Concourse resource to track compute image versions</summary>
+      <description>Use the Google Compute Image resource in concourse as an input to jobs that use the heavy-lifter pattern. This will make it easier to track job failures due to an image rebuild.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.scripts.rsync.code.down.sh</file>
+      <file type="M">ci.scripts.create.instance.sh</file>
+      <file type="M">ci.pipelines.shared.jinja.variables.yml</file>
+      <file type="M">ci.pipelines.pull-request.jinja.template.yml</file>
+      <file type="M">ci.pipelines.meta.deploy.meta.sh</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+      <file type="M">ci.pipelines.examples.jinja.template.yml</file>
+      <file type="M">ci.images.google-geode-builder.packer.json</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-9-7 01:00:00" id="762" opendate="2016-1-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change the default setting for enable-network-partition-detection to true</summary>
+      <description>The default setting for enable-network-partition-detection should be changed from false to true.Distributed unit tests should continue to use a default setting of false since they do a lot of HA testing with a small number of VMs.</description>
+      <version>None</version>
+      <fixedVersion>1.0.0-incubating</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-cq.src.test.java.com.gemstone.gemfire.management.internal.cli.commands.ClientCommandsDUnitTest.java</file>
+      <file type="M">geode-cq.src.test.java.com.gemstone.gemfire.cache.query.cq.dunit.CqStatsUsingPoolOptimizedExecuteDUnitTest.java</file>
+      <file type="M">geode-cq.src.test.java.com.gemstone.gemfire.cache.query.cq.dunit.CqStatsUsingPoolDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.test.dunit.standalone.ProcessManager.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.test.dunit.internal.JUnit4DistributedTestCase.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.security.AbstractSecureServerDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.management.UniversalMembershipListenerAdapterDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.LonerDMJUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.internal.cache.partitioned.Bug39356DUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.internal.cache.ConcurrentMapOpsDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.internal.cache.Bug41733DUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.cache30.TXDistributedDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.cache30.RRSynchronizationDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.cache30.RegionMembershipListenerDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.cache30.PRBucketSynchronizationDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.com.gemstone.gemfire.cache30.ClientMembershipDUnitTest.java</file>
+      <file type="M">geode-core.src.main.java.com.gemstone.gemfire.internal.cache.wan.GatewaySenderEventImpl.java</file>
+      <file type="M">geode-core.src.main.java.com.gemstone.gemfire.distributed.internal.membership.NetView.java</file>
+      <file type="M">geode-core.src.main.java.com.gemstone.gemfire.distributed.internal.membership.gms.messenger.JGroupsMessenger.java</file>
+      <file type="M">geode-core.src.main.java.com.gemstone.gemfire.distributed.internal.DistributionConfig.java</file>
+      <file type="M">geode-core.src.main.java.com.gemstone.gemfire.distributed.ConfigurationProperties.java</file>
+      <file type="M">geode-assembly.src.test.java.com.gemstone.gemfire.rest.internal.web.controllers.RestAPITestBase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-5-16 01:00:00" id="7707" opendate="2020-1-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Tab completing `--url` on `connect` gives two default values</summary>
+      <description>Expected resultTo see a string indicating one default value such as "Default is 'http://localhost:7070/geode-mgmt/v1'"Actual resultThis string "optional --url: Indicates the base URL to the Manager's HTTP service. For example: 'http://&lt;host&gt;:&lt;port&gt;/gemfire/v1' Default is 'http://localhost:7070/geode-mgmt/v1'; no default value" Note the `Default is` and the `no default value`steps to reproduceexecute `gfsh`execute `start locator`execute `disconnect`type `connect --url`press tab</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.i18n.CliStrings.java</file>
+      <file type="M">geode-docs.tools.modules.gfsh.command-pages.connect.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-1-16 01:00:00" id="7709" opendate="2020-1-16 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Wrong name of property in documentation</summary>
+      <description>There is a wrong name of some properties in documentation.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.reference.topics.gemfire.properties.html.md.erb</file>
+      <file type="M">geode-docs.managing.statistics.setting.up.statistics.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2020-1-22 01:00:00" id="7729" opendate="2020-1-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade JNA to 5.5.0</summary>
+      <description>Upgrade JNA dependency to 5.5.0.</description>
+      <version>None</version>
+      <fixedVersion>1.12.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.test.resources.expected-pom.xml</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.shared.NativeCallsJNAImpl.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.shared.NativeCalls.java</file>
+      <file type="M">geode-core.build.gradle</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.expected.jars.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-2-31 01:00:00" id="7754" opendate="2020-1-31 00:00:00" resolution="Won&amp;#39;t Fix">
+    <buginformation>
+      <summary>Pulse should show gatewaysender&amp;#39;s running state instead of connected state</summary>
+      <description>Pulse is showing gateway sender's "connected" state, while ListGatewayCommand in gfsh is showing gatewaySender's "running" state, this poses a discrepancy between the two monitors. Need to make them in sync.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.beans.DistributedSystemBridge.java</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.management.internal.beans.DistributedSystemBridgeIntegrationTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-2-3 01:00:00" id="7757" opendate="2020-2-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>list gateway command should also show the gateway sender&amp;#39;s connected state</summary>
+      <description>Pulse shows the gateway sender's connected state, but gfsh list gateways sender command only shows the running/paused/stopping state, and user needs to infer the "connected" state by the information in the "Receiver Location" column. Here is the output sample of list gateways:GatewaySender Id |                Member                 | Remote Cluster Id |  Type  | Status  | Queued Events | Receiver Location---------------- | ------------------------------------- | ----------------- | ------ | ------- | ------------- | -----------------gws2             | 192.168.86.30(server:72557)&lt;v1&gt;:41001 | 2                 | Serial | Running | 0             |  It would be nice for the gfsh command to spell out if the gateway sender is "connected" or not. Maybe the Status column should show those state: "running, not connected", "running and connected" .....</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-gfsh.src.test.java.org.apache.geode.management.internal.cli.commands.ListGatewayCommandTest.java</file>
+      <file type="M">geode-gfsh.src.main.java.org.apache.geode.management.internal.cli.commands.StatusGatewaySenderCommand.java</file>
+      <file type="M">geode-gfsh.src.main.java.org.apache.geode.management.internal.cli.commands.ListGatewayCommand.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.i18n.CliStrings.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-6-3 01:00:00" id="7759" opendate="2020-2-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Print out the Passing token file contents.</summary>
+      <description>As a release person on the apache geode project, when I want to release a version, it becomes harder to know the passing tokens without looking at the file contents. So as part of this story, we are printing out the passing token contents for ease of use.</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.images.jinja.template.yml</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2020-2-7 01:00:00" id="7777" opendate="2020-2-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add 1.13 management rest wiki page</summary>
+      <description>each release gets a new wiki page...</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-management.src.test.script.update-management-wiki.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-2-7 01:00:00" id="7778" opendate="2020-2-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add PUBLISH, SUBSCRIBE and UNSUBSCRIBE Redis commands</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-redis.src.main.resources.org.apache.geode.redis.internal.sanctioned-geode-redis-serializables.txt</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.RedisDataType.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.RedisConstants.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.RedisCommandType.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.GeoCoder.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.executor.AbstractExecutor.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.ExecutionHandlerContext.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.Coder.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.GeodeRedisServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-4-7 01:00:00" id="7779" opendate="2020-2-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Concourse BumpXYZ does not include {prerelease}</summary>
+      <description>After cutting the 1.13.0 release branch, hitting BumpMinor caused the semver to move from 1.12.0-SNAPSHOT.246 -&gt; 1.13.0, which is then sorted in semantic-order to be higher value than 1.13.0-SNAPSHOT.1</description>
+      <version>None</version>
+      <fixedVersion>1.12.1,1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ci.pipelines.shared.jinja.variables.yml</file>
+      <file type="M">ci.pipelines.geode-build.jinja.template.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-2-11 01:00:00" id="7792" opendate="2020-2-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>configure logging for geode-membership integration tests</summary>
+      <description>Integration tests for geode-membership do not have a log4j configuration. The subproject cannot depend on geode-log4j because that pulls in geode-core with its Alert appender and other things.Add a log4j configuration for tests in geode-membership so we can get proper log output from tests to diagnose failures.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-membership.src.integrationTest.resources.log4j2.xml</file>
+      <file type="M">geode-membership.build.gradle</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2020-6-14 01:00:00" id="7801" opendate="2020-2-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide "Querying with OQL" page - sync with T of C</summary>
+      <description>The "Querying with OQL" page (https://geode.apache.org/docs/guide/111/developing/querying_basics/query_basics.html) has two subsidiary pages listed in the left-hand navigation pane, but they're not referenced in the page text itself.Given that the LH-nav is collapsed by default, it's (too) easy for the reader to overlook the subtopics (Advantages of OQL and Writing and Executing a Query in Geode).One solution would be to place links in the Querying with OQL page. Another would be to pull the subtopics into the Querying with OQL page and eliminating the extra level in the nav.A third possibility (perhaps the best) would be to elevate the Writing and Executing subtopic to a more prominent spot in the hierarchy - it seems kinda buried in its current position.</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.querying.basics.running.a.query.html.md.erb</file>
+      <file type="M">geode-docs.developing.querying.basics.query.basics.html.md.erb</file>
+      <file type="M">geode-docs.developing.querying.basics.oql.compared.to.sql.html.md.erb</file>
+      <file type="M">geode-docs.developing.querying.basics.chapter.overview.html.md.erb</file>
+      <file type="M">geode-book.master.middleman.source.subnavs.geode-subnav.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-1-14 01:00:00" id="7802" opendate="2020-2-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>User Guide - add disclaimer that OQL queries are not pre-validated for nonexistent attributes</summary>
+      <description>Community member @deepak khopade requests that we add a disclaimer to the user guide stating that OQL queries are not pre-screened for references to nonexistent attributes. The assertion is that users who have experience with other query models may expect Geode to apply such validation. In the Geode model, attributes and methods are resolved at runtime during query execution - the server does not know what's actually stored in a region until the query is executed.The disclaimer could be added in one of two places:Query Language Restrictions and Unsupported Features (https://geode.apache.org/docs/guide/111/developing/querying_basics/restrictions_and_unsupported_features.html)orQuerying FAQ and Examples (https://geode.apache.org/docs/guide/111/getting_started/querying_quick_reference.html)</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.developing.querying.basics.restrictions.and.unsupported.features.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-2-25 01:00:00" id="7813" opendate="2020-2-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add Build-Java-Vendor to gfsh version --full</summary>
+      <description>The version info already includes the version of the compiler in Build-Java-Version. As there are now several java compiler vendors and a multitude of ways Geode may get compiled (various pipeline jobs, by a release manager, by users, etc) it makes sense to record the provider of that javac version as well. This is also required to audit that only open-source tools are being used to produce Geode artifacts.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.build.gradle</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-3-20 01:00:00" id="7897" opendate="2020-3-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Run Redis integration tests against native Redis via Docker</summary>
+      <description>Configures relevant integration tests to also run against native Redis via a Docker image. Intended to help find discrepancies between Geode Redis behavior and that of native Redis.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.RedisConstants.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.executor.string.IncrExecutor.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.executor.RenameExecutor.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.Coder.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.StringsIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.SortedSetsIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.SetsIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.SetCommandNegativeCaseIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.RenameTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.PubSubIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.ListsIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.HashesIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.GeoIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.GeoCoderIntegrationTest.java</file>
+      <file type="M">geode-redis.build.gradle</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-4-1 01:00:00" id="7942" opendate="2020-4-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>document the enable-management-rest-service geode property</summary>
+      <description>The enable-management-rest-service geode property needs to be documented. This property was added in geode 1.10.</description>
+      <version>1.10.0,1.11.0,1.12.0</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-docs.reference.topics.gemfire.properties.html.md.erb</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-4-2 01:00:00" id="7945" opendate="2020-4-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cluster restart recovery from disk blocked by waiting replies of CreateRegionMessage</summary>
+      <description>A cluster restart recovering from disk has unexpected delays in some of the members. The logs show that those delayed members are waiting for replies of CreateRegionMessage, before loading the krf files. And the reason for waiting the replies of CreateRegionMessage is likely because other members are holding some lock while busy loading the krf files. Therefore the replies are delayed. Once those delayed members get the replies of CreateRegionMessage, it starts loading the krf files. If the delayed members contain the latest data, this could block other members waiting for the latest data.Because the cluster members are blocking each other at different stages during the cluster restart recovery process, the whole process is unexpectedly long when the disk store contains large amount of data.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.partitioned.PersistentBucketRecoverer.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.internal.cache.GemFireCacheImpl.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-4-3 01:00:00" id="7947" opendate="2020-4-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Implement tests for EXPIRE-related functionality</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-redis.src.test.java.org.apache.geode.redis.internal.executor.general.ExpireExecutorJUnitTest.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.executor.ExpireExecutor.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.executor.ExpireAtExecutor.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.general.PexpireIntegrationTest.java</file>
+      <file type="M">geode-redis.src.integrationTest.java.org.apache.geode.redis.general.ExpireIntegrationTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.StringsDockerAcceptanceTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.SortedSetsDockerAcceptanceTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.SetsDockerAcceptanceTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.RenameDockerAcceptanceTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.PubSubDockerAcceptanceTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.ListsDockerAcceptanceTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.HashesDockerAcceptanceTest.java</file>
+      <file type="M">geode-redis.src.acceptanceTest.java.org.apache.geode.redis.GeoDockerAcceptanceTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-5-30 01:00:00" id="8055" opendate="2020-4-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>can not create index on sub regions</summary>
+      <description>When trying to use "create index" command in gfsh to create index on sub regions, we get the following message:"Sub-regions are unsupported"Pre-1.6, we were able to do that.</description>
+      <version>1.7.0,1.8.0,1.9.2,1.10.0,1.11.0,1.12.0</version>
+      <fixedVersion>1.12.1,1.13.0,1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-wan.src.distributedTest.java.org.apache.geode.management.internal.configuration.ClusterConfigurationIndexWithFromClauseDUnitTest.java</file>
+      <file type="M">geode-gfsh.src.test.java.org.apache.geode.management.internal.cli.commands.CreateIndexCommandTest.java</file>
+      <file type="M">geode-gfsh.src.main.java.org.apache.geode.management.internal.cli.commands.CreateIndexCommand.java</file>
+      <file type="M">geode-gfsh.src.distributedTest.java.org.apache.geode.management.internal.cli.commands.CreateIndexCommandDUnitTest.java</file>
+      <file type="M">geode-core.src.test.java.org.apache.geode.cache.configuration.CacheConfigTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.cache.configuration.CacheConfig.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  <bug fixdate="2020-9-30 01:00:00" id="8469" opendate="2020-8-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enforce no-missing-variable-declarations</summary>
+      <description>Given I compile the code without exempting no-missing-variable-declarationsThen it should compileNote - was marked as a todo</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-junit.src.test.java.org.apache.geode.test.junit.rules.ExpectedTimeoutRuleTest.java</file>
+      <file type="M">dev-tools.dependencies.bump.sh</file>
+      <file type="M">geode-management.src.test.java.org.apache.geode.management.runtime.DeploymentInfoTest.java</file>
+      <file type="M">geode-management.src.test.java.org.apache.geode.management.configuration.DeploymentTest.java</file>
+      <file type="M">geode-management.src.test.java.org.apache.geode.management.configuration.ClassNameTest.java</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-9-11 01:00:00" id="8489" opendate="2020-9-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Pulse should keep the 1.8 behavior when doing a "Select *" query</summary>
+      <description>After the TypedJson refactor, we see those different behaviors when using DistributedSysteemMBean to do a "select *" query:1. Jackson Json Annotations are taking into effect now. "Select *" won't show those `@JsonIgnore` fields anymore. And "JsonProperty" annotation values are showing up as headers2. null values fields are not showing up.</description>
+      <version>1.9.2,1.10.0,1.11.0,1.13.0</version>
+      <fixedVersion>1.12.1,1.13.1,1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-gfsh.src.test.java.org.apache.geode.management.internal.cli.json.QueryResultFormatterTest.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.json.QueryResultFormatter.java</file>
+      <file type="M">geode-core.src.main.java.org.apache.geode.management.internal.json.AbstractJSONFormatter.java</file>
+      <file type="M">geode-core.src.integrationTest.java.org.apache.geode.management.internal.beans.DistributedSystemMBeanIntegrationTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-9-14 01:00:00" id="8492" opendate="2020-9-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Redis "clients" statistic goes negative</summary>
+      <description>When running a long running app, we noticed that our "clients" statistic was negative. It should always be greater than or equal to 0. It seems like the call to decrement the number of clients was being invoked multiple times for each client.</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.RedisStats.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.netty.ExecutionHandlerContext.java</file>
+      <file type="M">geode-redis.src.main.java.org.apache.geode.redis.internal.GeodeRedisServer.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2020-11-29 01:00:00" id="8547" opendate="2020-9-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Command "show missing-disk-stores" not working, when all servers are down</summary>
+      <description>If cluster with 2 locators and 2 servers was ungracefully shutdown it can happen that locators that are able to start up are not having most recent data to bring up Cluster Configuration Service.If we excute command "show missing-disk-stores" it will not work, since all servers are down,so we are stuck in this situation.</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-gfsh.src.main.java.org.apache.geode.management.internal.cli.commands.ShowMissingDiskStoreCommand.java</file>
+      <file type="M">geode-gfsh.src.distributedTest.java.org.apache.geode.management.internal.cli.commands.ShowMissingDiskStoreCommandDUnitTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2020-11-3 01:00:00" id="8682" opendate="2020-11-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>update jetty to recommended version</summary>
+      <description>update jetty to 9.4.33.v20201020</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">geode-assembly.src.integrationTest.resources.dependency.classpath.txt</file>
+      <file type="M">geode-assembly.src.integrationTest.resources.assembly.content.txt</file>
+      <file type="M">geode-assembly.src.distributedTest.java.org.apache.geode.session.tests.GenericAppServerInstall.java</file>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2020-12-2 01:00:00" id="8758" opendate="2020-12-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Downgrade testcontainers from 1.15.0 to 1.14.3</summary>
+      <description>There appears to be a problem with the latest version, causing acceptance tests to hang. Possibly this: https://github.com/testcontainers/testcontainers-java/issues/3531</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">buildSrc.src.main.groovy.org.apache.geode.gradle.plugins.DependencyConstraints.groovy</file>
+      <file type="M">boms.geode-all-bom.src.test.resources.expected-pom.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="ARIES">
+  <bug id="1282" opendate="2015-1-4 00:00:00" fixdate="2015-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BeanRecipe.findMatchingMethods is not able to filter out overridden method signatures</summary>
+      <description>I was trying to get an Infinispan cache object from an infinispan CacheManager using the following blueprint configuration:&lt;reference id="cacheManager" availability="mandatory" interface="org.infinispan.manager.CacheContainer" /&gt;&lt;bean id="queueCountCache" factory-ref="cacheManager" factory-method="getCache"&gt; &lt;argument index="0" type="java.lang.String" value="QueueCountCache" /&gt;&lt;/bean&gt;Unfortunately the blueprint startup fails with following error:org.osgi.service.blueprint.container.ComponentDefinitionException: Multiple matching factory methods getCache found on class Proxy36341b52_07db_4c05_bab0_40dbf8a3899a for arguments [QueueCountCache] when instanciating bean queueCountCache: [public org.infinispan.commons.api.BasicCache Proxy36341b52_07db_4c05_bab0_40dbf8a3899a.getCache(java.lang.String), public org.infinispan.Cache Proxy36341b52_07db_4c05_bab0_40dbf8a3899a.getCache(java.lang.String)] at org.apache.aries.blueprint.container.BeanRecipe.getInstance(BeanRecipe.java:305)[7:org.apache.aries.blueprint.core:1.4.0] at org.apache.aries.blueprint.container.BeanRecipe.internalCreate2(BeanRecipe.java:806)[7:org.apache.aries.blueprint.core:1.4.0] at org.apache.aries.blueprint.container.BeanRecipe.internalCreate(BeanRecipe.java:787)[7:org.apache.aries.blueprint.core:1.4.0] ...looking at the matches produced by the BeanRecipe.findMatchingMethods makes it obvious that the CacheContainer implements an interface BasicCacheContainer. The CacheContainer interface overrides the getCache(java.lang.String) that is initially defined in the BasicCacheContainer without any changes. I guess this was implemented for some backward compatibility.public org.infinispan.commons.api.BasicCache Proxy6e18b006_c93d_4840_bb4d_3522802f6a68.getCache(java.lang.String)=[QueueCountCache]andpublic org.infinispan.Cache Proxy6e18b006_c93d_4840_bb4d_3522802f6a68.getCache(java.lang.String)=[QueueCountCache]The BeanRecipe.findMatchingMethods probably also needs to check if the method signatures found are overridden by another method in the matching collection. If that is the case, all methods that are overridden also need to be discharged.Here are the 2 offending interfaces that the BeanReceipe matches. Unfortunately the CacheContainer getCache method is the one it should match but not the one from BasicCacheContainer.CacheContainer.javapackage org.infinispan.manager;import org.infinispan.Cache;import org.infinispan.commons.api.BasicCache;import org.infinispan.commons.api.BasicCacheContainer;public interface CacheContainer extends BasicCacheContainer { @Override &lt;K, V&gt; Cache&lt;K, V&gt; getCache(); @Override &lt;K, V&gt; Cache&lt;K, V&gt; getCache(String cacheName);}BasicCacheContainer.javapackage org.infinispan.commons.api;public interface BasicCacheContainer extends Lifecycle { &lt;K, V&gt; BasicCache&lt;K, V&gt; getCache(); &lt;K, V&gt; BasicCache&lt;K, V&gt; getCache(String cacheName);}</description>
+      <version>blueprint-core-1.1.0,blueprint-core-1.4.2</version>
+      <fixedVersion>blueprint-core-1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.blueprint-core.src.test.java.org.apache.aries.blueprint.WiringTest.java</file>
+      <file type="M">blueprint.blueprint-core.src.main.java.org.apache.aries.blueprint.utils.generics.TypeInference.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1288" opendate="2015-1-21 00:00:00" fixdate="2015-7-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ClassCastException with proxy set in bean of generic class</summary>
+      <description>I have a blueprint configuration as follows (actually from a third-party application):&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jpa="http://aries.apache.org/xmlns/jpa/v1.0.0" xmlns:tx="http://aries.apache.org/xmlns/transactions/v1.0.0" xsi:schemaLocation=" http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd http://aries.apache.org/xmlns/jpa/v1.0.0 http://aries.apache.org/xmlns/jpa/v1.0.0 http://aries.apache.org/xmlns/transactions/v1.0.0 http://aries.apache.org/xmlns/transactions/v1.0.0"&gt; &lt;bean id="meterDaoBean" class="com.third.party.impl.dao.jpa.JpaMeterDao"&gt; &lt;jpa:context unitname="MeterUnit" property="entityManager" /&gt; &lt;/bean&gt; &lt;reference id="securityService" interface="com.third.party.api.SecurityService" availability="optional"/&gt; &lt;bean id="secureMeterDaoBean" class="com.third.party.impl.dao.secure.SecureMeterDao"&gt; &lt;property name="dao" ref="meterDaoBean" /&gt; &lt;property name="securityService" ref="securityService" /&gt; &lt;/bean&gt; &lt;bean id="meterBean" class="com.third.party.impl.MeterServiceImpl"&gt; &lt;tx:transaction method="*" value="Required" /&gt; &lt;property name="meterDao" ref="secureMeterDaoBean" /&gt; &lt;/bean&gt; &lt;service ref="meterBean" interface="com.third.party.api.MeterService"/&gt;&lt;/blueprint&gt;...and the (for this issue relevant) class definitions look as follows:public interface CrudDao&lt;T&gt; {}public abstract class SecureDao&lt;T, R extends CrudDao&lt;T&gt;&gt; implements CrudDao&lt;T&gt; { protected R dao; // ... public void setDao(R dao) { this.dao = dao; }}public interface MeterDao extends CrudDao&lt;MeterEntity&gt; {}public class JpaMeterDao extends JpaCrudDao&lt;MeterEntity&gt; implements MeterDao {}public class SecureMeterDao extends SecureDao&lt;MeterEntity, MeterDao&gt; implements MeterDao { // ... public MeterEntity get(String id) { // some security stuff... dao.get(id); }}...now with that usage of generics the proxy that gets created for the "dao" member in the SecureMeterDao bean instance only implements CrudDao, but not MeterDao.So, although the initial blueprint setup of beans and services is fine, any call traveling through the SecureMeterDao results in a ClassCastException:java.lang.ClassCastException: Proxyf427f861_7a7d_41e8_98c7_a09aea99f756 cannot be cast to com.third.party.impl.dao.MeterDao at com.third.party.impl.dao.secure.SecureMeterDao.get(SecureMeterDao.java:47) at com.third.party.impl.MeterServiceImpl.get(MeterServiceImpl.java:96) at Proxy8bef53d7_0df3_4724_a67c_fb296af2aee2.get(Unknown Source) at Proxya8f9ae87_fa39_42ae_bf11_baa82efa76cc.get(Unknown Source) ...</description>
+      <version>blueprint-core-1.4.2</version>
+      <fixedVersion>blueprint-core-1.4.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.blueprint-core.src.main.java.org.apache.aries.blueprint.utils.ReflectionUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1320" opendate="2015-5-8 00:00:00" fixdate="2015-5-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Async service cannot create mediated objects for "virtual" services</summary>
+      <description>Services such as Remote Services and other proxies are often registered using "host" bundles that cannot load the service interface. These services should be supported by Async.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">async.async-impl.src.main.java.org.apache.aries.async.impl.AsyncService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1333" opendate="2015-6-11 00:00:00" fixdate="2015-7-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cannot instantiate singleton collections in blueprint</summary>
+      <description>New instances of collections (set, list, map) are always created when referring them by different beans. So, it behaves like the prototype scope would be set on them. The singleton scope should be default, but it doesn't work even if it is set explicitly. A Camel based reproducer is attached. Note that this is not an issue for Spring configuration.</description>
+      <version>blueprint-core-1.4.2</version>
+      <fixedVersion>blueprint-core-1.4.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.blueprint-core.src.test.java.org.apache.aries.blueprint.container.AggregateConverterTest.java</file>
+      <file type="M">blueprint.blueprint-core.src.main.java.org.apache.aries.blueprint.container.AggregateConverter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1335" opendate="2015-6-13 00:00:00" fixdate="2015-6-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid using aries util in eclipselink adapter</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>jpa-2.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">jpa.jpa-container-eclipselink-adapter.src.main.java.org.apache.aries.jpa.eclipselink.adapter.UnionClassLoader.java</file>
+      <file type="M">jpa.jpa-container-eclipselink-adapter.src.main.java.org.apache.aries.jpa.eclipselink.adapter.EclipseLinkProviderService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1336" opendate="2015-6-14 00:00:00" fixdate="2015-6-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Provide a maven module to easily run the OSGi tck tests</summary>
+      <description>Currently it is very difficult to run the OSGi tck tests for aries jpa.The tck is not freely available and it needs to be configured specially to run against aries jpa.I will prepare a maven module and documentation to make it as easy as possible to run the tck tests.</description>
+      <version>None</version>
+      <fixedVersion>jpa-2.0.0</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">jpa.itests.pom.xml</file>
+      <file type="M">jpa.itests.jpa-container-itest.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1337" opendate="2015-6-16 00:00:00" fixdate="2015-6-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid exception when closing an already closed EMF</summary>
+      <description>During the tck tests there is a WARNING sometimes that EMF.close is called but the EMF is already closed.Adding a test and a check</description>
+      <version>None</version>
+      <fixedVersion>jpa-2.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">jpa.jpa-container.src.main.java.org.apache.aries.jpa.container.impl.PersistenceBundleTracker.java</file>
+      <file type="M">jpa.jpa-container.src.main.java.org.apache.aries.jpa.container.impl.ManagedEMF.java</file>
+      <file type="M">jpa.itests.jpa-container-itest.src.test.java.org.apache.aries.jpa.itest.AbstractJPAItest.java</file>
+      <file type="M">jpa.itests.jpa-container-itest.src.test.java.org.apache.aries.jpa.container.itest.TCKJPATestCase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1508" opendate="2016-3-21 00:00:00" fixdate="2016-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Name produced beans</summary>
+      <description>Let beans created with annotation @Produces could be named with @Named</description>
+      <version>None</version>
+      <fixedVersion>blueprint-maven-plugin-1.4.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.test.MyBean5.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.model.BeanTest.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.GeneratorTest.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.test.MyProduced.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.test.MyFactoryNamedBean.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.test.MyFactoryBean.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.test.MyBean4.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.bad.ParentWithInjectedField.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.bad.ParentWithField.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.bad.FieldBean4.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.bad.BadFieldBean3.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.bad.BadFieldBean2.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.bad.BadFieldBean1.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.AnnotatedService.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.ProducedBean.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.Context.java</file>
+      <file type="M">blueprint.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.BeanRef.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

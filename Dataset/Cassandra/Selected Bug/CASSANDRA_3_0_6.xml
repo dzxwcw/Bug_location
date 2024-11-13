@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  <bug fixdate="2015-4-12 01:00:00" id="10853" opendate="2015-12-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>deb package migration to dh_python2</summary>
+      <description>I'm working on a deb job in jenkins, and I had forgotten to open a bug for this. There is no urgent need, since python-support is in Jessie, but this package is currently in transition to be removed.http://deb.li/dhs2pDuring deb build:dh_pysupport: This program is deprecated, you should use dh_python2 instead. Migration guide: http://deb.li/dhs2p</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Packaging</fixedVersion>
+      <type>Task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.rules</file>
+      <file type="M">src.java.org.apache.cassandra.utils.Interval.java</file>
+      <file type="M">debian.control</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-9 01:00:00" id="11137" opendate="2016-2-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>JSON datetime formatting needs timezone</summary>
+      <description>The JSON date time string representation lacks the timezone information:cqlsh:events&gt; select toJson(created_at) AS created_at from event_by_user_timestamp ; created_at--------------------------- "2016-01-04 16:05:47.123"(1 rows)vs.cqlsh:events&gt; select created_at FROM event_by_user_timestamp ; created_at-------------------------- 2016-01-04 15:05:47+0000(1 rows)cqlsh:events&gt;To make things even more complicated the JSON timestamp is not returned in UTC.At the moment DateType picks this formatting string "yyyy-MM-dd HH:mm:ss.SSS". Shouldn't we somehow make this configurable by users or at a minimum add the timezone?</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.serializers.TimestampSerializer.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2016-4-1 01:00:00" id="11474" opendate="2016-4-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM should use regular inserts for single statement batches</summary>
+      <description>I haven't reproduced it with a test yet but, from code inspection, if CQL rows are larger than batch_size_fail_threshold_in_kb and this parameter cannot be changed, then data import will fail.Users can control the batch size by setting MAXBATCHSIZE.If a batch contains a single statement, there is no need to use a batch and we should use normal inserts instead or, alternatively, we should skip the batch size check for unlogged batches with only one statement.</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-6 01:00:00" id="11510" opendate="2016-4-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clustering key and secondary index</summary>
+      <description>I noticed the following change in behavior while migrating from 2.0.11: Elements of the clustering key seems to not be secondary indexable anymore.Using this table:CREATE TABLE table1 ( name text, class int, inter text, power int, PRIMARY KEY (name, class, inter)) WITH CLUSTERING ORDER BY (class DESC, inter ASC);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',1, 'int1',13);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',2, 'int1',18);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',3, 'int1',37);INSERT INTO table1 (name, class, inter, power) VALUES ('R1',4, 'int1',49);In version 2.0.11, I used to have a secondary index on inter, that allowed me to make fast queries on the table:CREATE INDEX table1_inter ON table1 (inter);SELECT * FROM table1 where name='R1' AND class&gt;0 AND class&lt;4 AND inter='int1' ALLOW FILTERING;While testing on 3.3.0, I get the following message:Clustering column "inter" cannot be restricted (preceding column "class" is restricted by a non-EQ relation)It seems to only be considered as a key and the index and ALLOW FILTERING are not taken into account anymore (as it was in 2.0.11).I found the following workaround: Duplicate the column inter as a regular column, and simply query it with the secondary index and no ALLOW FILTERING. It looks like the behavior I would anticipate and do not understand why it does not work on inter only because it is a clustering key. The only answer on the ml evokes a bug.</description>
+      <version>2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Feature/2iIndex,Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.operations.SelectSingleColumnRelationTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.StatementRestrictions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.restrictions.PrimaryKeyRestrictionSet.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-6 01:00:00" id="11515" opendate="2016-4-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>C* won&amp;#39;t launch with whitespace in path on Windows</summary>
+      <description>In a directory named 'test space', I see the following on launch:Error: Could not find or load main class space\cassandra.logs.gc.log</description>
+      <version>2.2.6,3.0.6,3.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">conf.cassandra-env.ps1</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-4-12 01:00:00" id="11549" opendate="2016-4-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: COPY FROM ignores NULL values in conversion</summary>
+      <description>COPY FROM fails to import empty values. For example:$ cat test.csva,10,20b,30,c,50,60$ cqlshcqlsh&gt; create keyspace if not exists test with replication = {'class': 'SimpleStrategy', 'replication_factor':1};cqlsh&gt; create table if not exists test.test (t text primary key, i1 int, i2 int);cqlsh&gt; copy test.test (t,i1,i2) from 'test.csv';Imports:select * from test.test"; t | i1 | i2---+----+---- a | 10 | 20 c | 50 | 60(2 rows)and generates a ParseError - invalid literal for int() with base 10: '', given up without retries for the row with an empty value.It should import the empty value as a null and there should be no error:cqlsh&gt; select * from test.test"; t | i1 | i2---+----+------ a | 10 | 20 c | 50 | 60 b | 30 | null(3 rows)</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-14 01:00:00" id="11574" opendate="2016-4-14 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>clqsh: COPY FROM throws TypeError with Cython extensions enabled</summary>
+      <description>Any COPY FROM command in cqlsh is throwing the following error:"get_num_processes() takes no keyword arguments"Example command: COPY inboxdata (to_user_id,to_user_network,created_time,attachments,from_user_id,from_user_name,from_user_network,id,message,to_user_name,updated_time) FROM 'inbox.csv';Similar commands worked parfectly in the previous versions such as 3.0.4</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-5-19 01:00:00" id="11602" opendate="2016-4-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Materialized View Does Not Have Static Columns</summary>
+      <description>CREATE TABLE "team" (teamname text, manager text, location text static, PRIMARY KEY ((teamname), manager));INSERT INTO team (teamname, manager, location) VALUES ('Red Bull1', 'Ricciardo11', 'Australian');INSERT INTO team (teamname, manager, location) VALUES ('Red Bull2', 'Ricciardo12', 'Australian');INSERT INTO team (teamname, manager, location) VALUES ('Red Bull2', 'Ricciardo13', 'Australian');select * From team;CREATE MATERIALIZED VIEW IF NOT EXISTS "teamMV" AS SELECT "teamname", "manager", "location" FROM "team" WHERE "teamname" IS NOT NULL AND "manager" is NOT NULL AND "location" is NOT NULL PRIMARY KEY("manager", "teamname"); select * from "teamMV";The teamMV does not have "location" column. Static columns are not getting created in MV.</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Feature/MaterializedViews,Legacy/Coordination</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.ViewTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateViewStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-4-22 01:00:00" id="11631" opendate="2016-4-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh COPY FROM fails for null values with non-prepared statements</summary>
+      <description>cqlsh's COPY FROM ... WITH PREPAREDSTATEMENTS = False fails if the row contains null values. Reason is that the ','.join(r) in make_non_prepared_batch_statement doesn't seem to handle None, which results in this error message.Failed to import 1 rows: TypeError - sequence item 2: expected string, NoneType found, given up without retriesAttached patch should fix the problem.</description>
+      <version>2.1.15,2.2.7,3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-4-26 01:00:00" id="11654" opendate="2016-4-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstabledump is not able to properly print out SSTable that may contain historical (but "shadowed") row tombstone</summary>
+      <description>It is pretty trivial to reproduce. Here are the steps I used (on a single node C* 3.x cluster):echo "CREATE KEYSPACE IF NOT EXISTS testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'};" | cqlshecho "CREATE TABLE IF NOT EXISTS testks.testcf ( k int, c text, val0_int int, PRIMARY KEY (k, c) );" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int) VALUES (1, 'c1', 100);" | cqlshecho "DELETE FROM testks.testcf where k=1 and c='c1';" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int) VALUES (1, 'c1', 100);" | cqlshnodetool flush testks testcfecho "SELECT * FROM testks.testcf;" | cqlshThe last step from above will confirm that there is one live row in the testks.testcf table. However, if you now go to the actual SSTable file directory and run sstabledump like the following, you will see the row is still marked as deleted and no row content is shown:$ sstabledump ma-1-big-Data.db[ { "partition" : { "key" : [ "1" ], "position" : 0 }, "rows" : [ { "type" : "row", "position" : 18, "clustering" : [ "c1" ], "liveness_info" : { "tstamp" : 1461633248542342 }, "deletion_info" : { "deletion_time" : 1461633248212499, "tstamp" : 1461633248 } } ] }]This is reproduced in both latest 3.0.5 and 3.6-snapshot (i.e. trunk as of Apr 25, 2016).Looks like only row tombstone is affecting sstabledump. If you generate cell tombstones, even if you delete all non-PK &amp; non-static columns in the row, as long as there is no explicit row delete (so the clustering is still considered alive), sstabledump will work just fine, see the following example steps:echo "CREATE KEYSPACE IF NOT EXISTS testks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'};" | cqlshecho "CREATE TABLE IF NOT EXISTS testks.testcf ( k int, c text, val0_int int, val1_int int, PRIMARY KEY (k, c) );" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int, val1_int) VALUES (1, 'c1', 100, 200);" | cqlshecho "DELETE val0_int, val1_int FROM testks.testcf where k=1 and c='c1';" | cqlshecho "INSERT INTO testks.testcf (k, c, val0_int, val1_int) VALUES (1, 'c1', 300, 400);" | cqlshnodetool flush testks testcfecho "select * from testks.testcf;" | cqlsh$ sstabledump ma-1-big-Data.db[ { "partition" : { "key" : [ "1" ], "position" : 0 }, "rows" : [ { "type" : "row", "position" : 18, "clustering" : [ "c1" ], "liveness_info" : { "tstamp" : 1461634633566479 }, "cells" : [ { "name" : "val0_int", "value" : "300" }, { "name" : "val1_int", "value" : "400" } ] } ] }]</description>
+      <version>3.0.6,3.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.JsonTransformer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+</bugrepository>

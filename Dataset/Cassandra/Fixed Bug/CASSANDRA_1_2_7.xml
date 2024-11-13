@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="5247" opendate="2013-2-12 00:00:00" fixdate="2013-6-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-cli should exit with error-exit status on all errors which cause it to exit.</summary>
+      <description>running cassandra-cli with a --file argument which does not exist returns success:ubuntu@host:~$ cassandra-cli --file does-not-exist ; echo $?does-not-exist (No such file or directory)0</description>
+      <version>1.2.7</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliMain.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5337" opendate="2013-3-12 00:00:00" fixdate="2013-7-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>vnode-aware replacenode command</summary>
+      <description>Currently you have the following options to replace a dead, unrecoverable node: replacetoken. this requires specifying all 256 or so vnode tokens as a CSL bootstrap new node, decommission old one. this is inefficient since the new node's vnodes will probably not overlap much with the old one's, so we replicate stream about 2x as much as if we were just replacing the old with the newWe should add an analogue to replacetoken that takes the address or node ID of the dead node instead.</description>
+      <version>1.2.7,2.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5454" opendate="2013-4-11 00:00:00" fixdate="2013-7-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Changing column_index_size_in_kb on different nodes might corrupt files</summary>
+      <description>RangeTombstones requires that we sometimes repeat a few markers in the data file at index boundaries. Meaning that the same row with different column_index_size_in_kb will not have the same data size.This is a problem for streaming, because if the column_index_size_in_kb is different in the source and the destination, the resulting row should have a different size on the destination, but streaming rely on the data size not changing in 1.2.Now, while having different column_index_size on different nodes is probably not extremely useful in the long run, you may still have temporal discrepancies because there is no real way to change the setting on all node atomically. Besides, it's not to hard to get different setting on different nodes due to human error. And currently, the result is that if a file is stream while the setting is not consistent, then we'll end up corrupting the received file (due to the fix from CASSANDRA-5418 to be precise).I don't see a good way to fix this in 1.2, so users will have to be careful not to have streaming happening while they change the column_index_size_in_kb setting. But in 2.0, once CASSANDRA-4180 is committed, we won't have the problem of having to respect the dataSize from the source on the destination anymore. So basically we should revert the fix from CASSANDRA-5418 (though we may still want to avoid repeating unneeded marker, but the tombstoneTracker can give us that easily).</description>
+      <version>1.2.7,2.0beta1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnIndex.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5520" opendate="2013-4-28 00:00:00" fixdate="2013-7-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Query tracing session info inconsistent with events info</summary>
+      <description>Session info for a trace is showing that a query took &gt; 10 seconds (it timed out).cqlsh:system_traces&gt; select session_id, duration, request from sessions where session_id = c7e36a30-af3a-11e2-9ec9-772ec39805fe;session_id | duration | request------------------------------------------------------------c7e36a30-af3a-11e2-9ec9-772ec39805fe | 10000230 | multiget_sliceHowever, the event-level breakdown shows no such large duration:cqlsh:system_traces&gt; select * from events where session_id = c7e36a30-af3a-11e2-9ec9-772ec39805fe;session_id | event_id | activity | source | source_elapsed | thread-------------------------------------------------------------------------------------------------------------------------------------------------+-----------------------c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e36a30-af3a-11e2-9480-e9d811e0fc18 | Message received from /xxx.xxx.90.147 | xxx.xxx.4.16 | 19 | Thread-57c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e36a31-af3a-11e2-9ec9-772ec39805fe | Sending message to /xxx.xxx.153.16 | xxx.xxx.90.147 | 246 | WRITE-/xxx.xxx.4.16c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39140-af3a-11e2-9480-e9d811e0fc18 | Message received from /xxx.xxx.90.147 | xxx.xxx.4.16 | 259 | Thread-57c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39140-af3a-11e2-9ec9-772ec39805fe | Sending message to /10.248.106.37 | xxx.xxx.90.147 | 253 | WRITE-/xxx.xxx.79.52c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39140-af3a-11e2-b8dc-a7032a583115 | Message received from /xxx.xxx.90.147 | xxx.xxx.213.136 | 25 | Thread-94c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39141-af3a-11e2-9480-e9d811e0fc18 | Executing single-partition query on CardHash | xxx.xxx.4.16 | 421 | ReadStage:5329c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39141-af3a-11e2-9ec9-772ec39805fe | Sending message to /xxx.xxx.151.214 | xxx.xxx.90.147 | 310 | WRITE-/xxx.xxx.213.136c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39141-af3a-11e2-b8dc-a7032a583115 | Message received from /xxx.xxx.90.147 | xxx.xxx.213.136 | 106 | Thread-94c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39142-af3a-11e2-9480-e9d811e0fc18 | Acquiring sstable references | xxx.xxx.4.16 | 444 | ReadStage:5329c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39142-af3a-11e2-9ec9-772ec39805fe | Sending message to /10.248.106.37 | xxx.xxx.90.147 | 352 | WRITE-/xxx.xxx.79.52c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39142-af3a-11e2-b8dc-a7032a583115 | Executing single-partition query on CardHash | xxx.xxx.213.136 | 144 | ReadStage:11c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39143-af3a-11e2-9480-e9d811e0fc18 | Merging memtable contents | xxx.xxx.4.16 | 472 | ReadStage:5329c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39143-af3a-11e2-9ec9-772ec39805fe | Sending message to /10.248.95.237 | xxx.xxx.90.147 | 362 | WRITE-/xxx.xxx.201.218c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39143-af3a-11e2-b8dc-a7032a583115 | Acquiring sstable references | xxx.xxx.213.136 | 164 | ReadStage:11c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39144-af3a-11e2-9480-e9d811e0fc18 | Merging data from memtables and 0 sstables | xxx.xxx.4.16 | 510 | ReadStage:5329c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39144-af3a-11e2-9ec9-772ec39805fe | Sending message to /xxx.xxx.151.214 | xxx.xxx.90.147 | 376 | WRITE-/xxx.xxx.213.136c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39144-af3a-11e2-b8dc-a7032a583115 | Merging memtable contents | xxx.xxx.213.136 | 195 | ReadStage:11c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39145-af3a-11e2-9480-e9d811e0fc18 | Read 0 live cells and 0 tombstoned | xxx.xxx.4.16 | 530 | ReadStage:5329c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39145-af3a-11e2-9ec9-772ec39805fe | Sending message to /10.248.95.237 | xxx.xxx.90.147 | 401 | WRITE-/xxx.xxx.201.218c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39145-af3a-11e2-b8dc-a7032a583115 | Executing single-partition query on CardHash | xxx.xxx.213.136 | 202 | ReadStage:41c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39146-af3a-11e2-9480-e9d811e0fc18 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.4.16 | 572 | ReadStage:5329c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39146-af3a-11e2-9ec9-772ec39805fe | Sending message to /xxx.xxx.153.16 | xxx.xxx.90.147 | 489 | WRITE-/xxx.xxx.4.16c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39146-af3a-11e2-b8dc-a7032a583115 | Acquiring sstable references | xxx.xxx.213.136 | 215 | ReadStage:41c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39147-af3a-11e2-9480-e9d811e0fc18 | Executing single-partition query on CardHash | xxx.xxx.4.16 | 610 | ReadStage:5330c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39147-af3a-11e2-b8dc-a7032a583115 | Merging data from memtables and 0 sstables | xxx.xxx.213.136 | 239 | ReadStage:11c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39148-af3a-11e2-9480-e9d811e0fc18 | Acquiring sstable references | xxx.xxx.4.16 | 625 | ReadStage:5330c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39148-af3a-11e2-b8dc-a7032a583115 | Merging memtable contents | xxx.xxx.213.136 | 242 | ReadStage:41c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39149-af3a-11e2-9480-e9d811e0fc18 | Sending message to /xxx.xxx.152.81 | xxx.xxx.4.16 | 627 | WRITE-/xxx.xxx.90.147c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e39149-af3a-11e2-b8dc-a7032a583115 | Read 0 live cells and 0 tombstoned | xxx.xxx.213.136 | 258 | ReadStage:11c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914a-af3a-11e2-9480-e9d811e0fc18 | Merging memtable contents | xxx.xxx.4.16 | 646 | ReadStage:5330c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914a-af3a-11e2-b8dc-a7032a583115 | Merging data from memtables and 0 sstables | xxx.xxx.213.136 | 287 | ReadStage:41c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914b-af3a-11e2-9480-e9d811e0fc18 | Merging data from memtables and 0 sstables | xxx.xxx.4.16 | 679 | ReadStage:5330c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914b-af3a-11e2-b8dc-a7032a583115 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.213.136 | 301 | ReadStage:11c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914c-af3a-11e2-9480-e9d811e0fc18 | Read 0 live cells and 0 tombstoned | xxx.xxx.4.16 | 704 | ReadStage:5330c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914c-af3a-11e2-b8dc-a7032a583115 | Read 0 live cells and 0 tombstoned | xxx.xxx.213.136 | 311 | ReadStage:41c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914d-af3a-11e2-9480-e9d811e0fc18 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.4.16 | 763 | ReadStage:5330c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914d-af3a-11e2-b8dc-a7032a583115 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.213.136 | 354 | ReadStage:41c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3914e-af3a-11e2-b8dc-a7032a583115 | Sending message to /xxx.xxx.152.81 | xxx.xxx.213.136 | 374 | WRITE-/xxx.xxx.90.147c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3b850-af3a-11e2-9ec9-772ec39805fe | Message received from /xxx.xxx.213.136 | xxx.xxx.90.147 | 1289 | Thread-80c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3b850-af3a-11e2-9f00-0b1bd79b59b0 | Message received from /xxx.xxx.90.147 | xxx.xxx.79.52 | 28 | Thread-71c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3b851-af3a-11e2-9ec9-772ec39805fe | Processing response from /xxx.xxx.213.136 | xxx.xxx.90.147 | 1370 | RequestResponseStage:8c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3b852-af3a-11e2-9ec9-772ec39805fe | Message received from /xxx.xxx.4.16 | xxx.xxx.90.147 | 1533 | Thread-1435c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3b853-af3a-11e2-9ec9-772ec39805fe | Processing response from /xxx.xxx.4.16 | xxx.xxx.90.147 | 1598 | RequestResponseStage:7c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df60-af3a-11e2-9ec9-772ec39805fe | Message received from /xxx.xxx.79.52 | xxx.xxx.90.147 | 2527 | Thread-143c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df60-af3a-11e2-9f00-0b1bd79b59b0 | Message received from /xxx.xxx.90.147 | xxx.xxx.79.52 | 280 | Thread-71c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df61-af3a-11e2-9ec9-772ec39805fe | Processing response from /xxx.xxx.79.52 | xxx.xxx.90.147 | 2604 | RequestResponseStage:6c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df61-af3a-11e2-9f00-0b1bd79b59b0 | Executing single-partition query on CardHash | xxx.xxx.79.52 | 424 | ReadStage:6435c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df62-af3a-11e2-9f00-0b1bd79b59b0 | Acquiring sstable references | xxx.xxx.79.52 | 445 | ReadStage:6435c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df63-af3a-11e2-9f00-0b1bd79b59b0 | Merging memtable contents | xxx.xxx.79.52 | 474 | ReadStage:6435c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df64-af3a-11e2-9f00-0b1bd79b59b0 | Merging data from memtables and 0 sstables | xxx.xxx.79.52 | 525 | ReadStage:6435c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df65-af3a-11e2-9f00-0b1bd79b59b0 | Read 0 live cells and 0 tombstoned | xxx.xxx.79.52 | 545 | ReadStage:6435c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df66-af3a-11e2-9f00-0b1bd79b59b0 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.79.52 | 603 | ReadStage:6435c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df67-af3a-11e2-9f00-0b1bd79b59b0 | Executing single-partition query on CardHash | xxx.xxx.79.52 | 617 | ReadStage:6436c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df68-af3a-11e2-9f00-0b1bd79b59b0 | Acquiring sstable references | xxx.xxx.79.52 | 632 | ReadStage:6436c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df69-af3a-11e2-9f00-0b1bd79b59b0 | Merging memtable contents | xxx.xxx.79.52 | 656 | ReadStage:6436c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df6a-af3a-11e2-9f00-0b1bd79b59b0 | Sending message to /xxx.xxx.152.81 | xxx.xxx.79.52 | 657 | WRITE-/xxx.xxx.90.147c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df6b-af3a-11e2-9f00-0b1bd79b59b0 | Merging data from memtables and 0 sstables | xxx.xxx.79.52 | 697 | ReadStage:6436c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df6c-af3a-11e2-9f00-0b1bd79b59b0 | Read 0 live cells and 0 tombstoned | xxx.xxx.79.52 | 718 | ReadStage:6436c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e3df6d-af3a-11e2-9f00-0b1bd79b59b0 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.79.52 | 766 | ReadStage:6436c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40670-af3a-11e2-b266-75b700b21012 | Message received from /xxx.xxx.90.147 | xxx.xxx.201.218 | 23 | Thread-47c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40671-af3a-11e2-b266-75b700b21012 | Message received from /xxx.xxx.90.147 | xxx.xxx.201.218 | 81 | Thread-47c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40672-af3a-11e2-b266-75b700b21012 | Executing single-partition query on CardHash | xxx.xxx.201.218 | 150 | ReadStage:58c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40673-af3a-11e2-b266-75b700b21012 | Executing single-partition query on CardHash | xxx.xxx.201.218 | 158 | ReadStage:60c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40674-af3a-11e2-b266-75b700b21012 | Acquiring sstable references | xxx.xxx.201.218 | 175 | ReadStage:58c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40675-af3a-11e2-b266-75b700b21012 | Acquiring sstable references | xxx.xxx.201.218 | 176 | ReadStage:60c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40676-af3a-11e2-b266-75b700b21012 | Merging memtable contents | xxx.xxx.201.218 | 201 | ReadStage:58c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40677-af3a-11e2-b266-75b700b21012 | Merging memtable contents | xxx.xxx.201.218 | 201 | ReadStage:60c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40678-af3a-11e2-b266-75b700b21012 | Merging data from memtables and 0 sstables | xxx.xxx.201.218 | 240 | ReadStage:58c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e40679-af3a-11e2-b266-75b700b21012 | Merging data from memtables and 0 sstables | xxx.xxx.201.218 | 243 | ReadStage:60c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e4067a-af3a-11e2-b266-75b700b21012 | Read 0 live cells and 0 tombstoned | xxx.xxx.201.218 | 264 | ReadStage:58c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e4067b-af3a-11e2-b266-75b700b21012 | Read 0 live cells and 0 tombstoned | xxx.xxx.201.218 | 264 | ReadStage:60c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e4067c-af3a-11e2-b266-75b700b21012 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.201.218 | 310 | ReadStage:60c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e4067d-af3a-11e2-b266-75b700b21012 | Enqueuing response to /xxx.xxx.90.147 | xxx.xxx.201.218 | 310 | ReadStage:58c7e36a30-af3a-11e2-9ec9-772ec39805fe | c7e4067e-af3a-11e2-b266-75b700b21012 | Sending message to /xxx.xxx.152.81 | xxx.xxx.201.218 | 369 | WRITE-/xxx.xxx.90.147</description>
+      <version>1.2.7</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.CassandraServer.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.ReadCallback.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5573" opendate="2013-5-16 00:00:00" fixdate="2013-7-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Querying with an empty (impossible) range returns incorrect results</summary>
+      <description>SELECT * FROM cf WHERE token(key) &gt; 2000 AND token(key) &lt;= 2000 LIMIT 1000 ALLOW FILTERING;This should return nothing, but instead appears to freak and return arbitrary token values.</description>
+      <version>1.2.7,2.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.filter.ColumnSlice.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.QueryProcessor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5697" opendate="2013-6-25 00:00:00" fixdate="2013-7-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh doesn&amp;#39;t allow semicolons in BATCH statements</summary>
+      <description>The documentation for BATCH statements declares that semicolons are required between update operations. Currently including them results in an error 'expecting K_APPLY'. To match the design specifications, semi-colons should be allowed or optional.</description>
+      <version>1.2.7,2.0beta1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5700" opendate="2013-6-26 00:00:00" fixdate="2013-6-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>compact storage value restriction message confusing</summary>
+      <description>i have a compact storage value column name (user) the same as another column family name (user) and was getting the errorRestricting the value of a compact CF (user) is not supportedwhich was very confusingchanged message toRestricting the value (user) of a compact CF is not supported(tackling the big problems)</description>
+      <version>1.2.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5706" opendate="2013-6-26 00:00:00" fixdate="2013-6-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>OOM while loading key cache at startup</summary>
+      <description>Steps to be able to reproduce it : have a heap of 1Gb have a saved key cache without the SSTablesWhen looking at KeyCacheSerializer.serialize : it always writes a BooleanWhen looking at KeyCacheSerializer.deserialize : no Boolean is read if SSTable is missing...In case of a promoted index, RowIndexEntry.serializer.skip(...) should be called rather than RowIndexEntry.serializer.skipPromotedIndex(...) (again for symmetry between serialization/deserialization)Attached is a proposed patch</description>
+      <version>1.2.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CacheService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5716" opendate="2013-7-1 00:00:00" fixdate="2013-8-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remark on cassandra-5273 : Hanging system after OutOfMemory. Server cannot die due to uncaughtException handling</summary>
+      <description>Possible incorrect handling of an OOM as a result of modifications made for issue cassandra-5273.I could reproduce the OOM, with the patch of Cassandra-5273 applied.The good news is that, at least in my case, it works fine : the system did die !However, due to multiple uncaughtException handling, multiple threads are calling the exitThread.start() routine, causing an IllegalStateException. There are some other exceptions also, but that seems logical. Also, after calling the start() function, the thread(s) will continue to run, and that could not be wanted.Below I pasted the stack trace.Just for your information, after all this works, and I could restart the Cassandra server and redo the OOM&amp;#91;stack trace moved to http://aep.appspot.com/display/mQFNFHUh1VvQJYGcxRK0lQSM2j8/ &amp;#93;</description>
+      <version>1.2.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5728" opendate="2013-7-8 00:00:00" fixdate="2013-7-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Check if native server is running before starting it up</summary>
+      <description>It is possible to enable/disable thrift and native server via nodetool. However, there is a slight difference in their behaviour. In the case of thrift server, if the server is already running, enable will ignore and will not throw any exceptions. However, in the case of native server if the server is already running an exception is thrown. In the case of thrift, we check if the server is already running but not in the case of binary. The exception is perfectly valid, but, we should have consistent behaviour with thirft and binary server.</description>
+      <version>1.2.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5735" opendate="2013-7-9 00:00:00" fixdate="2013-7-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add binary server status to the node information</summary>
+      <description>nodetool info gives the gossip and thrift active status. Now, since there is a binary server it is nice to have the binary status too.</description>
+      <version>1.2.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5760" opendate="2013-7-14 00:00:00" fixdate="2013-7-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh DESCRIBE should properly describe CUSTOM secondary indexes</summary>
+      <description>CASSANDRA-5484 and then CASSANDRA-5639 added CREATE CUSTOM INDEX support to CQL3, but cqlsh hasn't been updated to describe such indexes properly.</description>
+      <version>1.2.7</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5762" opendate="2013-7-15 00:00:00" fixdate="2013-7-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Lost row marker after TTL expires</summary>
+      <description>I have the following tablecqlsh:loginproject&gt; DESCRIBE TABLE gameservers;CREATE TABLE gameservers ( address inet PRIMARY KEY, last_update timestamp, regions blob, server_status boolean) WITH bloom_filter_fp_chance=0.010000 AND caching='KEYS_ONLY' AND comment='' AND dclocal_read_repair_chance=0.000000 AND gc_grace_seconds=864000 AND read_repair_chance=0.100000 AND replicate_on_write='true' AND populate_io_cache_on_flush='false' AND compaction={'class': 'SizeTieredCompactionStrategy'} AND compression={'sstable_compression': 'SnappyCompressor'};after inserting a row and executing the following command:UPDATE gameservers USING TTL 10 SET server_status = true WHERE address = '192.168.0.100'after waiting for the ttl to expire, the row will lose its rowmarker making "select address from gameservers" returning 0 results although there are some.in cassandra-cli the table looks like this:&amp;#91;default@loginproject&amp;#93; list gameservers;Using default limit of 100Using default cell limit of 100-------------------RowKey: 192.168.0.100=&gt; (name=last_update, value=0000000000000017, timestamp=1373884433543000)=&gt; (name=regions, value=&lt;truncated&gt;, timestamp=1373883701652000)1 Row Returned.Elapsed time: 345 msec(s).&amp;#91;default@loginproject&amp;#93;</description>
+      <version>1.2.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5768" opendate="2013-7-17 00:00:00" fixdate="2013-7-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>If a Seed can&amp;#39;t be contacted, a new node comes up as a cluster of 1</summary>
+      <description>Setting up a new test cluster using 2.0.0-beta1 and I noticed the following behaviour with vnodes turned on. I bring up one node all well and good. however if I bring up a second node, that can't contact the first (the first being the seed for the second) after a short period of time, the second goes ahead and assumes it's the only node and bootstraps with all tokens. NOTE also this email from Robert Coli To: user@cassandra.apache.orgObviously if you have defined a seed and cannot contact it, the node should not start as a cluster of one. I have a to-do list item to file a JIRA on the subject, but if you wanted to file and link us, that'd be super. Startup trace (from the can't contact the seed messages below).http://aep.appspot.com/display/ABcWltCES1srzPrj5CkS69-GB8o/</description>
+      <version>1.2.7,2.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.GossipDigestSynVerbHandler.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.GossipDigestAckVerbHandler.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5769" opendate="2013-7-17 00:00:00" fixdate="2013-7-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Not all STATUS_CHANGE UP events reported via the native protocol</summary>
+      <description>Not all gossip UP events are pushed to native protocol users who have registered for them. This seems to be a native protocol issue because nodes themselves get the UP event (as seen in their logs). I can consistently reproduce this issue as follows:1) connect a client to a cluster node ("node1") using the native protocol, register for TOPOLOGY_CHANGE and STATUS_CHANGE events. (Probably you only need to register for STATUS_CHANGE to see this, however my client registers for both).2) on another node ("node2"), send SIGSTOP to the Cassandra process.3) after about 30 seconds the client gets pushed a STATUS_CHANGE DOWN event for the stopped node.4) on node2, send SIGCONT to the the Cassandra process.5) wait forever to get a STATUS_CHANGE UP event. This is failure: no event is ever received.Observe that node1 does know that node2 is back up: in its system log I see for example INFO &amp;#91;GossipStage:1&amp;#93; 2013-07-17 14:27:41,238 Gossiper.java (line 771) InetAddress /172.18.34.169 is now UPshortly after sending SIGCONT to the stopped process.To eliminate the possibility that my client is at fault, I performed the following sanity check:2') on node2, stopped Cassandra nicely using: sudo service cassandra stop4') on node2, restarted Cassandra using: sudo service cassandra startIn this case the client soon after gets a STATUS_CHANGE DOWN event followed by a STATUS_CHANGE UP event for node2.</description>
+      <version>1.2.7</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5773" opendate="2013-7-17 00:00:00" fixdate="2013-7-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>print cluster name in describe cluster</summary>
+      <description>Would be nice to print the cluster name when doing 'describe cluster' in cassandra-cli.</description>
+      <version>1.2.7,2.0beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5776" opendate="2013-7-19 00:00:00" fixdate="2013-7-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Print nodetool commands in sorted order</summary>
+      <description>nodetool commands are printed in the unsorted order (they are printed in the order they are written in the NodeToolHelp.yaml file). At the moment, the same/related commands are grouped together and the it is also nicely formated. But, since it is unsorted it is hard to find the command especially when looking for the options for the command, if you already know the command name.Wouldn't it be better to print the commands in sorted order?</description>
+      <version>1.2.7</version>
+      <fixedVersion>Tool/nodetool</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="5781" opendate="2013-7-19 00:00:00" fixdate="2013-7-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Providing multiple keys to sstable2json results in invalid json</summary>
+      <description>if you pass multiple keys via the -k parameter to sstable for json the 2nd row will be appended to the end of the first without a comma. It would look like so:sstable2json foo-Data.db -k key1 -k key2 -k key3 -k key4{key1 : [[]...]key2: [[]...],key3 : [[]...],key4 : [[]...]}</description>
+      <version>1.2.7</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

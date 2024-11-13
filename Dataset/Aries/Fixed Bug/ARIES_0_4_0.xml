@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="ARIES">
+  <bug id="1732" opendate="2017-7-28 00:00:00" fixdate="2017-9-28 01:00:00" resolution="Won&amp;#39;t Fix">
+    <buginformation>
+      <summary>blueprint-cm - race condition</summary>
+      <description>There is a possible race condition in `org.apache.aries.blueprint.compendium.cm.CmPropertyPlaceholder` and `org.apache.aries.blueprint.compendium.cm.ManagedObjectManager`There are situations where `ConfigAdmin` service might not be available and returns `null` when queried for the initial `config`.In other cases instead, `CmPropertyPlaceholder` receives updates from `ConfigAdmin` thread even before it has completed it's initialization.The code doesn't discriminate if `config` is `null` or not, and treats any value as valid, marking `CmPropertyPlaceholder` instance as initialized.This leads to spotty errors.The suggested fix, that simply prevents that `update(null)` invocation mark the `CmPropertyPlaceholder` instance as initialized, addresses the issue.Code here:https://github.com/apache/aries/compare/trunk...paoloantinori:ENTESB-7141?expand=1</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.itests.blueprint-itests.src.test.resources.CmPropertiesTest.xml</file>
+      <file type="M">blueprint.itests.blueprint-itests.src.test.java.org.apache.aries.blueprint.itests.cm.service.FooInterface.java</file>
+      <file type="M">blueprint.itests.blueprint-itests.src.test.java.org.apache.aries.blueprint.itests.cm.service.Foo.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1733" opendate="2017-8-5 00:00:00" fixdate="2017-8-5 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Injecting array, set or list of beans in BMP</summary>
+      <description>Bean like this:@Beanpublic class BeanWithCollections { @CollectionInject(I1.class) List&lt;I1&gt; listFieldInject; @CollectionInject(I1.class) Set&lt;I1&gt; setFieldInject; @CollectionInject(I2.class) I2[] arrayFieldInject; @AnnotatedService @CollectionInject(I1.class) Set&lt;I1&gt; annotatedSetFieldInject; @CollectionInject(I1.class) public void setListSetterInject(List&lt;I1&gt; l) { } @CollectionInject(I2.class) public void setSetSetterInject(Set&lt;I1&gt; l) { } @CollectionInject(I1.class) public void setArraySetterInject(I1[] l) { } @AnnotatedService @CollectionInject(I2.class) public void setAnnotatedArraySetterInject(I2[] l) { } public BeanWithCollections( @CollectionInject(I1.class) List&lt;I1&gt; listOfI1, @CollectionInject(I1.class) Set&lt;I1&gt; setOfI1, @CollectionInject(I2.class) I2[] arrayOfI2, @CollectionInject(I1.class) @AnnotatedService List&lt;I1&gt; listOfAnnotatedI1, @CollectionInject(I3.class) List&lt;I3&gt; listOfNotExistingI3, @CollectionInject(I3.class) Set&lt;I3&gt; setOfNotExistingI3, @CollectionInject(I3.class) I3[] arrayOfNotExistingI3 ) { }}should be generated in blueprint xml as:&lt;bean xmlns:ext="http://aries.apache.org/blueprint/xmlns/blueprint-ext/v1.0.0" id="beanWithCollections" class="org.apache.aries.blueprint.plugin.test.collection.BeanWithCollections" ext:field-injection="true"&gt; &lt;argument&gt; &lt;list&gt; &lt;ref component-id="i1Impl1"/&gt; &lt;ref component-id="i1Impl2"/&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/list&gt; &lt;/argument&gt; &lt;argument&gt; &lt;set&gt; &lt;ref component-id="i1Impl1"/&gt; &lt;ref component-id="i1Impl2"/&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/set&gt; &lt;/argument&gt; &lt;argument&gt; &lt;array&gt; &lt;ref component-id="i2Impl1"/&gt; &lt;ref component-id="i2Impl2Annotated"/&gt; &lt;ref component-id="i2Impl3Annotated"/&gt; &lt;/array&gt; &lt;/argument&gt; &lt;argument&gt; &lt;list&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/list&gt; &lt;/argument&gt; &lt;argument&gt; &lt;list/&gt; &lt;/argument&gt; &lt;argument&gt; &lt;set/&gt; &lt;/argument&gt; &lt;argument&gt; &lt;array/&gt; &lt;/argument&gt; &lt;property name="annotatedArraySetterInject"&gt; &lt;array&gt; &lt;ref component-id="i2Impl2Annotated"/&gt; &lt;ref component-id="i2Impl3Annotated"/&gt; &lt;/array&gt; &lt;/property&gt; &lt;property name="annotatedSetFieldInject"&gt; &lt;set&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/set&gt; &lt;/property&gt; &lt;property name="arrayFieldInject"&gt; &lt;array&gt; &lt;ref component-id="i2Impl1"/&gt; &lt;ref component-id="i2Impl2Annotated"/&gt; &lt;ref component-id="i2Impl3Annotated"/&gt; &lt;/array&gt; &lt;/property&gt; &lt;property name="arraySetterInject"&gt; &lt;array&gt; &lt;ref component-id="i1Impl1"/&gt; &lt;ref component-id="i1Impl2"/&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/array&gt; &lt;/property&gt; &lt;property name="listFieldInject"&gt; &lt;list&gt; &lt;ref component-id="i1Impl1"/&gt; &lt;ref component-id="i1Impl2"/&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/list&gt; &lt;/property&gt; &lt;property name="listSetterInject"&gt; &lt;list&gt; &lt;ref component-id="i1Impl1"/&gt; &lt;ref component-id="i1Impl2"/&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/list&gt; &lt;/property&gt; &lt;property name="setFieldInject"&gt; &lt;set&gt; &lt;ref component-id="i1Impl1"/&gt; &lt;ref component-id="i1Impl2"/&gt; &lt;ref component-id="i1Impl3Annotated"/&gt; &lt;ref component-id="i1Impl4Annotated"/&gt; &lt;/set&gt; &lt;/property&gt; &lt;property name="setSetterInject"&gt; &lt;set&gt; &lt;ref component-id="i2Impl1"/&gt; &lt;ref component-id="i2Impl2Annotated"/&gt; &lt;ref component-id="i2Impl3Annotated"/&gt; &lt;/set&gt; &lt;/property&gt; &lt;/bean&gt;</description>
+      <version>None</version>
+      <fixedVersion>blueprint-maven-plugin-1.8.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.BlueprintFileWriterTest.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.Property.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.BlueprintRegistry.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.Blueprint.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.BeanRefStore.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.Argument.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.AnnotationHelper.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.handlers.Handlers.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.pom.xml</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-annotation.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1734" opendate="2017-8-5 00:00:00" fixdate="2017-8-5 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Allow for changing base directory for generated blueprint file</summary>
+      <description>Currently the blueprint file is generated in ${project.build.directory}/generated-sources/blueprint/${genreatedDir}There should be a configuration option which allows for changing the base directory.</description>
+      <version>None</version>
+      <fixedVersion>blueprint-maven-plugin-1.8.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.ResourceInitializer.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.Bean.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.GenerateMojo.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.AddResourceDirMojo.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-itest.src.it.custom-destination.verify.groovy</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-itest.src.it.custom-destination.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1735" opendate="2017-8-6 00:00:00" fixdate="2017-8-6 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Detect beans with the same id, but different classes</summary>
+      <description>When blueprint maven plugin finds two beans with the classes e. g. p1.T1 and p2.T1, then by default the id of both beans is generated from a simple name of class (it means t1) and we generate only the last bean (sorted lexicographically):&lt;bean id="t1" class="p2.T1"/&gt;</description>
+      <version>None</version>
+      <fixedVersion>blueprint-maven-plugin-1.8.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.BeanRefStore.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.BeanRef.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.GenerateMojo.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.pom.xml</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-spi.pom.xml</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-annotation.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1736" opendate="2017-8-6 00:00:00" fixdate="2017-8-6 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Generate default availability and timeout based on plugin parameters</summary>
+      <description>When defaultAvailability parameter for plugin will be set than defailt-availibility attribute will be set on blueprint element.When defaultTimeout parameter for plugin will be set than defailt-timeout attribute will be set on blueprint element. Negative timeout will throw exception.</description>
+      <version>None</version>
+      <fixedVersion>blueprint-maven-plugin-1.8.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.model.BlueprintTest.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.model.BeanTest.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.EnableAnnotationTest.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.BlueprintFileWriterTest.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.Blueprint.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.GenerateMojo.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.BlueprintConfigurationImpl.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-spi.src.main.java.org.apache.aries.blueprint.plugin.spi.BlueprintConfiguration.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-itest.src.it.multiple-invocation.verify.groovy</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-itest.src.it.multiple-invocation.pom.xml</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-itest.src.it.fail-on-conflict.verify.groovy</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1737" opendate="2017-8-6 00:00:00" fixdate="2017-8-6 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Generate custom type converters in blueprint xml</summary>
+      <description>Find all type converters and put it in type-converters element as refs, e. g. @Singletonpublic class Converter1 implements Converter { ... }@Singletonpublic class Converter2 implements Converter { ... }will generate&lt;type-converters&gt; &lt;ref component-id="converter1"/&gt; &lt;ref component-id="converter2"/&gt; &lt;/type-converters&gt;The default blueprintConverter will be omitted.Without any custom type converters there will be no type-conveters element in generated xml.</description>
+      <version>None</version>
+      <fixedVersion>blueprint-maven-plugin-1.8.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.test.java.org.apache.aries.blueprint.plugin.BlueprintFileWriterTest.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.Blueprint.java</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-itest.src.it.simple-project.verify.groovy</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1738" opendate="2017-8-7 00:00:00" fixdate="2017-1-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BeanProcessor are not removed when a namespace is restarted</summary>
+      <description>a bundle X which register a custom NamespaceHandler. This handler add into the context a BeanProcessor with a reference on an osgi service.The Bundle Y use this namespace.When I restart X, the bundle Y restarts, but fails with the error "The Blueprint container is being or has been destroyed"When a namespace is restarted, the bundle Y keeps the same instance of BlueprintContainer. However, his "processors" properties is not resetted : it owns two instances of my BeanProcessor : the first one (before the restart), and the second one (after the restart). The first instance fails because the reference is not valid anymore.</description>
+      <version>None</version>
+      <fixedVersion>blueprint-core-1.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.blueprint-core.src.main.java.org.apache.aries.blueprint.container.BlueprintContainerImpl.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1744" opendate="2017-9-28 00:00:00" fixdate="2017-9-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unable to load resource from blueprint-spring</summary>
+      <description>org.springframework.beans.factory.parsing.BeanDefinitionParsingException: Configuration problem: Failed to import bean definitions from URL location [classpath:META-INF/cxf/cxf.xml]Offending resource: URL [bundle://218.0:0/META-INF/spring/beans.xml]; nested exception is org.springframework.beans.factory.BeanDefinitionStoreException: IOException parsing XML document from class path resource [META-INF/cxf/cxf.xml]; nested exception is java.io.FileNotFoundException: class path resource [META-INF/cxf/cxf.xml] cannot be opened because it does not exist at org.springframework.beans.factory.parsing.FailFastProblemReporter.error(FailFastProblemReporter.java:70) at org.springframework.beans.factory.parsing.ReaderContext.error(ReaderContext.java:85) at org.springframework.beans.factory.parsing.ReaderContext.error(ReaderContext.java:76) at org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader.importBeanDefinitionResource(DefaultBeanDefinitionDocumentReader.java:233) at org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader.parseDefaultElement(DefaultBeanDefinitionDocumentReader.java:184) at org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader.parseBeanDefinitions(DefaultBeanDefinitionDocumentReader.java:169) at org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader.doRegisterBeanDefinitions(DefaultBeanDefinitionDocumentReader.java:142) at org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader.registerBeanDefinitions(DefaultBeanDefinitionDocumentReader.java:94) at org.springframework.beans.factory.xml.XmlBeanDefinitionReader.registerBeanDefinitions(XmlBeanDefinitionReader.java:508) at org.springframework.beans.factory.xml.XmlBeanDefinitionReader.doLoadBeanDefinitions(XmlBeanDefinitionReader.java:392) at org.springframework.beans.factory.xml.XmlBeanDefinitionReader.loadBeanDefinitions(XmlBeanDefinitionReader.java:336) at org.springframework.beans.factory.xml.XmlBeanDefinitionReader.loadBeanDefinitions(XmlBeanDefinitionReader.java:304) at org.springframework.beans.factory.support.AbstractBeanDefinitionReader.loadBeanDefinitions(AbstractBeanDefinitionReader.java:181) at org.springframework.beans.factory.support.AbstractBeanDefinitionReader.loadBeanDefinitions(AbstractBeanDefinitionReader.java:217) at org.apache.aries.blueprint.spring.BeansNamespaceHandler$BeanDefinitionReader.importBeanDefinitionResource(BeansNamespaceHandler.java:250) ... 21 moreCaused by: org.springframework.beans.factory.BeanDefinitionStoreException: IOException parsing XML document from class path resource [META-INF/cxf/cxf.xml]; nested exception is java.io.FileNotFoundException: class path resource [META-INF/cxf/cxf.xml] cannot be opened because it does not exist at org.springframework.beans.factory.xml.XmlBeanDefinitionReader.loadBeanDefinitions(XmlBeanDefinitionReader.java:344) at org.springframework.beans.factory.xml.XmlBeanDefinitionReader.loadBeanDefinitions(XmlBeanDefinitionReader.java:304) at org.springframework.beans.factory.support.AbstractBeanDefinitionReader.loadBeanDefinitions(AbstractBeanDefinitionReader.java:181) at org.springframework.beans.factory.support.AbstractBeanDefinitionReader.loadBeanDefinitions(AbstractBeanDefinitionReader.java:217) at org.springframework.beans.factory.xml.DefaultBeanDefinitionDocumentReader.importBeanDefinitionResource(DefaultBeanDefinitionDocumentReader.java:227) ... 32 moreCaused by: java.io.FileNotFoundException: class path resource [META-INF/cxf/cxf.xml] cannot be opened because it does not exist at org.springframework.core.io.ClassPathResource.getInputStream(ClassPathResource.java:172) at org.springframework.beans.factory.xml.XmlBeanDefinitionReader.loadBeanDefinitions(XmlBeanDefinitionReader.java:330) ... 36 more</description>
+      <version>blueprint-spring-0.4.0</version>
+      <fixedVersion>blueprint-spring-0.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.blueprint-spring.src.main.java.org.apache.aries.blueprint.spring.SpringApplicationContext.java</file>
+      <file type="M">blueprint.blueprint-spring.src.main.java.org.apache.aries.blueprint.spring.BlueprintBeanFactory.java</file>
+      <file type="M">blueprint.blueprint-spring.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1745" opendate="2017-9-29 00:00:00" fixdate="2017-9-29 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Name beans from factories after method name in BMP</summary>
+      <description>Currently name of bean from factory is taken from @Named (or similar) annotation or it is name of the bean class.It should be configurable via plugin property to change the naming policy for such beans.</description>
+      <version>None</version>
+      <fixedVersion>blueprint-maven-plugin-1.9.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin-itest.src.it.produced-bean-by-method-name.pom.xml</file>
+      <file type="M">blueprint.plugin.blueprint-maven-plugin.src.main.java.org.apache.aries.blueprint.plugin.model.BeanFromFactory.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

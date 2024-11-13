@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2660" opendate="2011-5-17 00:00:00" fixdate="2011-5-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>BRAF.sync() bug can cause massive commit log write magnification</summary>
+      <description>This was discovered, fixed and tested on 0.7.5. Cursory examination shows it should still be an issue on trunk/0.8. If people otherwise agree with the patch I can rebase if necessary.Problem:BRAF.flush() is actually broken in the sense that it cannot be called without close co-operation with the caller. rebuffer() does the co-op by adjusting bufferOffset and validateBufferBytes appropriately, by sync() doesn't. This means sync() is broken, and sync() is used by the commit log.The attached patch moves the bufferOffset/validateBufferBytes handling out into resetBuffer() and has both flush() and rebuffer() call that. This makes sync() safe.What happened was that for batched commit log mode, every time sync() was called the data buffered so far would get written to the OS and fsync():ed. But until rebuffer() is called for other reasons as part of the write path, all subsequent sync():s would result in the very same data (plus whatever was written since last time) being re-written and fsync():ed again. So first you write+fsync N bytes, then N+N1, then N+N1+N2... (each N being a batch), until at some point you trigger a rebuffer() and it starts all over again.The result is that you see a lot more writes to the commit log than are in fact written to the BRAF. And these writes translate into actual real writes to the underlying storage device due to fsync(). We had crazy numbers where we saw spikes upwards of 80 mb/second where the actual throughput was more like ~ 1 mb second of data to the commit log.(One can make a possibly weak argument that it is also functionally incorrect as I can imagine implementations where re-writing the same blocks does copy-on-write in such a way that you're not necessarily guaranteed to see before-or-after data, particularly in case of partial page writes. However that's probably not a practical issue.)Worthy of noting is that this probably causes added difficulties in fsync() latencies since the average fsync() will contain a lot more data. Depending on I/O scheduler and underlying device characteristics, the extra writes may not have a detrimental effect, but I think it's pretty easy to point to cases where it will be detrimental - in particular if the commit log is on a non-battery backed drive. Even with a nice battery backed RAID with the commit log on, the size of the writes probably contributes to difficulty in making the write requests propagate down without being starved by reads (but this is speculation, not tested, other than that I've observed commit log writer starvation that seemed excessive).This isn't the first subtle BRAF bug. What are people's thoughts on creating separate abstractions for streaming I/O that can perhaps be a lot more simple, and use BRAF only for random reads in response to live traffic? (Not as part of this JIRA, just asking in general.)</description>
+      <version>0.7.7,0.8.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.util.BufferedRandomAccessFile.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2668" opendate="2011-5-19 00:00:00" fixdate="2011-5-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>don&amp;#39;t perform HH to client-mode nodes</summary>
+      <description></description>
+      <version>0.7.7,0.8.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">src.java.org.apache.cassandra.gms.EndpointState.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2680" opendate="2011-5-21 00:00:00" fixdate="2011-5-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>range scan doesn&amp;#39;t repair missing rows</summary>
+      <description>Range scans do not do digest queries but they do compare all the replicas they receive and repair any discrepancies in the background. (Thus, to get comparable behavior to normal read repair, CL.ALL must be used.)The bug is that currently, replicas that omit a row entirely will be ignored and that row will not be sent to them.</description>
+      <version>0.7.7,0.8.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.RangeSliceResponseResolver.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2733" opendate="2011-6-1 00:00:00" fixdate="2011-6-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>nodetool ring with EC2Snitch, NPE checking for the zone and dc</summary>
+      <description>Existing EC2Snitch... compare is done via == instead of equals() while comparing the IP's... (endpoint == FBUtilities.getLocalAddress())It is ok to compare the Object Address as most of the code uses FBU.getLocalAddress() and it returns the same object everywhere... but it breaks nodetool ring.</description>
+      <version>0.7.7,0.8.1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.locator.Ec2Snitch.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2773" opendate="2011-6-15 00:00:00" fixdate="2011-6-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"Index manager cannot support deleting and inserting into a row in the same mutation"</summary>
+      <description>I use hector 0.8.0-1 and cassandra 0.8.1. create mutator by using hector api, 2. Insert a few columns into the mutator for key "key1", cf "standard". 3. add a deletion to the mutator to delete the record of "key1", cf "standard".4. repeat 2 and 35. execute the mutator.the result: the connection seems to be held by the sever forever, it never returns. when I tried to restart the cassandra I saw unsupportedexception : "Index manager cannot support deleting and inserting into a row in the same mutation". and the cassandra is dead forever, unless I delete the commitlog. I would expect to get an exception when I execute the mutator, not after I restart the cassandra.</description>
+      <version>0.7.7,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.ColumnFamilyStoreTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2800" opendate="2011-6-20 00:00:00" fixdate="2011-7-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>OPP#describeOwnership reports incorrect ownership</summary>
+      <description>OPP#describeOwnership relies on StorageService#getSplits and counts the received tokens as its basis of ownership.When the number of result keys is less than the number of splits, the full count is omitted (to save work?). However, we don't care if a split would end up fractional in this case, we just need the full count.The logic here is:int splits = keycount * DatabaseDescriptor.getIndexInterval() / keysPerSplit;if (keycount &gt;= splits) { ... add count to result set }We were passing in 1 key per split (since we just care about the count), but splits=keycount*IndexInterval is guaranteed to be &gt; keycount, so the result set is not completely formed.The better "unit keysPerSplit" to use is IndexInterval itself, which gives splits=keycount*II/II=keycount, so the logic runs correctly.</description>
+      <version>0.7.7,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.dht.OrderPreservingPartitioner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2817" opendate="2011-6-23 00:00:00" fixdate="2011-6-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Expose number of threads blocked on submitting a memtable for flush</summary>
+      <description>Writes can be blocked by a thread trying to submit a memtable while the flush queue is full. While this is the expected behavior (the goal being to prevent OOMing), it is worth exposing when that happens so that people can monitor it and modify settings accordingly if that happens too often.</description>
+      <version>0.7.7,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.StatusLogger.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutorMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutor.java</file>
+      <file type="M">src.java.org.apache.cassandra.concurrent.DebuggableThreadPoolExecutor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2832" opendate="2011-6-27 00:00:00" fixdate="2011-6-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>reduce variance in HH impact between wide and narrow rows</summary>
+      <description>default page_size of 10000 is huge, and makes it impossible to set a hinted_handoff_throttle_delay_in_ms that works well for both wide rows and narrow.at the same time you don't want to make it TOO small because that will hurt performance on the source node (seeking to the hinted row repeatedly).</description>
+      <version>0.7.7,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2839" opendate="2011-6-29 00:00:00" fixdate="2011-7-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Small typos in the cli</summary>
+      <description>Memtable thresholds: %s/%s/%s (millions of ops/minutes/MB) was displaying ops/MB/minutes.placement_strategy: the fully qualified class used to place replicas in this keyspace. Valid values are org.apache.cassandra.locator.SimpleStrategy, org.apache.cassandra.locator.NetworkTopologyStrategy, and org.apache.cassandra.locator.OldNetworkTopologyStrategywas being displayed but would only accept SimpleStrategy.</description>
+      <version>0.7.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2841" opendate="2011-6-29 00:00:00" fixdate="2011-6-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Always use even distribution for merkle tree with RandomPartitionner</summary>
+      <description>When creating the initial merkle tree, repair tries to be (too) smart and use the key samples to "guide" the tree splitting. While this is a good idea for OPP where there is a good change the data distribution is uneven, you can't beat an even distribution for the RandomPartitionner. And a quick experiment even shows that the method used is significantly less efficient than an even distribution for the ranges of the merkle tree (that is, an even distribution gives a much better of distribution of the number of keys by range of the tree).Thus let's switch to an even distribution for RandomPartitionner. That 3 lines change alone amounts for a significant improvement of repair's precision.</description>
+      <version>0.7.7,0.8.2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.AntiEntropyService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2852" opendate="2011-7-3 00:00:00" fixdate="2011-7-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cassandra CLI - Import Keyspace Definitions from File - Comments do partitially interpret characters/commands</summary>
+      <description>Hello, using: bin/cassandra-cli -host localhost --file conf/schema-sample.txtwith schema-sample.txt having contents like this:/* here are a lot of comments,like this sample create keyspace;and so on*/Will result in an error: Line 1 =&gt; Syntax Error at Position 323: mismatched charackter '&lt;EOF&gt;' expecting '*'The Cause is the keyspace; statement =&gt; the semicolon ";" causes the error.However:Writing the word "keyspace;" with quotes, does NOT lead to the error.so this works: /* here are a lot of comments,like this sample create "keyspace;"and so on*/From my point of view this is an error. Everyting between the "Start Comment" =&gt; /* and "End Comment" =&gt; */ Should be treated as a comment and not be interpreted in any way. Thats the definition of a comment, to be not interpreted at all. Or this must be documented somewhere very prominently, otherwise this will lead to unnecessary wasting of time searching for this odd behavoiur. And it makes "commenting out" statements much more cumbersome.Plattform: Windows Vistathanks</description>
+      <version>0.7.7,0.8.2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliMain.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

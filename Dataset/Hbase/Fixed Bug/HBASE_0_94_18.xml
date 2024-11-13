@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="10922" opendate="2014-4-7 00:00:00" fixdate="2014-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Log splitting status should always be closed</summary>
+      <description>With distributed log replay enabled by default, I ran into an issue that log splitting hasn't completed after 13 hours. It seems to hang somewhere.</description>
+      <version>None</version>
+      <fixedVersion>0.99.0,0.98.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.HLogSplitter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10923" opendate="2014-4-7 00:00:00" fixdate="2014-6-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Control where to put meta region</summary>
+      <description>There is a concern on placing meta regions on the master, as in the comments of HBASE-10569. I was thinking we should have a configuration for a load balancer to decide where to put it. Adjusting this configuration we can control whether to put the meta on master, or other region server.</description>
+      <version>None</version>
+      <fixedVersion>0.99.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.balancer.TestBaseLoadBalancer.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.balancer.BalancerTestBase.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.balancer.StochasticLoadBalancer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.balancer.BaseLoadBalancer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10958" opendate="2014-4-10 00:00:00" fixdate="2014-4-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[dataloss] Bulk loading with seqids can prevent some log entries from being replayed</summary>
+      <description>We found an issue with bulk loads causing data loss when assigning sequence ids (HBASE-6630) that is triggered when replaying recovered edits. We're nicknaming this issue Blindspot.The problem is that the sequence id given to a bulk loaded file is higher than those of the edits in the region's memstore. When replaying recovered edits, the rule to skip some of them is that they have to be lower than the highest sequence id. In other words, the edits that have a sequence id lower than the highest one in the store files should have also been flushed. This is not the case with bulk loaded files since we now have an HFile with a sequence id higher than unflushed edits.The log recovery code takes this into account by simply skipping the bulk loaded files, but this "bulk loaded status" is lost on compaction. The edits in the logs that have a sequence id lower than the bulk loaded file that got compacted are put in a blind spot and are skipped during replay.Here's the easiest way to recreate this issue: Create an empty table Put one row in it (let's say it gets seqid 1) Bulk load one file (it gets seqid 2). I used ImporTsv and set hbase.mapreduce.bulkload.assign.sequenceNumbers. Bulk load a second file the same way (it gets seqid 3). Major compact the table (the new file has seqid 3 and isn't considered bulk loaded). Kill the region server that holds the table's region. Scan the table once the region is made available again. The first row, at seqid 1, will be missing since the HFile with seqid 3 makes us believe that everything that came before it was flushed.</description>
+      <version>0.96.2,0.98.1,0.94.18</version>
+      <fixedVersion>0.99.0,0.98.2,0.96.3,0.94.20</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.TestWALReplay.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestHRegion.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.mapreduce.TestLoadIncrementalHFiles.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.StoreFile.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.MemStoreFlusher.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegion.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10993" opendate="2014-4-16 00:00:00" fixdate="2014-5-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Deprioritize long-running scanners</summary>
+      <description>Currently we have a single call queue that serves all the "normal user" requests, and the requests are executed in FIFO.When running map-reduce jobs and user-queries on the same machine, we want to prioritize the user-queries.Without changing too much code, and not having the user giving hints, we can add a “vtime” field to the scanner, to keep track from how long is running. And we can replace the callQueue with a priorityQueue. In this way we can deprioritize long-running scans, the longer a scan request lives the less priority it gets.</description>
+      <version>None</version>
+      <fixedVersion>0.99.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestQosFunction.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.ipc.TestSimpleRpcScheduler.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RSRpcServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.AnnotationReadingPriorityFunction.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.SimpleRpcScheduler.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.RpcServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.PriorityFunction.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10997" opendate="2014-4-16 00:00:00" fixdate="2014-4-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a modulo argument to PE to constrain the key range</summary>
+      <description>Helps w/ keeping PE inside block cache but same number of clients.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.PerformanceEvaluation.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="11052" opendate="2014-4-23 00:00:00" fixdate="2014-6-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Sending random data crashes thrift service</summary>
+      <description>Upstream thrift library has a know issue (THRIFT-601) causing the thrift server to crash with an Out-of-Memory Error when bogus requests are sent.This reproduces when a very large request size is sent in the request header, making the thrift server to allocate a large memory segment leading to OOM.LoadBalancer health checks are the first "candidate" for bogus requestsThrift developers admit this is a known issue with TBinaryProtocol and their recommandation is to use TCompactProtocol/TFramedTransport but this requires all thrift clients to be updated (might not be feasible atm)So we need a fix similar to CASSANDRA-475.</description>
+      <version>0.98.1,1.0.0,0.94.18</version>
+      <fixedVersion>0.99.0,0.94.21,0.98.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-thrift.src.main.java.org.apache.hadoop.hbase.thrift.ThriftServerRunner.java</file>
+      <file type="M">hbase-thrift.src.main.java.org.apache.hadoop.hbase.thrift2.ThriftServer.java</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

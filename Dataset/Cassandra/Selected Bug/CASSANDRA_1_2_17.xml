@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  <bug fixdate="2013-5-13 01:00:00" id="6344" opendate="2013-11-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When running CQLSH with file input, exit with error status code if script fails</summary>
+      <description>Just thought it would be nice if the cqlsh process would exit with an error status code if there are errors in the script, since it is the only thing the cqlsh process does when executing.Preferably a predictable status code could be used for a script error to discern it from some other odd error (i.e., don't use `1` because that could be many things). Maybe `2` or something.</description>
+      <version>1.2.17,2.0.9,2.1rc1</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-6-2 01:00:00" id="6539" opendate="2014-1-2 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Track metrics at a keyspace level as well as column family level</summary>
+      <description>It would be useful to be able to see aggregated metrics (write/read count/latency) at a keyspace level as well as at the individual column family level.</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.Table.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Keyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-4-1 01:00:00" id="6787" opendate="2014-3-1 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>assassinate should continue when the endpoint vanishes</summary>
+      <description>Assassinate can NPE in various situations, most notably if the endpoint vanishes during the sleep-for-safety check.</description>
+      <version>1.2.17,2.0.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.Gossiper.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-4-3 01:00:00" id="6980" opendate="2014-4-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Non-droppable verbs shouldn&amp;#39;t be dropped from OTC</summary>
+      <description>In CASSANDRA-5393, a retry was added if there was an exception sending a non-droppable verb. However, the message can still be dropped if it has been in the queue longer than rpc timeout. When this happens for e.g. Merkle trees, the repair hangs. The message should not be dropped.</description>
+      <version>1.2.17,2.0.7</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.net.OutboundTcpConnection.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-4-19 01:00:00" id="7058" opendate="2014-4-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HHOM and BM direct delivery should not cause hints to be written on timeout</summary>
+      <description>Currently, a timed out HHOM hint delivery would create a further hint, with a wrong TTL. BM direct delivery code is using the same code snippet basically, so is also affected (with slightly worse consequences).</description>
+      <version>1.2.17,2.0.8,2.1beta2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageProxy.java</file>
+      <file type="M">src.java.org.apache.cassandra.net.MessagingService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.HintedHandOffManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.BatchlogManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-5-28 01:00:00" id="7105" opendate="2014-4-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>SELECT with IN on final column of composite and compound primary key fails</summary>
+      <description>I have a failing sequence where I specify an IN constraint on the final int column of the composite primary key and an IN constraint on the final String column of the compound primary key and no rows are returned, when rows should be returned. CREATE TABLE IF NOT EXISTS sr2 (siteID TEXT, partition INT, listID BIGINT, emailAddr TEXT, emailCrypt TEXT, createDate TIMESTAMP, removeDate TIMESTAMP, removeImportID BIGINT, properties TEXT, PRIMARY KEY ((siteID, listID, partition), createDate, emailCrypt) ) WITH CLUSTERING ORDER BY (createDate DESC, emailCrypt DESC) AND compression = {'sstable_compression' : 'SnappyCompressor'} AND compaction = {'class' : 'SizeTieredCompactionStrategy'};insert into sr2 (siteID, listID, partition, emailAddr, emailCrypt, createDate) values ('4ca4f79e-3ab2-41c5-ae42-c7009736f1d5', 34, 1, 'xyzzy', '5fe7719229092cdde4526afbc65c900c', '2014-04-28T14:05:59.236-0500');insert into sr2 (siteID, listID, partition, emailAddr, emailCrypt, createDate) values ('4ca4f79e-3ab2-41c5-ae42-c7009736f1d5', 34, 2, 'noname', '97bf28af2ca9c498d6e47237bb8680bf', '2014-04-28T14:05:59.236-0500');select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 2 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt = '97bf28af2ca9c498d6e47237bb8680bf'; emailcrypt | emailaddr----------------------------------+----------- 97bf28af2ca9c498d6e47237bb8680bf | noname(1 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 1 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt = '5fe7719229092cdde4526afbc65c900c'; emailcrypt | emailaddr----------------------------------+----------- 5fe7719229092cdde4526afbc65c900c | xyzzy(1 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)cqlsh:test_multiple_in&gt; select * from sr2; siteid | listid | partition | createdate | emailcrypt | emailaddr | properties | removedate | removeimportid--------------------------------------+--------+-----------+------------------------------------------+------------+----------------------------------+------------+------------+---------------- 4ca4f79e-3ab2-41c5-ae42-c7009736f1d5 | 34 | 2 | 2014-04-28 14:05:59Central Daylight Time | noname | 97bf28af2ca9c498d6e47237bb8680bf | null | null | null 4ca4f79e-3ab2-41c5-ae42-c7009736f1d5 | 34 | 1 | 2014-04-28 14:05:59Central Daylight Time | xyzzy | 5fe7719229092cdde4526afbc65c900c | null | null | null(2 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 1 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition = 2 and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf','5fe7719229092cdde4526afbc65c900c');(0 rows)cqlsh:test_multiple_in&gt; select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('97bf28af2ca9c498d6e47237bb8680bf'); emailcrypt | emailaddr----------------------------------+----------- 97bf28af2ca9c498d6e47237bb8680bf | noname(1 rows)cqlsh:test_multiple_in&gt; select emailCrypt, emailAddr from sr2 where siteID = '4ca4f79e-3ab2-41c5-ae42-c7009736f1d5' and listID = 34 and partition IN (1,2) and createDate = '2014-04-28T14:05:59.236-0500' and emailCrypt IN ('5fe7719229092cdde4526afbc65c900c'); emailcrypt | emailaddr----------------------------------+----------- 5fe7719229092cdde4526afbc65c900c | xyzzy(1 rows)As you can see, when I specify IN on the final primary column, no rows are returned, even when I specify equality on the partition column. If I use IN to constrain the partition column but simple equality on the final column, one row is returned for each of the possible values. This appears to be a variation on Cassandra-6327 but with a String as the final primary key column. I initially saw this with a blob as the final primary key column, so the issue is not exclusive to String. When I tried a real simple case with ints throughout, that worked fine.</description>
+      <version>1.2.17</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2014-5-8 01:00:00" id="7191" opendate="2014-5-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>reduce needless garbage/thrashing in pending range calculation</summary>
+      <description>code inverts the same multimap in a loop... just pull it out of the loopagainst 1.2</description>
+      <version>1.2.17,2.0.9,2.1rc1</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.PendingRangeCalculatorService.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-5-17 01:00:00" id="7257" opendate="2014-5-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>only query once for local host id on join</summary>
+      <description>switch to just querying once for local host id</description>
+      <version>1.2.17</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2014-6-31 01:00:00" id="7333" opendate="2014-5-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>gossipinfo should include the generation</summary>
+      <description>As the title says, we should include this information in gossipinfo so it's easier to diagnose the generation-from-future type problems.</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.gms.FailureDetector.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2014-6-11 01:00:00" id="7380" opendate="2014-6-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Native protocol needs keepalive, we should add it</summary>
+      <description>On clients connecting to C* 1.2.15 using native protocol. We see that when the client is bounced, the old connection is not going awayOn Thrift, there is the rpc_keepalive but there is no similar feature for the native protocol</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.transport.Server.java</file>
+      <file type="M">conf.cassandra.yaml</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-6-15 01:00:00" id="7399" opendate="2014-6-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: describe table shows wrong data type for CompositeType</summary>
+      <description>DESCRIBE for CompositeType produces wrong output.Currently:CREATE TABLE compo.comp ( id int PRIMARY KEY, comp 'org.apache.cassandra.db.marshal.CompositeType'&lt;int, text&gt;)...Correct:CREATE TABLE compo.comp ( id int PRIMARY KEY, comp 'org.apache.cassandra.db.marshal.CompositeType(Int32Type,UTF8Type)')...Means:1. use normal brackets instead of &lt;&gt;1. use C* type names instead of CQL3 names1. move types inside quoted</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2014-6-17 01:00:00" id="7407" opendate="2014-6-17 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY command does not work properly with collections causing failure to import data</summary>
+      <description>The COPY command does not properly format collections in the output CSV - to be able to re-import the data.Here is how you can replicate the problem:CREATE TABLE user_colors ( user_id int PRIMARY KEY, colors list&lt;ascii&gt; );UPDATE user_colors SET colors = ['red','blue'] WHERE user_id=5; UPDATE user_colors SET colors = ['purple','yellow'] WHERE user_id=6; UPDATE user_colors SET colors = ['black''] WHERE user_id=7;COPY user_colors (user_id, colors) TO 'output.csv';CREATE TABLE user_colors2 ( user_id int PRIMARY KEY, colors list&lt;ascii&gt; );COPY user_colors2 (user_id, colors ) FROM 'user_colors.csv';Bad Request: line 1:68 no viable alternative at input ']'Aborting import at record #0 (line 1). Previously-inserted values still present.0 rows imported in 0.007 seconds.The CSV file seems to be malformed The single quotes within the collection are missing The double quotes for collection on user_id=7 are missing and causing COPY to fail.5,"[red, blue]"7,[black]6,"[purple, yellow]"Should be like this5,"['red', 'blue']"7,"['black']"6,"['purple', 'yellow']"Once the file is changed, the import worksCOPY user_colors2 (user_id, colors ) FROM 'user_colors.csv';3 rows imported in 0.012 seconds.SELECT * FROM user_colors2; user_id | colors---------+------------------ 5 | [red, blue] 7 | [black] 6 | [purple, yellow](3 rows)</description>
+      <version>1.2.17,2.0.9,2.1rc2</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.formatting.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="14377" opendate="2018-4-11 00:00:00" fixdate="2018-8-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Returning invalid JSON for NaN and Infinity float values</summary>
+      <description>After inserting special float values like NaN and Infinity into a table:CREATE TABLE testme (t1 bigint, t2 float, t3 float, PRIMARY KEY (t1));INSERT INTO testme (t1, t2, t3) VALUES (7, NaN, Infinity);and returning them as JSON...cqlsh:demodb&gt; select json * from testme; &amp;#91;json&amp;#93;-------------------------------------- {"t1": 7, "t2": NaN, "t3": Infinity} ... the result will not be validated (e.g. with https://jsonlint.com/ ) because neither NaN nor Infinity is a valid JSON value. The consensus seems to be returning JSON's `null` in these cases, based on this article https://stackoverflow.com/questions/1423081/json-left-out-infinity-and-nan-json-status-in-ecmascript and other similar ones.</description>
+      <version>2.2.14,3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.JsonTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.FloatType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.DoubleType.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14468" opendate="2018-5-24 00:00:00" fixdate="2018-7-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"Unable to parse targets for index" on upgrade to Cassandra 3.0.10-3.0.16</summary>
+      <description>I am attempting to upgrade from Cassandra 2.2.10 to 3.0.16. I am getting this error:org.apache.cassandra.exceptions.ConfigurationException: Unable to parse targets for index idx_foo ("666f6f") at org.apache.cassandra.index.internal.CassandraIndex.parseTarget(CassandraIndex.java:800) ~[apache-cassandra-3.0.16.jar:3.0.16] at org.apache.cassandra.index.internal.CassandraIndex.indexCfsMetadata(CassandraIndex.java:747) ~[apache-cassandra-3.0.16.jar:3.0.16] at org.apache.cassandra.db.ColumnFamilyStore.scrubDataDirectories(ColumnFamilyStore.java:645) ~[apache-cassandra-3.0.16.jar:3.0.16] at org.apache.cassandra.service.CassandraDaemon.setup(CassandraDaemon.java:251) [apache-cassandra-3.0.16.jar:3.0.16] at org.apache.cassandra.service.CassandraDaemon.activate(CassandraDaemon.java:569) [apache-cassandra-3.0.16.jar:3.0.16] at org.apache.cassandra.service.CassandraDaemon.main(CassandraDaemon.java:697) [apache-cassandra-3.0.16.jar:3.0.16]It looks like this might be related to CASSANDRA-14104 that was just added to 3.0.16</description>
+      <version>3.0.18,3.11.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.utils.NativeSSTableLoaderClient.java</file>
+      <file type="M">src.java.org.apache.cassandra.schema.SchemaKeyspace.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.ColumnIdentifier.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.ColumnDefinition.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14616" opendate="2018-7-31 00:00:00" fixdate="2018-12-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cassandra-stress write hangs with default options</summary>
+      <description>Cassandra stress sits there for incredibly long time after connecting to JMX. To reproduce ./tools/bin/cassandra-stress writeIf you give it a -n its not as bad which is why dtests etc dont seem to be impacted. Does not occur in 3.0 branch but does in 3.11 and trunk</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Tool/stress</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.stress.src.org.apache.cassandra.stress.StressAction.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14657" opendate="2018-8-20 00:00:00" fixdate="2018-9-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Handle failures in upgradesstables/cleanup/relocate</summary>
+      <description>If a compaction in parallelAllSSTableOperation throws exception, all current transactions are closed, this can make us close a transaction that has not yet finished (since we can run many of these compactions in parallel). This causes this error:java.lang.IllegalStateException: Cannot prepare to commit unless IN_PROGRESS; state is ABORTEDand this can get the leveled manifest (if running LCS) in a bad state causing this error message:Could not acquire references for compacting SSTables ...</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14660" opendate="2018-8-21 00:00:00" fixdate="2018-8-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Improve TokenMetaData cache populating performance for large cluster</summary>
+      <description>TokenMetaData#cachedOnlyTokenMap is a method C* used to get a consistent token and topology view on coordinations without paying read lock cost. Upon first read the method acquire a synchronize lock and generate a copy of major token meta data structures and cached it, and upon every token meta data changes(due to gossip changes), the cache get cleared and next read will taking care of cache population.For small to medium size clusters this strategy works pretty well. But large clusters can actually be suffered from the locking since cache populating is much slower. On one of our largest cluster (~1000 nodes,  125k tokens, C* 3.0.15)  each cache population take about 500~700ms, and during that there are no requests can go through since synchronize lock was acquired. This caused waves of timeouts errors when there are large amount gossip messages propagating cross the cluster, such as in the case of cluster restarting.Base on profiling we found that the cost mostly comes from copying tokenToEndpointMap. It is a SortedBiMultiValueMap made from a forward map use TreeMap and a reverse map use guava TreeMultiMap. There is an optimization in TreeMap helps reduce copying complexity from O(N*log(N)) to O(N) when copying from already ordered data. But guava's TreeMultiMap copying missed that optimization and make it ~10 times slower than it actually need to be on our size of cluster.The patch attached to the issue replace the reverse TreeMultiMap&lt;K, V&gt; to a vanilla TreeMap&lt;K, TreeSet&lt;V&gt;&gt; in SortedBiMultiValueMap to make sure we can copy it O(N) time.I also attached a benchmark script (TokenMetaDataBenchmark.java), which simulates a large cluster then measures average latency for TokenMetaData cache populating.Benchmark result before and after that patch:trunk: before 100ms, after 13ms3.0.x: before 199ms, after 15ms (On 3.0.x even the forward TreeMap copying is slow, the O(N*log(N)) to O(N) optimization is not applied because the key comparator is dynamically created and TreeMap cannot determine the source and dest are in same order)</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Legacy/Coordination</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">src.java.org.apache.cassandra.utils.SortedBiMultiValMap.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14672" opendate="2018-8-29 00:00:00" fixdate="2018-9-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>After deleting data in 3.11.3, reads fail with "open marker and close marker have different deletion times"</summary>
+      <description>We had 3.11.0, then we upgraded to 3.11.3 last week. We routinely perform deletions as the one described below. After upgrading we run the following deletion query: DELETE FROM measurement_events_dbl WHERE measurement_source_id IN ( 9df798a2-6337-11e8-b52b-42010afa015a,  9df7717e-6337-11e8-b52b-42010afa015a, a08b8042-6337-11e8-b52b-42010afa015a, a08e52cc-6337-11e8-b52b-42010afa015a, a08e6654-6337-11e8-b52b-42010afa015a, a08e6104-6337-11e8-b52b-42010afa015a, a08e6c76-6337-11e8-b52b-42010afa015a, a08e5a9c-6337-11e8-b52b-42010afa015a, a08bcc50-6337-11e8-b52b-42010afa015a) AND year IN (2018) AND measurement_time &gt;= '2018-07-19 04:00:00' Immediately after that, trying to read the last value produces an error:select * FROM measurement_events_dbl WHERE measurement_source_id = a08b8042-6337-11e8-b52b-42010afa015a AND year IN (2018) order by measurement_time desc limit 1;ReadFailure: Error from server: code=1300 [Replica(s) failed to execute read] message="Operation failed - received 0 responses and 2 failures" info={'failures': 2, 'received_responses': 0, 'required_responses': 1, 'consistency': 'ONE'} And the following exception: WARN [ReadStage-4] 2018-08-29 06:59:53,505 AbstractLocalAwareExecutorService.java:167 - Uncaught exception on thread Thread[ReadStage-4,5,main]: {}java.lang.RuntimeException: java.lang.IllegalStateException: UnfilteredRowIterator for pvpms_mevents.measurement_events_dbl has an illegal RT bounds sequence: open marker and close marker have different deletion times at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:2601) ~[apache-cassandra-3.11.3.jar:3.11.3] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) ~[na:1.8.0_181] at org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService$FutureTask.run(AbstractLocalAwareExecutorService.java:162) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.concurrent.AbstractLocalAwareExecutorService$LocalSessionFutureTask.run(AbstractLocalAwareExecutorService.java:134) [apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.concurrent.SEPWorker.run(SEPWorker.java:109) [apache-cassandra-3.11.3.jar:3.11.3] at java.lang.Thread.run(Thread.java:748) [na:1.8.0_181]Caused by: java.lang.IllegalStateException: UnfilteredRowIterator for pvpms_mevents.measurement_events_dbl has an illegal RT bounds sequence: open marker and close marker have different deletion times at org.apache.cassandra.db.transform.RTBoundValidator$RowsTransformation.ise(RTBoundValidator.java:103) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.transform.RTBoundValidator$RowsTransformation.applyToMarker(RTBoundValidator.java:81) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.transform.BaseRows.hasNext(BaseRows.java:148) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer.serialize(UnfilteredRowIteratorSerializer.java:136) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer.serialize(UnfilteredRowIteratorSerializer.java:92) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.rows.UnfilteredRowIteratorSerializer.serialize(UnfilteredRowIteratorSerializer.java:79) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.partitions.UnfilteredPartitionIterators$Serializer.serialize(UnfilteredPartitionIterators.java:308) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.ReadResponse$LocalDataResponse.build(ReadResponse.java:187) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.ReadResponse$LocalDataResponse.&lt;init&gt;(ReadResponse.java:180) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.ReadResponse$LocalDataResponse.&lt;init&gt;(ReadResponse.java:176) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.ReadResponse.createDataResponse(ReadResponse.java:76) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.ReadCommand.createResponse(ReadCommand.java:352) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.service.StorageProxy$LocalReadRunnable.runMayThrow(StorageProxy.java:1889) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.service.StorageProxy$DroppableRunnable.run(StorageProxy.java:2597) ~[apache-cassandra-3.11.3.jar:3.11.3] ... 5 common frames omitted Suppressed: java.lang.IllegalStateException: UnfilteredRowIterator for pvpms_mevents.measurement_events_dbl has an illegal RT bounds sequence: expected all RTs to be closed, but the last one is open at org.apache.cassandra.db.transform.RTBoundValidator$RowsTransformation.ise(RTBoundValidator.java:103) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.transform.RTBoundValidator$RowsTransformation.onPartitionClose(RTBoundValidator.java:96) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.transform.BaseRows.runOnClose(BaseRows.java:91) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.transform.BaseIterator.close(BaseIterator.java:86) ~[apache-cassandra-3.11.3.jar:3.11.3] at org.apache.cassandra.db.partitions.UnfilteredPartitionIterators$Serializer.serialize(UnfilteredPartitionIterators.java:309) ~[apache-cassandra-3.11.3.jar:3.11.3] ... 12 common frames omitted  We have 9 nodes ~2TB each, leveled compaction, repairs run daily in sequence.Table definition is:CREATE TABLE pvpms_mevents.measurement_events_dbl ( measurement_source_id uuid, year int, measurement_time timestamp, event_reception_time timestamp, quality double, value double, PRIMARY KEY ((measurement_source_id, year), measurement_time)) WITH CLUSTERING ORDER BY (measurement_time ASC) AND bloom_filter_fp_chance = 0.1 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'} AND comment = '' AND compaction = {'class': 'org.apache.cassandra.db.compaction.LeveledCompactionStrategy'} AND compression = {'chunk_length_in_kb': '64', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'} AND crc_check_chance = 1.0 AND dclocal_read_repair_chance = 0.1 AND default_time_to_live = 0 AND gc_grace_seconds = 864000 AND max_index_interval = 2048 AND memtable_flush_period_in_ms = 0 AND min_index_interval = 128 AND read_repair_chance = 0.0 AND speculative_retry = '99PERCENTILE'; We host those on GCE and recreated all the nodes with disk snapshots, and we reproduced the error: after re-running the DELETE with all nodes up and no other queries running, the error was reproduced immediately. We tried so far:re-running repairs on all nodes and running nodetool garbagecollect with no success.We downgraded to 3.11.2 for now, no issues so far.This may be related to CASSANDRA-14515</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.rows.RangeTombstoneBoundaryMarker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14749" opendate="2018-9-13 00:00:00" fixdate="2018-9-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Collection Deletions for Dropped Columns in 2.1/3.0 mixed-mode can delete rows</summary>
+      <description>Similar to CASSANDRA-14568, if a 2.1 node sends a response to a 3.0 node containing a deletion for a dropped collection column, instead of deleting the collection, we will delete the row containing the collection. This is an admittedly unlikely cluster state but, during such a state, a great deal of data loss could happen.</description>
+      <version>3.0.18</version>
+      <fixedVersion>Messaging/Internode</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.LegacyLayoutTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.LegacyLayout.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14766" opendate="2018-9-19 00:00:00" fixdate="2018-9-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DESC order reads can fail to return the last Unfiltered in the partition in a legacy sstable</summary>
+      <description>OldFormatDeserializer’s hasNext() method can and will consume two Unfiltered from the underlying iterator in some scenarios - intentionally.But in doing that it’s losing intermediate state of lastConsumedPosition. If that last block, when iterating backwards, only has two Unfiltered, the first one will be returned, and the last one won’t as the reverse iterator would incorrectly things that the deserisalizer is past the index block, despite still having one Unfiltered unreturned.</description>
+      <version>3.0.18,3.11.4</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.UnfilteredDeserializer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14803" opendate="2018-10-3 00:00:00" fixdate="2018-10-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rows that cross index block boundaries can cause incomplete reverse reads in some cases.</summary>
+      <description>When we're reading 2.1 sstables in reverse, we skip the first row of an index block if it's split across index boundaries. The entire row will be read at the end of the next block. In some cases though, the only thing in this index block is the partial row, so we return an empty iterator. The empty iterator is then interpreted as the end of the row further down the call stack, so we return early without reading the rest of the data. This only affects 3.x during upgrades from 2.1</description>
+      <version>3.0.18,3.11.5</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableReversedIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14823" opendate="2018-10-12 00:00:00" fixdate="2018-10-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Legacy sstables with range tombstones spanning multiple index blocks create invalid bound sequences on 3.0+</summary>
+      <description>During upgrade from 2.1 to 3.0, reading old sstables in reverse order would generate invalid sequences of range tombstone bounds if their range tombstones spanned multiple column index blocks. The read fails in different ways depending on whether the 2.1 tables were produced by a flush or a compaction.</description>
+      <version>3.0.18,3.11.4</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableReversedIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14838" opendate="2018-10-23 00:00:00" fixdate="2018-10-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Dropped columns can cause reverse sstable iteration to return prematurely</summary>
+      <description>CASSANDRA-14803 fixed an issue where reading legacy sstables in reverse could return early in certain cases. It's also possible to get into this state with current version sstables if there are 2 or more indexed blocks in a row that only contain data for a dropped column. Post 14803, this will throw an exception instead of returning an incomplete response, but it should just continue reading like it does for legacy sstables</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.columniterator.SSTableReversedIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14861" opendate="2018-10-31 00:00:00" fixdate="2018-11-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstable min/max metadata can cause data loss</summary>
+      <description>There’s a bug in the way we filter sstables in the read path that can cause sstables containing relevant range tombstones to be excluded from reads. This can cause data resurrection for an individual read, and if compaction timing is right, permanent resurrection via read repair. We track the min and max clustering values when writing an sstable so we can avoid reading from sstables that don’t contain the clustering values we’re looking for in a given read. The min max for each clustering column are updated for each row / RT marker we write. In the case of range tombstones markers though, we only update the min max for the clustering values they contain, which is almost never the full set of clustering values. This leaves a min/max that are above/below (respectively) the real ranges covered by the range tombstone contained in the sstable.For instance, assume we’re writing an sstable for a table with 3 clustering values. The current min clustering is 5:6:7. We write an RT marker for a range tombstone that deletes any row with the value 4 in the first clustering value so the open marker is &amp;#91;4:&amp;#93;. This would make the new min clustering 4:6:7 when it should really be 4:. If we do a read for clustering values of 4:5 and lower, we’ll exclude this sstable and it’s range tombstone, resurrecting any data there that this tombstone would have deleted.</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.SinglePartitionSliceCommandTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.metadata.StatsMetadata.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.metadata.MetadataCollector.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.Version.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.format.big.BigFormat.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Slice.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14873" opendate="2018-11-7 00:00:00" fixdate="2018-11-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix missing rows when reading 2.1 SSTables with static columns in 3.0</summary>
+      <description>If a partition has a static row and is large enough to be indexed, then firstName of the first index block will be set to a static clustering. When deserializing the column index we then incorrectly deserialize the firstName as a regular, non-STATIC Clustering - a singleton array with an empty ByteBuffer to be exact. Depending on the clustering comparator, this can trip up binary search over IndexInfo list and cause an incorrect resultset to be returned.</description>
+      <version>3.0.18,3.11.4</version>
+      <fixedVersion>Legacy/LocalWrite-ReadPaths</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.io.sstable.LegacySSTableTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.Serializers.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14894" opendate="2018-11-15 00:00:00" fixdate="2018-11-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>RangeTombstoneList doesn&amp;#39;t properly clean up mergeable or superseded rts in some cases</summary>
+      <description>There are a few scenarios RangeTombstoneList doesn't handle correctly.If there are 2 overlapping range tombstones with identical timestamps, they should be merged. Instead, they're stored as 2 rts with congruent bounds and identical timestamps.If a range tombstone supersedes multiple sequential range tombstones, instead of removing them, they cause the superseding rt to be split into multiple rts with congruent bounds and identical timestamps.When converted to an UnfilteredRowIterator, these become extra boundary markers with the same timestamp on each side. Logically these are noops, but they do cause digest mismatches which will cause unneeded read repairs, and repair overstreaming (since they're also included in flushed sstables).Also, not sure if this is reachable in practice, but querying RTL with an empty slice that covers a range tombstone causes an rt to be returned with an empty slice. If reachable this might cause extra read repairs as well.</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/SSTable</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.rows.RowAndDeletionMergeIteratorTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.rows.RowAndDeletionMergeIterator.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14905" opendate="2018-11-20 00:00:00" fixdate="2018-1-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>If SizeEstimatesRecorder misses a &amp;#39;onDropTable&amp;#39; notification, the size_estimates table will never be cleared for that table.</summary>
+      <description>if a node is down when a keyspace/table is dropped, it will receive the schema notification before the size estimates listener is registered, so the entries for the dropped keyspace/table will never be cleaned from the table. </description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Observability/Metrics</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.CassandraDaemon.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SystemKeyspace.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14931" opendate="2018-12-12 00:00:00" fixdate="2018-1-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Backport In-JVM dtests to 2.2, 3.0 and 3.11</summary>
+      <description>The In-JVM dtests are of significant value, and much of the testing we are exploring with it can easily be utilised on all presently maintained versions. We should backport the functionality to at least 3.0.x and 3.11.x - and perhaps even consider 2.2.</description>
+      <version>2.2.14,3.0.18,3.11.4</version>
+      <fixedVersion>Test/dtest/java</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.distributed.org.apache.cassandra.distributed.LegacyAdapter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14951" opendate="2019-1-4 00:00:00" fixdate="2019-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a script to make running the cqlsh tests in cassandra repo easier</summary>
+      <description>Some CQLSH tests have not been running. They need to be reenabled and fixed before 4.0.</description>
+      <version>3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>Tool/cqlsh</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14958" opendate="2019-1-7 00:00:00" fixdate="2019-1-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Counters fail to increment in 2.1/2.2 to 3.X mixed version clusters</summary>
+      <description>The upgrade test for this is failinghttps://circleci.com/gh/aweisberg/cassandra/2362#tests/containers/1I confirmed that this is occurring manually using cqlsh against the cluster constructed by the dtest.cqlsh&gt; describe schema;CREATE KEYSPACE ks WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND durable_writes = true;CREATE TABLE ks.clicks ( userid int, url text, total counter, PRIMARY KEY (userid, url)) WITH COMPACT STORAGE AND CLUSTERING ORDER BY (url ASC) AND bloom_filter_fp_chance = 0.01 AND caching = {'keys': 'ALL', 'rows_per_partition': 'NONE'} AND comment = '' AND compaction = {'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold': '32', 'min_threshold': '4'} AND compression = {'chunk_length_in_kb': '64', 'class': 'org.apache.cassandra.io.compress.LZ4Compressor'} AND crc_check_chance = 1.0 AND dclocal_read_repair_chance = 0.1 AND default_time_to_live = 0 AND gc_grace_seconds = 864000 AND max_index_interval = 2048 AND memtable_flush_period_in_ms = 0 AND min_index_interval = 128 AND read_repair_chance = 0.0 AND speculative_retry = '99PERCENTILE';cqlsh&gt; use ks;cqlsh:ks&gt; UPDATE clicks SET total = total + 1 WHERE userid = 1 AND url = 'http://foo.com';cqlsh:ks&gt; SELECT total FROM clicks WHERE userid = 1 AND url = 'http://foo.com' ... ; total------- 0(1 rows)</description>
+      <version>3.0.18,3.11.4</version>
+      <fixedVersion>Feature/Counters</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.LegacyLayout.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.context.CounterContext.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="14985" opendate="2019-1-15 00:00:00" fixdate="2019-1-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CircleCI docker image should bake in more dependencies</summary>
+      <description>It's pretty frequent especially in the upgrade tests for either maven or github to fail. I think they are detecting the thundering herd of containers all pulling stuff at the same time and opting out.We can reduce this especially for maven dependencies since most are hardly ever changing by downloading everything we can in advance and baking it into the image.When building the docker image Initialize the local maven repository by running ant maven-ant-tasks-retrieve-build for 2.1-trunk and do the same with CCM and the Apache repository.</description>
+      <version>2.2.14,3.0.18,3.11.4,4.0-alpha1,4.0</version>
+      <fixedVersion>CI,Test/dtest/python,Test/unit</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">.circleci.config.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="15004" opendate="2019-2-1 00:00:00" fixdate="2019-2-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Anti-compaction briefly corrupts sstable state for reads</summary>
+      <description>Since we use multiple sstable rewriters in anticompaction, the first call to prepareToCommit will remove the original sstables from the tracker view before the other rewriters add their sstables. This creates a brief window where reads can miss data.</description>
+      <version>3.0.18,3.11.7,4.0-alpha1,4.0</version>
+      <fixedVersion>Local/Compaction</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.AntiCompactionTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.utils.concurrent.Transactional.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableRewriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.lifecycle.LifecycleTransaction.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

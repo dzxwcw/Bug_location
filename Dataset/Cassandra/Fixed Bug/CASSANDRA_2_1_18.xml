@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="13147" opendate="2017-1-24 00:00:00" fixdate="2017-4-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Secondary index query on partition key columns might not return all the rows.</summary>
+      <description>A secondary index query on a partition key column will, apparently, not return the empty partitions with static data.The following unit test can be used to reproduce the problem. public void testIndexOnPartitionKeyWithStaticColumnAndNoRows() throws Throwable { createTable("CREATE TABLE %s (pk1 int, pk2 int, c int, s int static, v int, PRIMARY KEY((pk1, pk2), c))"); createIndex("CREATE INDEX ON %s (pk2)"); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 1, 1, 1, 9, 1); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 1, 1, 2, 9, 2); execute("INSERT INTO %s (pk1, pk2, s) VALUES (?, ?, ?)", 2, 1, 9); execute("INSERT INTO %s (pk1, pk2, c, s, v) VALUES (?, ?, ?, ?, ?)", 3, 1, 1, 9, 1); assertRows(execute("SELECT * FROM %s WHERE pk2 = ?", 1), row(1, 1, 1, 9, 1), row(1, 1, 2, 9, 2), row(2, 1, null, 9, null), &lt;-- is not returned row(3, 1, 1, 9, 1)); }</description>
+      <version>2.1.18,2.2.10,3.0.13,3.11.0,4.0-alpha1,4.0</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.SecondaryIndexTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13412" opendate="2017-4-5 00:00:00" fixdate="2017-5-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update of column with TTL results in secondary index not returning row</summary>
+      <description>Cassandra versions: 2.2.3, 3.0.111 datacenter, keyspace has RF 3. Default consistency level.Steps:1. I create these table and index.CREATE TABLE my_table ( a text, b text, c text, d set&lt;int&gt;, e float, f text, g int, h double, j set&lt;int&gt;, k float, m set&lt;text&gt;, PRIMARY KEY (a, b, c)) WITH read_repair_chance = 0.0 AND dclocal_read_repair_chance = 0.1 AND gc_grace_seconds = 864000 AND bloom_filter_fp_chance = 0.01 AND caching = { 'keys' : 'ALL', 'rows_per_partition' : 'NONE' } AND comment = '' AND compaction = { 'class' : 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy' } AND compression = { 'sstable_compression' : 'org.apache.cassandra.io.compress.LZ4Compressor' } AND default_time_to_live = 0 AND speculative_retry = '99.0PERCENTILE' AND min_index_interval = 128 AND max_index_interval = 2048;CREATE INDEX my_index ON my_table (c);2. I have 9951 INSERT statements in a file and I run the following command to execute them. The INSERT statements have no TTL and no consistency level is specified.cqlsh &lt;ip&gt; &lt;port&gt; -u &lt;user&gt; -f &lt;file&gt;3. I update a column filtering by the whole primary key, and setting a TTL. For example:UPDATE my_table USING TTL 30 SET h = 10 WHERE a = 'test_a' AND b = 'test_b' AND c = 'test_c';4. After the time specified in the TTL I run the following queries:SELECT * FROM my_table WHERE a = 'test_a' AND b = 'test_b' AND c = 'test_c';SELECT * FROM my_table WHERE c = 'test_c';The first one returns the correct row with an empty h column (as it has expired). However, the second query (which uses the secondary index on column c) returns nothing.I've done the query through my app which uses the Java driver v3.0.4 and reads with CL local_one, from the cql shell and from DBeaver 3.8.5. All display the same behaviour. The queries are performed minutes after the writes and the servers don't have a high load, so I think it's unlikely to be a consistency issue.I've tried to reproduce the issue in ccm and cqlsh by creating a new keyspace and table, and inserting just 1 row, and the bug doesn't manifest. This leads me to think that it's an issue only present with not trivially small amounts of data, or maybe present only after Cassandra compacts or performs whatever maintenance it needs to do.</description>
+      <version>2.1.18,2.2.10</version>
+      <fixedVersion>Feature/2iIndex</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.index.AbstractSimplePerColumnSecondaryIndex.java</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.SecondaryIndexTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="13466" opendate="2017-4-21 00:00:00" fixdate="2017-4-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Set javac encoding to utf-8 in 2.1 and 2.2.</summary>
+      <description>There are non-ASCII characters in 2.1 and 2.2 source code, but javac is not configured to interpret source files in UTF-8</description>
+      <version>2.1.18,2.2.10</version>
+      <fixedVersion>Build</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

@@ -1,0 +1,829 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="FLINK">
+  <bug id="17170" opendate="2020-4-15 00:00:00" fixdate="2020-5-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Cannot stop streaming job with savepoint which uses kinesis consumer</summary>
+      <description>I am encountering a very strange situation where I can't stop with savepoint a streaming job.The job reads from kinesis and sinks to S3, very simple job, no mapping function, no watermarks, just source-&gt;sink. Source is using flink-kinesis-consumer, sink is using StreamingFileSink. Everything works fine, except stopping the job with savepoints.The behaviour happens only when multiple task managers are involved, having sub-tasks off the job spread across multiple task manager instances. When a single task manager has all the sub-tasks this issue never occurred.Using latest Flink 1.10.0 version, deployment done in HA mode (2 job managers), in EC2, savepoints and checkpoints written on S3.When trying to stop, the savepoint is created correctly and appears on S3, but not all sub-tasks are stopped. Some of them finished, but some just remain hanged. Sometimes, on the same task manager part of the sub-tasks are finished, part aren't.The logs don't show any errors. For the ones that succeed, the standard messages appear, with "Source: &lt;....&gt; switched from RUNNING to FINISHED".For the sub-tasks hanged the last message is "org.apache.flink.streaming.connectors.kinesis.internals.KinesisDataFetcher - Shutting down the shard consumer threads of subtask 0 ..." and that's it. I tried using the cli (flink stop &lt;job_id&gt;)Timeout Message:root@ec2-XX-XX-XX-XX:/opt/flink/current/bin# ./flink stop cf43cecd9339e8f02a12333e52966a25root@ec2-XX-XX-XX-XX:/opt/flink/current/bin# ./flink stop cf43cecd9339e8f02a12333e52966a25Suspending job "cf43cecd9339e8f02a12333e52966a25" with a savepoint. ------------------------------------------------------------ The program finished with the following exception: org.apache.flink.util.FlinkException: Could not stop with a savepoint job "cf43cecd9339e8f02a12333e52966a25". at org.apache.flink.client.cli.CliFrontend.lambda$stop$5(CliFrontend.java:462) at org.apache.flink.client.cli.CliFrontend.runClusterAction(CliFrontend.java:843) at org.apache.flink.client.cli.CliFrontend.stop(CliFrontend.java:454) at org.apache.flink.client.cli.CliFrontend.parseParameters(CliFrontend.java:907) at org.apache.flink.client.cli.CliFrontend.lambda$main$10(CliFrontend.java:968) at java.security.AccessController.doPrivileged(Native Method) at javax.security.auth.Subject.doAs(Subject.java:422) at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1682) at org.apache.flink.runtime.security.HadoopSecurityContext.runSecured(HadoopSecurityContext.java:41) at org.apache.flink.client.cli.CliFrontend.main(CliFrontend.java:968)Caused by: java.util.concurrent.TimeoutException at java.util.concurrent.CompletableFuture.timedGet(CompletableFuture.java:1784) at java.util.concurrent.CompletableFuture.get(CompletableFuture.java:1928) at org.apache.flink.client.cli.CliFrontend.lambda$stop$5(CliFrontend.java:460) ... 9 more Using the monitoring api, I keep getting infinite message when querying based on the savepoint id, that the status id is still "IN_PROGRESS". When performing a cancel instead of stop, it works. But cancel is deprecated, so I am a bit concerned that this might fail also, maybe I was just lucky. I attached a screenshot with what the UI is showing when this happens </description>
+      <version>1.10.0,1.11.3,1.12.2</version>
+      <fixedVersion>1.14.0,1.13.1,1.12.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kinesis.src.main.java.org.apache.flink.streaming.connectors.kinesis.FlinkKinesisConsumer.java</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.pom.xml</file>
+      <file type="M">flink-end-to-end-tests.flink-streaming-kinesis-test.src.test.java.org.apache.flink.streaming.kinesis.test.KinesisTableApiITCase.java</file>
+      <file type="M">flink-end-to-end-tests.flink-streaming-kinesis-test.src.test.java.org.apache.flink.streaming.kinesis.test.containers.KinesaliteContainer.java</file>
+      <file type="M">flink-end-to-end-tests.flink-streaming-kinesis-test.src.main.resources.org.apache.flink.streaming.kinesis.test.filter-large-orders.sql</file>
+      <file type="M">flink-end-to-end-tests.flink-streaming-kinesis-test.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18445" opendate="2020-6-29 00:00:00" fixdate="2020-8-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Short circuit join condition for lookup join</summary>
+      <description>Consider the following query:select *from probeleft joinbuild for system_time as of probe.tson probe.key=build.key and probe.col is not nullIn current implementation, we lookup each probe.key in build to decide whether a match is found. A possible optimization is to skip the lookup for rows whose col is null.</description>
+      <version>None</version>
+      <fixedVersion>1.19.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.LookupJoinCodeGenerator.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.codegen.FunctionCodeGenerator.scala</file>
+      <file type="M">flink-table.flink-table-runtime.src.test.java.org.apache.flink.table.runtime.operators.join.LookupJoinHarnessTest.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.test.java.org.apache.flink.table.runtime.operators.join.KeyedLookupJoinHarnessTest.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.test.java.org.apache.flink.table.runtime.operators.join.AsyncLookupJoinHarnessTest.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.join.lookup.LookupJoinWithCalcRunner.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.join.lookup.LookupJoinRunner.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.join.lookup.KeyedLookupJoinWrapper.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.join.lookup.AsyncLookupJoinWithCalcRunner.java</file>
+      <file type="M">flink-table.flink-table-runtime.src.main.java.org.apache.flink.table.runtime.operators.join.lookup.AsyncLookupJoinRunner.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.runtime.stream.sql.LookupJoinITCase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.planner.plan.stream.sql.NonDeterministicDagTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.resources.org.apache.flink.table.planner.plan.stream.sql.NonDeterministicDagTest.xml</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.runtime.stream.jsonplan.LookupJoinJsonPlanITCase.java</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.planner.plan.nodes.exec.stream.LookupJoinJsonPlanTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.stream.StreamPhysicalLookupJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.common.CommonPhysicalLookupJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.nodes.physical.batch.BatchPhysicalLookupJoin.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.planner.plan.metadata.FlinkRelMdUpsertKeys.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.optimize.StreamNonDeterministicUpdatePlanVisitor.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecLookupJoin.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.common.CommonExecLookupJoin.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.batch.BatchExecLookupJoin.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="19667" opendate="2020-10-15 00:00:00" fixdate="2020-3-15 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Add integration with AWS Glue</summary>
+      <description>AWS Glue is releasing new features for the AWS Glue Data Catalog. This request is to add a new format to launch an integration for Apache Flink with AWS Glue Data Catalog</description>
+      <version>1.11.0,1.11.1,1.11.2,1.11.3</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.maven.suppressions.xml</file>
+      <file type="M">tools.azure-pipelines.jobs-template.yml</file>
+      <file type="M">tools.azure-pipelines.build-apache-repo.yml</file>
+      <file type="M">flink-formats.pom.xml</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.sh</file>
+      <file type="M">flink-end-to-end-tests.run-nightly-tests.sh</file>
+      <file type="M">flink-end-to-end-tests.pom.xml</file>
+      <file type="M">azure-pipelines.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20165" opendate="2020-11-16 00:00:00" fixdate="2020-3-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>YARNSessionFIFOITCase.checkForProhibitedLogContents: Error occurred during initialization of boot layer java.lang.IllegalStateException: Module system already initialized</summary>
+      <description>https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=9597&amp;view=logs&amp;j=298e20ef-7951-5965-0e79-ea664ddc435e&amp;t=8560c56f-9ec1-5c40-4ff5-9d3eaaaa882d2020-11-15T22:42:03.3053212Z 22:42:03,303 [ Time-limited test] INFO org.apache.flink.yarn.YARNSessionFIFOITCase [] - Finished testDetachedMode()2020-11-15T22:42:37.9020133Z [ERROR] Tests run: 5, Failures: 2, Errors: 0, Skipped: 2, Time elapsed: 67.485 s &lt;&lt;&lt; FAILURE! - in org.apache.flink.yarn.YARNSessionFIFOSecuredITCase2020-11-15T22:42:37.9022015Z [ERROR] testDetachedMode(org.apache.flink.yarn.YARNSessionFIFOSecuredITCase) Time elapsed: 12.841 s &lt;&lt;&lt; FAILURE!2020-11-15T22:42:37.9023701Z java.lang.AssertionError: 2020-11-15T22:42:37.9025649Z Found a file /__w/2/s/flink-yarn-tests/target/flink-yarn-tests-fifo-secured/flink-yarn-tests-fifo-secured-logDir-nm-1_0/application_1605480087188_0002/container_1605480087188_0002_01_000002/taskmanager.out with a prohibited string (one of [Exception, Started SelectChannelConnector@0.0.0.0:8081]). Excerpts:2020-11-15T22:42:37.9026730Z [2020-11-15T22:42:37.9027080Z Error occurred during initialization of boot layer2020-11-15T22:42:37.9027623Z java.lang.IllegalStateException: Module system already initialized2020-11-15T22:42:37.9033278Z java.lang.IllegalStateException: Module system already initialized2020-11-15T22:42:37.9033825Z ]2020-11-15T22:42:37.9034291Z at org.junit.Assert.fail(Assert.java:88)2020-11-15T22:42:37.9034971Z at org.apache.flink.yarn.YarnTestBase.ensureNoProhibitedStringInLogFiles(YarnTestBase.java:479)2020-11-15T22:42:37.9035814Z at org.apache.flink.yarn.YARNSessionFIFOITCase.checkForProhibitedLogContents(YARNSessionFIFOITCase.java:83)</description>
+      <version>1.11.3,1.13.0</version>
+      <fixedVersion>1.11.3,1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.azure-pipelines.build-apache-repo.yml</file>
+      <file type="M">azure-pipelines.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20270" opendate="2020-11-22 00:00:00" fixdate="2020-11-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix the regression of missing ExternallyInducedSource support in FLIP-27 Source.</summary>
+      <description>The current FLIP-27 design has a regression of missing the support of ExternallyInducedSource support. This ticket is created to fix that.</description>
+      <version>1.11.3</version>
+      <fixedVersion>1.11.3,1.12.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.SourceOperatorStreamTaskTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.io.StreamTaskSourceInput.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.operators.source.TestingSourceOperator.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.operators.SourceOperatorTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.SourceOperatorStreamTask.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.SourceOperator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20695" opendate="2020-12-21 00:00:00" fixdate="2020-5-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Zookeeper node under leader and leaderlatch is not deleted after job finished</summary>
+      <description>I used flink 1.11 in standalone cluster mode for batch job. The enviornment was configured as zookeeper HA mode.After job was commited, flink runtime created nodes under /flink/default/leader and /flink/default/leaderlatch with job id.  Though jobs were finished, these nodes  were remaining in zookeeper path forever. After a period of running, more and more jobs had been executed and there were a greate number of nodes under /flink/default/leader and slowed down the performance of zookeeper. Why not delete the nodes after job finished? Flink runtime could get job status by listeners and delete the leader nodes for job immidiately.</description>
+      <version>1.9.0,1.11.3,1.12.0,1.13.0</version>
+      <fixedVersion>1.14.0,1.13.1,1.12.5</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.highavailability.zookeeper.ZooKeeperHaServicesTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.highavailability.TestingManualHighAvailabilityServices.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.highavailability.TestingHighAvailabilityServices.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.highavailability.AbstractHaServicesTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.dispatcher.DispatcherResourceCleanupTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.highavailability.zookeeper.ZooKeeperHaServices.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.highavailability.nonha.AbstractNonHaServices.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.highavailability.HighAvailabilityServices.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.highavailability.AbstractHaServices.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.Dispatcher.java</file>
+      <file type="M">flink-kubernetes.src.test.java.org.apache.flink.kubernetes.highavailability.KubernetesHaServicesTest.java</file>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.highavailability.KubernetesHaServices.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20770" opendate="2020-12-25 00:00:00" fixdate="2020-1-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incorrect description for config option kubernetes.rest-service.exposed.type</summary>
+      <description>public static final ConfigOption&lt;ServiceExposedType&gt; REST_SERVICE_EXPOSED_TYPE = key("kubernetes.rest-service.exposed.type") .enumType(ServiceExposedType.class) .defaultValue(ServiceExposedType.LoadBalancer) .withDescription("The type of the rest service (ClusterIP or NodePort or LoadBalancer). " + "When set to ClusterIP, the rest service will not be created.");The description of the config option is not correct. We will always create the rest service after refactoring the Kubernetes decorators in FLINK-16194. </description>
+      <version>1.11.3,1.12.0</version>
+      <fixedVersion>1.11.4,1.12.2,1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.configuration.KubernetesConfigOptions.java</file>
+      <file type="M">docs..includes.generated.kubernetes.config.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2082" opendate="2015-5-22 00:00:00" fixdate="2015-5-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Chained stream tasks share the same RuntimeContext</summary>
+      <description>Chained stream operators currently share the same runtimecontext, this will certainly lead to problems in the future. We should create separate runtime contexts for each operator in the chain.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.runtime.tasks.StreamTask.java</file>
+      <file type="M">flink-staging.flink-streaming.flink-streaming-core.src.main.java.org.apache.flink.streaming.runtime.tasks.OutputHandler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20822" opendate="2020-12-31 00:00:00" fixdate="2020-1-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Don&amp;#39;t check whether a function is generic in hive catalog</summary>
+      <description>We just store the function identifier and class name to hive metastore, so it seems there's no need to differentiate generic functions from hive functions. Besides, users might not want us to validate the function class when creating the function, e.g. the function jar might not be in class path at this point.</description>
+      <version>None</version>
+      <fixedVersion>1.12.1,1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.table.catalog.hive.HiveCatalogMetadataTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.table.catalog.hive.HiveCatalogHiveMetadataTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.test.java.org.apache.flink.table.catalog.hive.HiveCatalogGenericMetadataTest.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.catalog.hive.HiveCatalog.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20905" opendate="2021-1-9 00:00:00" fixdate="2021-1-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Format the description of &amp;#39;kubernetes.container.image&amp;#39; option</summary>
+      <description>The description of ConfigOption 'kubernetes.container.image' has a URL link, as follows:@Documentation.OverrideDefault( "The default value depends on the actually running version. In general it looks like \"flink:&lt;FLINK_VERSION&gt;-scala_&lt;SCALA_VERSION&gt;\"")public static final ConfigOption&lt;String&gt; CONTAINER_IMAGE = key("kubernetes.container.image") .stringType() .defaultValue(getDefaultFlinkImage()) .withDescription( "Image to use for Flink containers. " + "The specified image must be based upon the same Apache Flink and Scala versions as used by the application. " + "Visit https://hub.docker.com/_/flink?tab=tags for the official docker images provided by the Flink project. The Flink project also publishes docker images here: https://hub.docker.com/r/apache/flink");so the most reasonable way is to use Text Description with Link, as follows:@Documentation.OverrideDefault( "The default value depends on the actually running version. In general it looks like \"flink:&lt;FLINK_VERSION&gt;-scala_&lt;SCALA_VERSION&gt;\"")public static final ConfigOption&lt;String&gt; CONTAINER_IMAGE = key("kubernetes.container.image") .stringType() .defaultValue(getDefaultFlinkImage()) .withDescription( Description.builder() .text( "Image to use for Flink containers. " + "The specified image must be based upon the same Apache Flink and Scala versions as used by the application. " + "Visit %s for the official docker images provided by the Flink project. The Flink project also publishes docker images to %s.", link("https://hub.docker.com/_/flink?tab=tags", "here"), link("https://hub.docker.com/r/apache/flink", "DockerHub")) .build());</description>
+      <version>1.11.3,1.12.0</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-kubernetes.src.main.java.org.apache.flink.kubernetes.configuration.KubernetesConfigOptions.java</file>
+      <file type="M">docs..includes.generated.kubernetes.config.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20997" opendate="2021-1-16 00:00:00" fixdate="2021-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>YarnTestBaseTest fails due to NPE</summary>
+      <description>YarnTestBase depends on classpaths generated by Maven dependency plugin in `package` phase, but YarnTestBaseTest is a unit test that executed in `test` phase (which is before `package`), so it's unable to find `yarn.classpath` and causes NPE.</description>
+      <version>1.11.3,1.12.0</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn-tests.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21009" opendate="2021-1-18 00:00:00" fixdate="2021-1-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Can not disable certain options in Elasticsearch 7 connector</summary>
+      <description>The underlying elasticsearch client disables certain options with a value of -1. Those options are: bulk flush max actions bulk flush max size bulk flush intervalBecause of custom checks in our builder for ES 7 -1 is not a valid value for these options. We should fix those preconditions to make them accept -1.</description>
+      <version>1.11.3,1.12.1</version>
+      <fixedVersion>1.11.4,1.12.2,1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-elasticsearch7.src.main.java.org.apache.flink.streaming.connectors.elasticsearch7.ElasticsearchSink.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch6.src.main.java.org.apache.flink.streaming.connectors.elasticsearch6.ElasticsearchSink.java</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch-base.src.main.java.org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkBase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21103" opendate="2021-1-22 00:00:00" fixdate="2021-3-22 01:00:00" resolution="Duplicate">
+    <buginformation>
+      <summary>E2e tests time out on azure</summary>
+      <description>https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=12377&amp;view=logs&amp;j=c88eea3b-64a0-564d-0031-9fdcd7b8abee&amp;t=ff888d9b-cd34-53cc-d90f-3e446d355529Creating worker2 ... doneJan 22 13:16:17 Waiting for hadoop cluster to come up. We have been trying for 0 seconds, retrying ...Jan 22 13:16:22 Waiting for hadoop cluster to come up. We have been trying for 5 seconds, retrying ...Jan 22 13:16:27 Waiting for hadoop cluster to come up. We have been trying for 10 seconds, retrying ...Jan 22 13:16:32 Waiting for hadoop cluster to come up. We have been trying for 15 seconds, retrying ...Jan 22 13:16:37 Waiting for hadoop cluster to come up. We have been trying for 20 seconds, retrying ...Jan 22 13:16:43 Waiting for hadoop cluster to come up. We have been trying for 26 seconds, retrying ...Jan 22 13:16:48 Waiting for hadoop cluster to come up. We have been trying for 31 seconds, retrying ...Jan 22 13:16:53 Waiting for hadoop cluster to come up. We have been trying for 36 seconds, retrying ...Jan 22 13:16:58 Waiting for hadoop cluster to come up. We have been trying for 41 seconds, retrying ...Jan 22 13:17:03 Waiting for hadoop cluster to come up. We have been trying for 46 seconds, retrying ...Jan 22 13:17:08 We only have 0 NodeManagers up. We have been trying for 0 seconds, retrying ...21/01/22 13:17:10 INFO client.RMProxy: Connecting to ResourceManager at master.docker-hadoop-cluster-network/172.19.0.3:803221/01/22 13:17:11 INFO client.AHSProxy: Connecting to Application History server at master.docker-hadoop-cluster-network/172.19.0.3:10200Jan 22 13:17:11 We now have 2 NodeManagers up.============================================================================================= WARNING: This E2E Run took already 80% of the allocated time budget of 250 minutes ====================================================================================================================================================================================================== WARNING: This E2E Run will time out in the next few minutes. Starting to upload the log output =========================================================================================================##[error]The task has timed out.Async Command Start: Upload ArtifactUploading 1 filesFile upload succeed.Upload '/tmp/_e2e_watchdog.output.0' to file container: '#/11824779/e2e-timeout-logs'Associated artifact 140921 with build 12377Async Command End: Upload ArtifactAsync Command Start: Upload ArtifactUploading 1 filesFile upload succeed.Upload '/tmp/_e2e_watchdog.output.1' to file container: '#/11824779/e2e-timeout-logs'Associated artifact 140921 with build 12377Async Command End: Upload ArtifactAsync Command Start: Upload ArtifactUploading 1 filesFile upload succeed.Upload '/tmp/_e2e_watchdog.output.2' to file container: '#/11824779/e2e-timeout-logs'Associated artifact 140921 with build 12377Async Command End: Upload ArtifactFinishing: Run e2e tests</description>
+      <version>1.11.3,1.12.1,1.13.0</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.run-nightly-tests.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21135" opendate="2021-1-25 00:00:00" fixdate="2021-3-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reactive Mode: Change Adaptive Scheduler to set infinite parallelism in JobGraph</summary>
+      <description>For Reactive Mode, the scheduler needs to change the parallelism and maxParalllelism of the submitted job graph to it's max value (2^15).+ check if an unsupported flag is enabled in the submitted jobgraph or configuration (unaligned checkpoints)</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.TestingSchedulerNGFactory.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.JobMasterSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.jobmaster.DefaultSlotPoolServiceSchedulerFactoryTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.SchedulerNGFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.DefaultSchedulerFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveScheduler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.SlotPoolServiceSchedulerFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.DefaultSlotPoolServiceSchedulerFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobgraph.JobVertex.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.dispatcher.DefaultJobManagerRunnerFactory.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21136" opendate="2021-1-25 00:00:00" fixdate="2021-3-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reactive Mode: Adjust timeout behavior in adaptive scheduler</summary>
+      <description>The FLIP states the following timeout and resource registration behavior: On initial startup, the declarative scheduler will wait indefinitely for TaskManagers to show up. Once there are enough TaskManagers available to start the job, and the set of resources is stable (see FLIP-160 for a definition), the job will start running.Once the job has started running, and a TaskManager is lost, it will wait for 10 seconds for the TaskManager to re-appear. Otherwise, the job will be scheduled again with the available resources. If no TaskManagers are available anymore, the declarative scheduler will wait indefinitely again for new resources.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-test-utils-parent.flink-test-utils-junit.src.main.java.org.apache.flink.core.testutils.ScheduledTask.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.WaitingForResourcesTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.StateValidator.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerBuilder.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.WaitingForResources.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveScheduler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobmaster.DefaultSlotPoolServiceSchedulerFactory.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.JobManagerOptions.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.time.Deadline.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.job.manager.configuration.html</file>
+      <file type="M">docs.layouts.shortcodes.generated.expert.scheduling.section.html</file>
+      <file type="M">docs.layouts.shortcodes.generated.all.jobmanager.section.html</file>
+      <file type="M">docs.content.docs.deployment.elastic.scaling.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21149" opendate="2021-1-26 00:00:00" fixdate="2021-2-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Remove deprecated CatalogTable.getProperties</summary>
+      <description>CatalogTable.getProperties has been deprecated in 1.11. It is time to remove it, to reduce confusion and potential bugs by calling the wrong method.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.catalog.CatalogTableITCase.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.scala.org.apache.flink.table.api.batch.BatchTableEnvironmentTest.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.test.java.org.apache.flink.table.sqlexec.SqlToOperationConverterTest.java</file>
+      <file type="M">flink-table.flink-table-planner.src.main.scala.org.apache.flink.table.api.internal.TableEnvImpl.scala</file>
+      <file type="M">flink-table.flink-table-planner.src.main.java.org.apache.flink.table.sqlexec.SqlToOperationConverter.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.factories.utils.TestCollectionTableFactory.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.planner.catalog.CatalogTableITCase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.scala.org.apache.flink.table.api.TableEnvironmentTest.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.java.org.apache.flink.table.planner.utils.OperationMatchers.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.java.org.apache.flink.table.planner.operations.SqlToOperationConverterTest.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.test.java.org.apache.flink.table.planner.catalog.JavaCatalogTableTest.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.schema.LegacyCatalogSourceTable.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.rules.physical.stream.StreamPhysicalLegacySinkRule.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.plan.rules.physical.batch.BatchPhysicalLegacySinkRule.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.scala.org.apache.flink.table.planner.delegation.PlannerBase.scala</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.java.org.apache.flink.table.planner.operations.SqlToOperationConverter.java</file>
+      <file type="M">flink-table.flink-table-common.src.test.java.org.apache.flink.table.factories.FactoryUtilTest.java</file>
+      <file type="M">flink-table.flink-table-common.src.test.java.org.apache.flink.table.catalog.CatalogTestUtil.java</file>
+      <file type="M">flink-table.flink-table-common.src.test.java.org.apache.flink.table.catalog.CatalogTest.java</file>
+      <file type="M">flink-table.flink-table-common.src.main.java.org.apache.flink.table.catalog.CatalogBaseTable.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.test.java.org.apache.flink.table.api.TableEnvironmentTest.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.operations.ddl.AlterTablePropertiesOperation.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.catalog.CatalogViewImpl.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.catalog.CatalogTableImpl.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.catalog.AbstractCatalogView.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.catalog.AbstractCatalogTable.java</file>
+      <file type="M">flink-table.flink-table-api-java.src.main.java.org.apache.flink.table.api.internal.TableEnvironmentImpl.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.java.org.apache.flink.sql.parser.ddl.SqlAlterTableProperties.java</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.codegen.includes.parserImpls.ftl</file>
+      <file type="M">flink-table.flink-sql-parser.src.main.codegen.data.Parser.tdd</file>
+      <file type="M">flink-table.flink-sql-parser-hive.src.main.java.org.apache.flink.sql.parser.hive.ddl.SqlAlterHiveTable.java</file>
+      <file type="M">flink-table.flink-sql-parser-hive.src.main.codegen.data.Parser.tdd</file>
+      <file type="M">flink-table.flink-sql-client.src.test.java.org.apache.flink.table.client.gateway.utils.TestTableSourceFactoryBase.java</file>
+      <file type="M">flink-table.flink-sql-client.src.test.java.org.apache.flink.table.client.gateway.utils.TestTableSinkFactoryBase.java</file>
+      <file type="M">flink-python.pyflink.table.tests.test.catalog.py</file>
+      <file type="M">flink-python.pyflink.table.catalog.py</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.catalog.hive.util.HiveTableUtil.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.table.catalog.hive.HiveCatalog.java</file>
+      <file type="M">flink-connectors.flink-connector-hive.src.main.java.org.apache.flink.connectors.hive.HiveTableFactory.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21176" opendate="2021-1-28 00:00:00" fixdate="2021-2-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Translate updates on Confluent Avro Format page</summary>
+      <description>We have updated examples in FLINK-20999 in commit 2596c12f7fe6b55bfc8708e1f61d3521703225b3. We should translate the updates to Chinese.</description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.content.docs.connectors.table.formats.avro-confluent.md</file>
+      <file type="M">docs.content.zh.docs.connectors.table.formats.avro-confluent.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21177" opendate="2021-1-28 00:00:00" fixdate="2021-3-28 01:00:00" resolution="Done">
+    <buginformation>
+      <summary>Introduce the counterpart of slotmanager.number-of-slots.max in fine-grained resource management</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.FineGrainedTaskManagerTrackerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.FineGrainedTaskManagerTracker.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.ClusterResourceStatisticsProvider.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.SlotManagerConfigurationBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.SlotManagerBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.FineGrainedSlotManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.slotmanager.DeclarativeSlotManagerBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.resourcemanager.ResourceManagerHATest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.SlotManagerConfiguration.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.slotmanager.FineGrainedSlotManager.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.ResourceManagerOptions.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.resources.TestResource.java</file>
+      <file type="M">flink-core.src.test.java.org.apache.flink.api.common.resources.ResourceTest.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.resources.Resource.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.resourcemanager.WorkerResourceSpec.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.resources.CPUResource.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21178" opendate="2021-1-28 00:00:00" fixdate="2021-3-28 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Task failure will not trigger master hook&amp;#39;s reset()</summary>
+      <description>In Pravega Flink connector integration with Flink 1.12, we found an issue with our no-checkpoint recovery test case &amp;#91;1&amp;#93;.We expect the recovery will call the ReaderCheckpointHook::reset() function which was the behaviour before 1.12. However FLINK-20222 changes the logic, the reset() call will only be called along with a global recovery. This causes Pravega source data loss when failure happens before the first checkpoint.&amp;#91;1&amp;#93;  https://github.com/crazyzhou/flink-connectors/blob/da9f76d04404071471ebd86bf6889b307c9122ff/src/test/java/io/pravega/connectors/flink/FlinkPravegaReaderRGStateITCase.java#L78</description>
+      <version>1.11.3,1.12.0</version>
+      <fixedVersion>1.13.0,1.12.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.CheckpointCoordinatorTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.CheckpointCoordinator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21351" opendate="2021-2-10 00:00:00" fixdate="2021-2-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Incremental checkpoint data would be lost once a non-stop savepoint completed</summary>
+      <description>FLINK-10354 counted savepoint as retained checkpoint so that job could failover from latest position. I think this operation is reasonable, however, current implementation would let incremental checkpoint data lost immediately once a non-stop savepoint completed.Current general phase of incremental checkpoints: once a newer checkpoint completed, it would be added to checkpoint store. And if the size of completed checkpoints larger than max retained limit, it would subsume the oldest one. This lead to the reference of incremental data decrease one and data would be deleted once reference reached to zero. As we always ensure to register newer checkpoint and then unregister older checkpoint, current phase works fine as expected.However, if a non-stop savepoint (a median manual trigger savepoint) is completed, it would be also added into checkpoint store and just subsume previous added checkpoint (in default retain one checkpoint case), which would unregister older checkpoint without newer checkpoint registered, leading to data lost.Thanks for banmoy reporting this problem first.</description>
+      <version>1.11.3,1.12.1,1.13.0</version>
+      <fixedVersion>1.12.2,1.13.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.checkpoint.DefaultCompletedCheckpointStoreTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.checkpoint.CheckpointSubsumeHelper.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21353" opendate="2021-2-10 00:00:00" fixdate="2021-7-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add FS-based StateChangelog implementation</summary>
+      <description>Detailed design: https://docs.google.com/document/d/1vifa8cqZqirVr6Ke1A0FclLa2aNltOQb25GZon79btM/edit?usp=sharing </description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.test.java.org.apache.flink.changelog.fs.TestingStateChangeUploader.java</file>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.test.java.org.apache.flink.changelog.fs.BatchingStateChangeUploaderTest.java</file>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.main.java.org.apache.flink.changelog.fs.BatchingStateChangeUploader.java</file>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.main.java.org.apache.flink.changelog.fs.StateChangeUploader.java</file>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.main.java.org.apache.flink.changelog.fs.FsStateChangelogOptions.java</file>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.TaskExecutorStateChangelogStoragesManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.changelog.inmemory.StateChangelogStorageTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.changelog.inmemory.StateChangelogStorageLoaderTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskexecutor.TaskExecutor.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.TaskExecutorStateChangelogStoragesManager.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.changelog.StateChangelogWriter.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.changelog.StateChangelogStorageLoader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.changelog.StateChangelogStorageFactory.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.changelog.StateChangelogHandleStreamHandleReader.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogStateBackendTestUtils.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateMemoryStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateHashMapTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateFileStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateEmbeddedRocksDBStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.pom.xml</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.StateBackendTestBase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21354" opendate="2021-2-10 00:00:00" fixdate="2021-3-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add ChangelogStateBackend (proxy-everything)</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.pom.xml</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.util.StateConfigUtil.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.InternalTimeServiceManagerImpl.java</file>
+      <file type="M">flink-state-backends.pom.xml</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.pom.xml</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.ttl.mock.MockKeyedStateBackend.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.StateSnapshotTransformerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.StateBackendTestBase.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.StateBackendLoader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.KeyedStateBackend.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.heap.HeapKeyedStateBackend.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.CheckpointStorageLoader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.AbstractKeyedStateBackend.java</file>
+      <file type="M">flink-libraries.flink-state-processing-api.pom.xml</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.CheckpointingOptions.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21355" opendate="2021-2-10 00:00:00" fixdate="2021-6-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Send changes to the state changelog (still proxy everything)</summary>
+      <description>Subtasks: Changelog instantiation (including configuration) (FLINK-21804) Connecting Changelog with ProxyBackend Connecting Proxy-State objects with Changelog Serializing changes in ProxyState objects and sending changes to Changelog no metadata logging (FLINK-22808) Unit test coverage</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogValueState.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogStateBackend.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogReducingState.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogMapState.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogListState.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogKeyGroupedPriorityQueue.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogKeyedStateBackend.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogAggregatingState.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.AbstractChangelogState.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.StateBackendTestBase.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.AbstractKeyedStateBackend.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21357" opendate="2021-2-10 00:00:00" fixdate="2021-10-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add periodic materialization</summary>
+      <description>Including cleanup on shutdown.</description>
+      <version>None</version>
+      <fixedVersion>1.15.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.classloading.ClassLoaderITCase.java</file>
+      <file type="M">flink-test-utils-parent.flink-test-utils.src.main.java.org.apache.flink.streaming.util.TestStreamEnvironment.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.MockSubtaskCheckpointCoordinatorBuilder.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.environment.StreamExecutionEnvironmentComplexConfigurationTest.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.TimerException.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.SubtaskCheckpointCoordinatorImpl.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.StreamTask.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.AsynchronousException.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.AsyncExceptionHandler.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.AsyncCheckpointRunnable.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.environment.StreamExecutionEnvironment.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.resources.log4j2.properties</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogStateBackendTestUtils.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogStateBackendLoadingTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateStateTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateMemoryStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateHashMapTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateFileStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.test.java.org.apache.flink.state.changelog.ChangelogDelegateEmbeddedRocksDBStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogStateBackend.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-changelog.src.main.java.org.apache.flink.state.changelog.ChangelogKeyedStateBackend.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.TaskExecutorStateChangelogStoragesManagerTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.StateBackendTestBase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.HashMapStateBackendTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.state.changelog.inmemory.StateChangelogStorageLoaderTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.testutils.MockEnvironment.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.RuntimeEnvironment.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.StateBackendLoader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.state.changelog.StateChangelogStorageLoader.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.execution.Environment.java</file>
+      <file type="M">flink-dstl.flink-dstl-dfs.src.main.java.org.apache.flink.changelog.fs.FsStateChangelogStorageFactory.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.CheckpointingOptions.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.common.ExecutionConfig.java</file>
+      <file type="M">flink-annotations.src.main.java.org.apache.flink.annotation.docs.Documentation.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.common.state.backends.section.html</file>
+      <file type="M">docs.layouts.shortcodes.generated.checkpointing.configuration.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21376" opendate="2021-2-15 00:00:00" fixdate="2021-1-15 01:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>Failed state might not provide failureCause</summary>
+      <description>Task.executionState and Task.failureCause are not set atomically. This became an issue when implementing the exception history (FLINK-21187) where we relied on the invariant that a failureCause is present when the Task failed.Adding this check to Task.notifyFinalStage() will reveal the race condition.TaskExecutorSlotLifetimeTest becomes unstable when adding this invariant. The reason is that the test starts a task but does not wait for the task to be finished. The task finalization and the cancellation of the task triggered through stopping the TaskManager shutdown compete with each other and could cause the executionState to be set to FAILED while the failureCause still being null. This is then forwarded to Execution through Task.notifyFinalState.We should set failureCause while setting the executionState to failed to not miss any caught error.</description>
+      <version>1.11.3,1.12.1,1.13.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.StopWithSavepoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.Executing.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.failover.flip1.FailureHandlingResult.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21448" opendate="2021-2-23 00:00:00" fixdate="2021-7-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Test Changelog State backend (Wrapper)</summary>
+      <description>This is a follow-up ticket for FLINK-21354ChangelogStatebackend is a wrapper on top of the existing state backends. It is necessary to test/enable it by default.However, after ChangelogStatebackend is moved to a different module, it is impossible to enable it by default for all tests due to dependency. However, we do think test coverage for ChangelogStateBackend is valuable in ITTests &amp; End-2-end Tests.This ticket is to address this problem.</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-test-utils-parent.flink-test-utils.src.main.java.org.apache.flink.streaming.util.TestStreamEnvironment.java</file>
+      <file type="M">flink-test-utils-parent.flink-test-utils.src.test.java.org.apache.flink.streaming.util.PseudoRandomValueSelectorTest.java</file>
+      <file type="M">flink-test-utils-parent.flink-test-utils.src.main.java.org.apache.flink.streaming.util.PseudoRandomValueSelector.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.pom.xml</file>
+      <file type="M">flink-table.flink-sql-client.pom.xml</file>
+      <file type="M">flink-streaming-scala.pom.xml</file>
+      <file type="M">flink-runtime-web.pom.xml</file>
+      <file type="M">flink-queryable-state.flink-queryable-state-runtime.pom.xml</file>
+      <file type="M">flink-metrics.flink-metrics-jmx.pom.xml</file>
+      <file type="M">flink-libraries.flink-cep.pom.xml</file>
+      <file type="M">flink-kubernetes.pom.xml</file>
+      <file type="M">flink-fs-tests.pom.xml</file>
+      <file type="M">flink-formats.flink-sequence-file.pom.xml</file>
+      <file type="M">flink-formats.flink-parquet.pom.xml</file>
+      <file type="M">flink-formats.flink-orc.pom.xml</file>
+      <file type="M">flink-formats.flink-json.pom.xml</file>
+      <file type="M">flink-formats.flink-hadoop-bulk.pom.xml</file>
+      <file type="M">flink-formats.flink-csv.pom.xml</file>
+      <file type="M">flink-formats.flink-compress.pom.xml</file>
+      <file type="M">flink-formats.flink-avro.pom.xml</file>
+      <file type="M">flink-examples.flink-examples-table.pom.xml</file>
+      <file type="M">flink-examples.flink-examples-streaming.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-rabbitmq.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-kafka.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-jdbc.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hive.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-hbase-1.4.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-files.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch7.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch6.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-elasticsearch5.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-base.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21450" opendate="2021-2-23 00:00:00" fixdate="2021-3-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add local recovery support to adaptive scheduler</summary>
+      <description>local recovery means that, on a failure, we are able to re-use the state in a taskmanager, instead of loading it again from distributed storage (which means the scheduler needs to know where which state is located, and schedule tasks accordingly).Adaptive Scheduler is currently not respecting the location of state, so failures require the re-loading of state from the distributed storage.Adding this feature will allow us to enable the Local recovery and sticky scheduling end-to-end test for adaptive scheduler again.</description>
+      <version>None</version>
+      <fixedVersion>1.18.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.allocator.TestSlotInfo.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.JobGraphJobInformation.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.allocator.JobInformation.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.WaitingForResourcesTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.RestartingTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.CreatedTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.WaitingForResources.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.StateTransitions.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.Restarting.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.Created.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.CreatingExecutionGraphTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.allocator.TestingSlotAllocator.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.allocator.SlotSharingSlotAllocatorTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveSchedulerTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.CreatingExecutionGraph.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.allocator.VertexParallelismWithSlotSharing.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.allocator.VertexParallelism.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.allocator.SlotSharingSlotAllocator.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.allocator.SlotAllocator.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.scheduler.adaptive.AdaptiveScheduler.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.jobgraph.jsonplan.JsonPlanGenerator.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21656" opendate="2021-3-8 00:00:00" fixdate="2021-3-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add antlr parser for hive dialect</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.13.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-hive.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21788" opendate="2021-3-15 00:00:00" fixdate="2021-2-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Throw PartitionNotFoundException if the partition file has been lost for blocking shuffle</summary>
+      <description>Currently, if the partition file has been lost for blocking shuffle, FileNotFoundException will be thrown and the partition data is not regenerated, so failover can not recover the job. It should throw PartitionNotFoundException instead.</description>
+      <version>1.9.3,1.10.3,1.11.3,1.12.2</version>
+      <fixedVersion>1.14.4,1.15.0,1.13.7</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.runtime.BlockingShuffleITCase.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.SortMergeResultPartition.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.PartitionedFile.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.BoundedBlockingSubpartition.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21790" opendate="2021-3-15 00:00:00" fixdate="2021-1-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Shuffle data directories to make directory selection of different TaskManagers fairer</summary>
+      <description>Currently, different TaskManagers select data directory in the same order and if there are multiple disk, some disks may stores more data than others which is bad for performance. A simple improvement is that each TaskManager shuffles the given data directories randomly and select the data directory in different order.</description>
+      <version>None</version>
+      <fixedVersion>1.15.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.NettyShuffleEnvironmentConfiguration.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21853" opendate="2021-3-18 00:00:00" fixdate="2021-10-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Running HA per-job cluster (rocks, non-incremental) end-to-end test could not finished in 900 seconds</summary>
+      <description>https://dev.azure.com/apache-flink/apache-flink/_build/results?buildId=14921&amp;view=logs&amp;j=91bf6583-3fb2-592f-e4d4-d79d79c3230a&amp;t=03dbd840-5430-533d-d1a7-05d0ebe03873&amp;l=7318Waiting for text Completed checkpoint [1-9]* for job 00000000000000000000000000000000 to appear 2 of times in logs...grep: /home/vsts/work/1/s/flink-dist/target/flink-1.11-SNAPSHOT-bin/flink-1.11-SNAPSHOT/log/*standalonejob-2*.log: No such file or directorygrep: /home/vsts/work/1/s/flink-dist/target/flink-1.11-SNAPSHOT-bin/flink-1.11-SNAPSHOT/log/*standalonejob-2*.log: No such file or directorygrep: /home/vsts/work/1/s/flink-dist/target/flink-1.11-SNAPSHOT-bin/flink-1.11-SNAPSHOT/log/*standalonejob-2*.log: No such file or directoryStarting standalonejob daemon on host fv-az232-135.grep: /home/vsts/work/1/s/flink-dist/target/flink-1.11-SNAPSHOT-bin/flink-1.11-SNAPSHOT/log/*standalonejob-2*.log: No such file or directoryKilled TM @ 15744Killed TM @ 19625Test (pid: 9232) did not finish after 900 seconds.</description>
+      <version>1.11.3,1.13.0</version>
+      <fixedVersion>1.13.3,1.14.3,1.15.0</fixedVersion>
+      <type>Technical Debt</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-end-to-end-tests.test-scripts.common.ha.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.ha.per.job.cluster.datastream.sh</file>
+      <file type="M">flink-end-to-end-tests.test-scripts.test.ha.datastream.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="21986" opendate="2021-3-26 00:00:00" fixdate="2021-4-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>taskmanager native memory not release timely after restart</summary>
+      <description>I run a regular join job with flink_1.12.1 , and find taskmanager native memory not release timely after restart cause by exceeded checkpoint tolerable failure threshold.problem job information： job first restart cause by exceeded checkpoint tolerable failure threshold. then taskmanager be killed by yarn many times in this case，tm heap is set to 7.68G，bug all tm heap size is under 4.2G nonheap size increase after restart，but still under 160M. taskmanager process memory increase 3-4G after restart（this figure show one of taskmanager）  my guess：RocksDB wiki mentioned ：Many of the Java Objects used in the RocksJava API will be backed by C++ objects for which the Java Objects have ownership. As C++ has no notion of automatic garbage collection for its heap in the way that Java does, we must explicitly free the memory used by the C++ objects when we are finished with them.So, is it possible that RocksDBStateBackend not call AbstractNativeReference#close() to release memory use by RocksDB C++ Object ?I make a change:        Actively call System.gc() and System.runFinalization() every minute. And run this test again: taskmanager process memory no obvious increase job run for several days，and restart many times，but no taskmanager killed by yarn like before Summary： first，there is some native memory can not release timely after restart in this situation I guess it maybe RocksDB C++ object，but I hive not check it from source code of RocksDBStateBackend </description>
+      <version>1.11.3,1.12.1,1.13.0</version>
+      <fixedVersion>1.11.4,1.13.0,1.12.3</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBOperationUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22051" opendate="2021-3-30 00:00:00" fixdate="2021-3-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Better document the distinction between stop-with-savepoint and stop-with-savepoint-with-drain</summary>
+      <description>The Flink documentation only contains very few details about the difference between stop-with-savepoint and stop-with-savepoint-with-drain. We should better explain the semantic differences.</description>
+      <version>1.11.3,1.12.2,1.13.0</version>
+      <fixedVersion>1.13.0,1.12.3</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">docs.content.docs.deployment.cli.md</file>
+      <file type="M">docs.content.zh.docs.deployment.cli.md</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22408" opendate="2021-4-22 00:00:00" fixdate="2021-5-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Flink Table Parsr Hive Drop Partitions Syntax unparse is Error</summary>
+      <description>Flink Table Parser is error：Synopsis: SQL：alter table tbl drop partition (p1='a',p2=1), partition(p1='b',p2=2);hive muit partition unparse toSqlString is :ALTER TABLE `TBL`\n" + "DROP\n" + "PARTITION (`P1` = 'a', `P2` = 1)\n" + "PARTITION (`P1` = 'b', `P2` = 2)Missing comma in Partition SqlNodeList  Hive syntax：ALTER TABLE table_name DROP [IF EXISTS] PARTITION (partition_spec) [, PARTITION (partition_spec)]; </description>
+      <version>1.11.3</version>
+      <fixedVersion>1.14.0,1.13.1,1.12.5</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-sql-parser.src.main.java.org.apache.flink.sql.parser.ddl.SqlDropPartitions.java</file>
+      <file type="M">flink-table.flink-sql-parser-hive.src.test.java.org.apache.flink.sql.parser.hive.FlinkHiveSqlParserImplTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22489" opendate="2021-4-27 00:00:00" fixdate="2021-4-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>subtask backpressure indicator shows value for entire job</summary>
+      <description>In the backpressure tab of the web UI, the OK/LOW/HIGH indication is displaying the job-level backpressure for every subtask, rather than the individual subtask values (effectively showing max back pressure from all of the subtasks of the given task for every subtask, instead of the individual values).</description>
+      <version>1.9.3,1.10.3,1.11.3,1.12.2,1.13.0</version>
+      <fixedVersion>1.11.4,1.14.0,1.13.1,1.12.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.web-dashboard.src.app.pages.job.overview.backpressure.job-overview-drawer-backpressure.component.html</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22573" opendate="2021-5-5 00:00:00" fixdate="2021-5-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>AsyncIO can timeout elements after completion</summary>
+      <description>AsyncIO emits completed elements over the mailbox at which any timer is also canceled. However, if the mailbox cannot process (heavy backpressure), it may be that the timer still triggers on a completed element.</description>
+      <version>1.11.3,1.13.0,1.14.0,1.12.3</version>
+      <fixedVersion>1.14.0,1.13.1,1.12.4</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.api.operators.async.AsyncWaitOperator.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskMailboxTestHarness.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.api.operators.async.AsyncWaitOperatorTest.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22886" opendate="2021-6-6 00:00:00" fixdate="2021-6-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Thread leak in RocksDBStateUploader</summary>
+      <description>ExecutorService in RocksDBStateUploader is not shut down, which may leak thread when tasks fail.BTW, we should name the thread group in ExecutorService, otherwise what we see in the stack, is a lot of threads named with pool-m-thread-n like this: </description>
+      <version>1.11.3,1.13.1,1.12.4</version>
+      <fixedVersion>1.14.0,1.12.5,1.13.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.test.java.org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackendTest.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.snapshot.RocksIncrementalSnapshotStrategy.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBStateDataTransfer.java</file>
+      <file type="M">flink-state-backends.flink-statebackend-rocksdb.src.main.java.org.apache.flink.contrib.streaming.state.RocksDBKeyedStateBackendBuilder.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22957" opendate="2021-6-10 00:00:00" fixdate="2021-6-10 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rank TTL should use enableTimeToLive of state instead of timer</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.rank.UpdatableTopNFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.rank.TopNFunctionTestBase.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.rank.RetractableTopNFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.rank.AppendOnlyTopNFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.test.java.org.apache.flink.table.runtime.operators.rank.AppendOnlyFirstNFunctionTest.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.rank.UpdatableTopNFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.rank.RetractableTopNFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.rank.AppendOnlyTopNFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.rank.AppendOnlyFirstNFunction.java</file>
+      <file type="M">flink-table.flink-table-runtime-blink.src.main.java.org.apache.flink.table.runtime.operators.rank.AbstractTopNFunction.java</file>
+      <file type="M">flink-table.flink-table-planner-blink.src.main.java.org.apache.flink.table.planner.plan.nodes.exec.stream.StreamExecRank.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23208" opendate="2021-7-1 00:00:00" fixdate="2021-8-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Late processing timers need to wait 1ms at least to be fired</summary>
+      <description>The problem is from the codes below:public static long getProcessingTimeDelay(long processingTimestamp, long currentTimestamp) { // delay the firing of the timer by 1 ms to align the semantics with watermark. A watermark // T says we won't see elements in the future with a timestamp smaller or equal to T. // With processing time, we therefore need to delay firing the timer by one ms. return Math.max(processingTimestamp - currentTimestamp, 0) + 1;}Assuming a Flink job creates 1 timer per millionseconds, and is able to consume 1 timer/ms. Here is what will happen: Timestmap1(1st ms): timer1 is registered and will be triggered on Timestamp2. Timestamp2(2nd ms): timer2 is registered and timer1 is triggered Timestamp3(3rd ms): timer3 is registered and timer1 is consumed, after this, InternalTimerServiceImpl registers next timer, which is timer2, and timer2 will be triggered on Timestamp4(wait 1ms at least) Timestamp4(4th ms): timer4 is registered and timer2 is triggered Timestamp5(5th ms): timer5 is registered and timer2 is consumed, after this, InternalTimerServiceImpl registers next timer, which is timer3, and timer3 will be triggered on Timestamp6(wait 1ms at least)As we can see here, the ability of the Flink job is consuming 1 timer/ms, but it's actually able to consume 0.5 timer/ms. And another problem is that we cannot observe the delay from the lag metrics of the source(Kafka). Instead, what we can tell is that the moment of output is much later than expected. I've added a metrics in our inner version, we can see the lag of the timer triggering keeps increasing: In another word, we should never let the late processing timer wait 1ms, I think a simple change would be as below:return Math.max(processingTimestamp - currentTimestamp, -1) + 1;</description>
+      <version>1.11.0,1.11.3,1.13.0,1.14.0,1.12.4</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.ProcessingTimeServiceUtil.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23223" opendate="2021-7-2 00:00:00" fixdate="2021-7-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>When flushAlways is enabled the subpartition may lose notification of data availability</summary>
+      <description>When the flushAways is enabled (namely set buffer timeout to 0), there might be cases like: The subpartition emit an event which blocks the channel The subpartition produce more records. However, this records would not be notified since isBlocked = true. When the downstream tasks resume the subpartition later, the subpartition would only mark isBlocked to false. For local input channels although it tries to add the channel if isAvailable = true, but this check would not pass since flushRequest = false. One case for this issue is https://issues.apache.org/jira/browse/FLINK-22085 which uses LocalInputChannel.</description>
+      <version>1.11.3,1.14.0,1.12.5,1.13.2</version>
+      <fixedVersion>1.14.0,1.12.5,1.13.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.PipelinedSubpartitionWithReadViewTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.partition.consumer.LocalInputChannelTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.partition.PipelinedSubpartition.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="23452" opendate="2021-7-21 00:00:00" fixdate="2021-7-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Measuring subtask throughput</summary>
+      <description>In the first implementation, throughput could be measured for the whole subtask. The throughput calculation should take into account the numbers of bytes that were handled, the backpressure time and ignore the idle time. The main idea is to keep the balance between idle and backpressure time, so if the backpressure time is high we should decrease the buffer size to provide the configured handling time and vice versa if the subtask is idle time that period should be ignored from calculating the throughput. Otherwise, in the case of network bottleneck, we might have ended up with a small buffer size that’s causing the bottleneck in the first place but we are not able to increase it due to idle time reducing throughput and lowering the buffer size.</description>
+      <version>None</version>
+      <fixedVersion>1.14.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.TaskManagerOptions.java</file>
+      <file type="M">docs.layouts.shortcodes.generated.task.manager.configuration.html</file>
+      <file type="M">docs.layouts.shortcodes.generated.rest.v1.dispatcher.html</file>
+      <file type="M">docs.layouts.shortcodes.generated.all.taskmanager.network.section.html</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.mailbox.MailboxProcessor.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.mailbox.MailboxDefaultAction.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamTaskMailboxTestHarnessBuilder.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.tasks.StreamMockEnvironment.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.operators.StreamTaskTimerTest.java</file>
+      <file type="M">flink-streaming-java.src.test.java.org.apache.flink.streaming.runtime.io.benchmark.StreamNetworkBenchmarkEnvironment.java</file>
+      <file type="M">flink-streaming-java.src.main.java.org.apache.flink.streaming.runtime.tasks.StreamTask.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.testutils.MockEnvironmentBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.testutils.MockEnvironment.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.operators.testutils.DummyEnvironment.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.Task.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.RuntimeEnvironment.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.taskmanager.InputGateWithMetrics.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.execution.Environment.java</file>
+      <file type="M">flink-libraries.flink-state-processing-api.src.main.java.org.apache.flink.state.api.runtime.SavepointEnvironment.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="24026" opendate="2021-8-27 00:00:00" fixdate="2021-8-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix FLIP-XXX link can&amp;#39;t be recognized correctly by IDEA</summary>
+      <description>In FLINK-24013, we support link for FLINK-XXX to JIRA issue in IDEA git log display. However, the FLIP-XXX is also processed in the same way which leads to a wrong link, e.g. FLIP-33 is linked to https://issues.apache.org/jira/browse/FLIP-33.</description>
+      <version>None</version>
+      <fixedVersion>1.14.0,1.15.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">.idea.vcs.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

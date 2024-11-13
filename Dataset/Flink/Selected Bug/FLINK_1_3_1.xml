@@ -1,0 +1,486 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="FLINK">
+  <bug fixdate="2017-2-4 01:00:00" id="5406" opendate="2017-1-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add normalization phase for predicate logical plan rewriting between decorrelate query phase and volcano optimization phase</summary>
+      <description>Normalization phase is for predicate logical plan rewriting and is independent of cost module. The rules in normalization phase do not need to repeatedly applied to different logical plan which is different to volcano optimization phase. And the benefit of normalization phase is to reduce the running time of volcano planner.ReduceExpressionsRule can apply various simplifying transformations on RexNode trees. Currently, there are two transformations:1) Constant reduction, which evaluates constant subtrees, replacing them with a corresponding RexLiteral2) Removal of redundant casts, which occurs when the argument into the cast is the same as the type of the resulting cast expressionthe above transformations do not depend on the cost module, so we can move the rules in ReduceExpressionsRule from DATASET_OPT_RULES/DATASTREAM_OPT_RULES to DataSet/DataStream Normalization Rules.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.TableEnvironmentTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.utils.ExpressionTestBase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.CalciteConfigBuilderTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.scala.batch.table.FieldProjectionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.scala.batch.sql.SetOperatorsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.AggregationTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.java.org.apache.flink.table.api.java.batch.TableEnvironmentITCase.java</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.FlinkRuleSets.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetCalc.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.CalciteConfig.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.TableEnvironment.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.StreamTableEnvironment.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.BatchTableEnvironment.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-5-24 01:00:00" id="6367" opendate="2017-4-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>support custom header settings of allow origin</summary>
+      <description>`jobmanager.web.access-control-allow-origin`: Enable custom access control parameter for allow origin header, default is `*`.</description>
+      <version>None</version>
+      <fixedVersion>1.3.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.WebRuntimeMonitor.java</file>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.WebMonitorConfig.java</file>
+      <file type="M">flink-runtime-web.src.main.java.org.apache.flink.runtime.webmonitor.RuntimeMonitorHandler.java</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.configuration.ConfigConstants.java</file>
+      <file type="M">docs.setup.config.md</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-6-26 01:00:00" id="7005" opendate="2017-6-26 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Optimization steps are missing for nested registered tables</summary>
+      <description>Tables that are registered (implicitly or explicitly) do not pass the first three optimization steps: decorrelate convert time indicators normalize the logical planE.g. this has the wrong plan right now:val table = stream.toTable(tEnv, 'rowtime.rowtime, 'int, 'double, 'float, 'bigdec, 'string)val table1 = tEnv.sql(s"""SELECT 1 + 1 FROM $table""") // not optimizedval table2 = tEnv.sql(s"""SELECT myrt FROM $table1""")val results = table2.toAppendStream[Row]</description>
+      <version>1.3.0,1.3.1</version>
+      <fixedVersion>1.3.2,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.plan.rules.NormalizationRulesTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.ExpressionReductionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.FlinkRuleSets.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.StreamTableEnvironment.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.BatchTableEnvironment.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-7-27 01:00:00" id="7011" opendate="2017-6-27 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Instable Kafka testStartFromKafkaCommitOffsets failures on Travis</summary>
+      <description>Example:https://s3.amazonaws.com/archive.travis-ci.org/jobs/246703474/log.txt?X-Amz-Expires=30&amp;X-Amz-Date=20170627T065647Z&amp;X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Credential=AKIAJRYRXRSVGNKPKO5A/20170627/us-east-1/s3/aws4_request&amp;X-Amz-SignedHeaders=host&amp;X-Amz-Signature=dbfc90cfc386fef0990325b54ff74ee4d441944687e7fdaa73ce7b0c2b2ec0eaIn general, the test testStartFromKafkaCommitOffsets implementation is a bit of an overkill. Before continuing with the test, it writes some records just for the sake of committing offsets to Kafka and waits for some offsets to be committed (which leads to the instability), whereas we can do that simply using the test base's OffsetHandler.</description>
+      <version>1.3.1,1.4.0</version>
+      <fixedVersion>1.3.2,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaConsumerTestBase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka09ITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.8.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka08ITCase.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.test.java.org.apache.flink.streaming.connectors.kafka.Kafka010ITCase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-6-28 01:00:00" id="7025" opendate="2017-6-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Using NullByteKeySelector for Unbounded ProcTime NonPartitioned Over</summary>
+      <description>Currently we added `Cleanup State` feature. But It not work well if we enabled the stateCleaning on Unbounded ProcTime NonPartitioned Over window, Because in `ProcessFunctionWithCleanupState` we has using the keyed state.So, In this JIRA. I'll change the `Unbounded ProcTime NonPartitioned Over` to `partitioned Over` by using NullByteKeySelector. OR created a `NonKeyedProcessFunctionWithCleanupState`. But I think the first way is simpler. What do you think? Fabian Hueske</description>
+      <version>1.3.1,1.4.0</version>
+      <fixedVersion>1.3.2,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.harness.OverWindowHarnessTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.scala.stream.sql.OverWindowITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.ProcTimeUnboundedPartitionedOver.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.ProcTimeUnboundedNonPartitionedOver.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.AggregateUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.datastream.DataStreamOverAggregate.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-6-28 01:00:00" id="7026" opendate="2017-6-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add shaded asm dependency</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.travis.mvn.watchdog.sh</file>
+      <file type="M">tools.maven.checkstyle.xml</file>
+      <file type="M">pom.xml</file>
+      <file type="M">flink-streaming-scala.pom.xml</file>
+      <file type="M">flink-shaded-curator.flink-shaded-curator-recipes.pom.xml</file>
+      <file type="M">flink-scala.src.main.scala.org.apache.flink.api.scala.ClosureCleaner.scala</file>
+      <file type="M">flink-scala.pom.xml</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.util.JarFileCreator.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.util.DependencyVisitor.java</file>
+      <file type="M">flink-runtime.pom.xml</file>
+      <file type="M">flink-libraries.flink-gelly-scala.pom.xml</file>
+      <file type="M">flink-libraries.flink-cep-scala.pom.xml</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.sca.UdfAnalyzerUtils.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.sca.UdfAnalyzer.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.sca.TaggedValue.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.sca.NestedMethodAnalyzer.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.sca.ModifiedASMFrame.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.sca.ModifiedASMAnalyzer.java</file>
+      <file type="M">flink-java.src.main.java.org.apache.flink.api.java.ClosureCleaner.java</file>
+      <file type="M">flink-java.pom.xml</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.java.typeutils.TypeExtractionUtils.java</file>
+      <file type="M">flink-core.pom.xml</file>
+      <file type="M">flink-connectors.flink-connector-kinesis.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-7-28 01:00:00" id="7030" opendate="2017-6-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Build with scala-2.11 by default</summary>
+      <description>As proposed recently on the dev mailing list.I propose to switch to Scala 2.11 as a default and to have a Scala 2.10 build profile. Now it is the other way around. The reason for that is poor support for build profiles in Intellij, I was unable to make it work after I added Kafka 0.11 dependency (Kafka 0.11 dropped support for Scala 2.10).</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+      <file type="M">docs.setup.building.md</file>
+      <file type="M">.travis.yml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-7-29 01:00:00" id="7044" opendate="2017-6-29 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add methods to the client API that take the stateDescriptor.</summary>
+      <description/>
+      <version>1.3.0,1.3.1</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-tests.src.test.java.org.apache.flink.test.query.AbstractQueryableStateITCase.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.query.QueryableStateClientTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.query.QueryableStateClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-11-30 01:00:00" id="7051" opendate="2017-6-30 00:00:00" resolution="Done">
+    <buginformation>
+      <summary>Bump up Calcite version to 1.14</summary>
+      <description>This is an umbrella issue for all tasks that need to be done once Apache Calcite 1.14 is released.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0,1.5.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.catalog.ExternalCatalogSchemaTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.batch.sql.GroupingSetsTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.batch.sql.DistinctAggregateTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.batch.sql.AggregateTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.java.org.apache.flink.table.runtime.batch.sql.GroupingSetsITCase.java</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.GeneratedAggregations.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetFinalAggFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.DataSetAggFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.AggregateUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.FlinkRuleSets.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.dataSet.DataSetAggregateWithNullValuesRule.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.dataSet.DataSetAggregateRule.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetAggregate.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.functions.utils.AggSqlFunction.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.AggregationCodeGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.catalog.ExternalCatalogSchema.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.FlinkRelBuilder.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.FlinkPlannerImpl.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.CalciteConfig.scala</file>
+      <file type="M">flink-libraries.flink-table.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-7-30 01:00:00" id="7058" opendate="2017-6-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>flink-scala-shell unintended dependencies for scala 2.11</summary>
+      <description>Activation of profile scala-2.10 in `flink-scala-shell` and `flink-scala` do not work as intended. &lt;profiles&gt; &lt;profile&gt; &lt;id&gt;scala-2.10&lt;/id&gt; &lt;activation&gt; &lt;property&gt; &lt;name&gt;!scala-2.11&lt;/name&gt; &lt;/property&gt; &lt;/activation&gt; &lt;dependencies&gt; &lt;dependency&gt; &lt;groupId&gt;org.scalamacros&lt;/groupId&gt; &lt;artifactId&gt;quasiquotes_2.10&lt;/artifactId&gt; &lt;version&gt;${scala.macros.version}&lt;/version&gt; &lt;/dependency&gt; &lt;dependency&gt; &lt;groupId&gt;org.scala-lang&lt;/groupId&gt; &lt;artifactId&gt;jline&lt;/artifactId&gt; &lt;version&gt;2.10.4&lt;/version&gt; &lt;/dependency&gt; &lt;/dependencies&gt; &lt;/profile&gt; &lt;/profiles&gt;&lt;activation&gt;&lt;/activation&gt;This activation IMO have nothing to do with `-Pscala-2.11` profile switch used in our build. "properties" are defined by `-Dproperty` switches. As far as I understand that, those additional dependencies would be added only if nobody defined property named `scala-2.11`, which means, they would be added only if switch `-Dscala-2.11` was not used, so it seems like those dependencies were basically added always. This quick test proves that I'm correct:$ mvn dependency:tree -pl flink-scala | grep quasi[INFO] +- org.scalamacros:quasiquotes_2.10:jar:2.1.0:compile$ mvn dependency:tree -pl flink-scala -Pscala-2.11 | grep quasi[INFO] +- org.scalamacros:quasiquotes_2.10:jar:2.1.0:compile$ mvn dependency:tree -pl flink-scala -Pscala-2.10 | grep quasi[INFO] +- org.scalamacros:quasiquotes_2.10:jar:2.1.0:compileregardless of the selected profile those dependencies are always there.</description>
+      <version>1.3.0,1.3.1</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-scala.pom.xml</file>
+      <file type="M">flink-scala-shell.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-11-3 01:00:00" id="7062" opendate="2017-7-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support the basic functionality of MATCH_RECOGNIZE</summary>
+      <description>In this JIRA, we will support the basic functionality of MATCH_RECOGNIZE in Flink SQL API which includes the support of syntax MEASURES, PATTERN and DEFINE. This would allow users write basic cep use cases with SQL like the following example:SELECT T.aid, T.bid, T.cidFROM MyTableMATCH_RECOGNIZE ( MEASURES A.id AS aid, B.id AS bid, C.id AS cid PATTERN (A B C) DEFINE A AS A.name = 'a', B AS B.name = 'b', C AS C.name = 'c') AS T</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.FlinkRuleSets.scala</file>
+      <file type="M">flink-libraries.flink-table.pom.xml</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.sql.CepITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.match.PatternSelectFunctionRunner.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.match.PatternFlatSelectFunctionRunner.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.match.MatchUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.match.IterativeConditionRunner.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.match.ConvertToRow.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.SortUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.datastream.DataStreamMatchRule.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.FlinkRelNode.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.datastream.DataStreamMatch.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.dataset.DataSetSort.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.CommonSort.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.MatchCodeGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.Indenter.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.generated.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.CodeGenerator.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.RelTimeIndicatorConverter.scala</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  <bug fixdate="2017-7-5 01:00:00" id="7108" opendate="2017-7-5 00:00:00" resolution="Done">
+    <buginformation>
+      <summary>Implement Session cluster entry point</summary>
+      <description>Implement a Yarn session cluster entry point.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-yarn.src.main.java.org.apache.flink.yarn.YarnFlinkApplicationMasterRunner.java</file>
+      <file type="M">flink-yarn.src.main.java.org.apache.flink.yarn.YarnClusterDescriptorV2.java</file>
+      <file type="M">flink-yarn.src.main.java.org.apache.flink.yarn.AbstractYarnFlinkApplicationMasterRunner.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.entrypoint.StandaloneSessionClusterEntrypoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.entrypoint.SessionClusterEntrypoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.entrypoint.JobClusterEntrypoint.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.entrypoint.ClusterEntrypoint.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-2-7 01:00:00" id="7124" opendate="2017-7-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow to rescale JobGraph on JobManager</summary>
+      <description>In order to support dynamic scaling, the JobManager has to be able to change the parallelism of the submitted JobGraph. This basically entails that we can change the parallelism settings on the cluster side.We already have the functionality that we can change the parallelism if it was set to ExecutionConfig.PARALLELISM_AUTO_MAX. Therefore, I think the task is mostly about making sure that things really properly work when requesting a parallelism change.</description>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ExecutionJobVertexTest.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ExecutionGraphRescalingTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionJobVertex.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.executiongraph.ExecutionGraphBuilder.java</file>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.executiongraph.ExecutionGraphTestUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-7-7 01:00:00" id="7133" opendate="2017-7-7 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Elasticsearch version interference</summary>
+      <description>At least two users have encountered problems with shading in the Elasticsearch connector: https://lists.apache.org/thread.html/b5bc1f690dc894ea9a8b69e82c89eb89ba6dfc2fec2588d2ccacee2c@%3Cuser.flink.apache.org%3E https://lists.apache.org/thread.html/2356670d168f61c20e34611e3c4aeb9c9b3f959f23a9833f631da1ba@%3Cuser.flink.apache.org%3EThe problem seems to be (quote from the second mail):I've found out the source of the problem when I build flink locally.elastic-search base depends on (by default) ES version 1.7.1 that depends onasm 4.1 and that version is shaded to elasticsearch-base-jar. I tried to setelasticsearch.version property in Maven to 5.1.2 (the same as elasticsearch5connector) but then elasticsearch-base does not compile:[ERROR] Failed to execute goalorg.apache.maven.plugins:maven-compiler-plugin:3.1:testCompile(default-testCompile) on project flink-connector-elasticsearch-base_2.11:Compilation failure[ERROR]/home/adebski/Downloads/flink-release-1.3.1/flink-connectors/flink-connector-elasticsearch-base/src/test/java/org/apache/flink/streaming/connectors/elasticsearch/ElasticsearchSinkBaseTest.java:[491,92]no suitable constructor found forBulkItemResponse(int,java.lang.String,org.elasticsearch.action.ActionResponse)[ERROR] constructororg.elasticsearch.action.bulk.BulkItemResponse.BulkItemResponse(int,java.lang.String,org.elasticsearch.action.DocWriteResponse)is not applicable[ERROR] (argument mismatch; org.elasticsearch.action.ActionResponse cannotbe converted to org.elasticsearch.action.DocWriteResponse)[ERROR] constructororg.elasticsearch.action.bulk.BulkItemResponse.BulkItemResponse(int,java.lang.String,org.elasticsearch.action.bulk.BulkItemResponse.Failure)is not applicable[ERROR] (argument mismatch; org.elasticsearch.action.ActionResponse cannotbe converted to org.elasticsearch.action.bulk.BulkItemResponse.Failure)To me, it seems like we have to get rid of the "base" package and have two completely separate packages.</description>
+      <version>1.3.0,1.3.1</version>
+      <fixedVersion>1.3.2,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-elasticsearch-base.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-7-13 01:00:00" id="7170" opendate="2017-7-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix until condition when the contiguity is strict</summary>
+      <description>When the contiguity is STRICT, the method extendWithUntilCondition is not correct.</description>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-cep.src.test.java.org.apache.flink.cep.nfa.UntilConditionITCase.java</file>
+      <file type="M">flink-libraries.flink-cep.src.main.java.org.apache.flink.cep.nfa.compiler.NFACompiler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-7-13 01:00:00" id="7174" opendate="2017-7-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bump dependency of Kafka 0.10.x to the latest one</summary>
+      <description>We are using pretty old Kafka version for 0.10. Besides any bug fixes and improvements that were made between 0.10.0.1 and 0.10.2.1, it 0.10.2.1 version is more similar to 0.11.0.</description>
+      <version>1.2.1,1.3.1,1.4.0</version>
+      <fixedVersion>1.3.2,1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-connectors.flink-connector-kafka-base.src.main.java.org.apache.flink.streaming.connectors.kafka.internals.AbstractPartitionDiscoverer.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.test.java.org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThreadTest.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.9.src.main.java.org.apache.flink.streaming.connectors.kafka.internal.KafkaConsumerThread.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.src.test.java.org.apache.flink.streaming.connectors.kafka.KafkaTestEnvironmentImpl.java</file>
+      <file type="M">flink-connectors.flink-connector-kafka-0.10.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <bug fixdate="2017-7-15 01:00:00" id="7202" opendate="2017-7-15 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Split supressions for flink-core, flink-java, flink-optimizer per package</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">tools.maven.suppressions-optimizer.xml</file>
+      <file type="M">tools.maven.suppressions-java.xml</file>
+      <file type="M">tools.maven.suppressions-core.xml</file>
+      <file type="M">flink-optimizer.src.test.resources.log4j-test.properties</file>
+      <file type="M">flink-optimizer.pom.xml</file>
+      <file type="M">flink-java.pom.xml</file>
+      <file type="M">flink-core.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-19 01:00:00" id="7227" opendate="2017-7-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>OR expression with more than 2 predicates is not pushed into a TableSource</summary>
+      <description>It seems that RexNodeToExpressionConverter cannot handle OR expressions with more than 2 predicates. Therefore the expression is not pushed into a FilterableTableSource.</description>
+      <version>1.3.1</version>
+      <fixedVersion>1.3.4,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.utils.TestFilterableTableSource.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.plan.RexProgramExtractorTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.util.RexProgramExtractor.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-7-19 01:00:00" id="7228" opendate="2017-7-19 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Harden HistoryServerStaticFileHandlerTest</summary>
+      <description>We can harden the test to use a free port instead of the hard-coded 8081.</description>
+      <version>1.3.1,1.4.0</version>
+      <fixedVersion>1.3.2,1.4.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime-web.src.test.java.org.apache.flink.runtime.webmonitor.history.HistoryServerStaticFileServerHandlerTest.java</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2017-7-24 01:00:00" id="7258" opendate="2017-7-24 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>IllegalArgumentException in Netty bootstrap with large memory state segment size</summary>
+      <description>In NettyBootstrap we configure the low and high watermarks in the following order:bootstrap.childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, config.getMemorySegmentSize() + 1);bootstrap.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, 2 * config.getMemorySegmentSize());When the memory segment size is higher than the default high water mark, this throws an `IllegalArgumentException` when a client tries to connect. Hence, this unfortunately only happens during runtime when a intermediate result is requested. This doesn't fail the job, but logs a warning and ignores the failed configuration attempt, potentially resulting in degraded performance because of a lower than expected watermark.A simple fix is to first configure the high water mark and only then configure the low watermark.</description>
+      <version>1.3.1</version>
+      <fixedVersion>1.3.2,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-runtime.src.test.java.org.apache.flink.runtime.io.network.netty.NettyServerLowAndHighWatermarkTest.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.query.netty.KvStateServer.java</file>
+      <file type="M">flink-runtime.src.main.java.org.apache.flink.runtime.io.network.netty.NettyServer.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2017-3-31 01:00:00" id="7309" opendate="2017-7-31 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>NullPointerException in CodeGenUtils.timePointToInternalCode() generated code</summary>
+      <description>The code generated by CodeGenUtils.timePointToInternalCode() will cause a NullPointerException when SQL table field type is `TIMESTAMP` and the field value is `null`.Example for reproduce:object StreamSQLExample { def main(args: Array[String]): Unit = { val env = StreamExecutionEnvironment.getExecutionEnvironment val tEnv = TableEnvironment.getTableEnvironment(env) // null field value val orderA: DataStream[Order] = env.fromCollection(Seq( Order(null, "beer", 3))) tEnv.registerDataStream("OrderA", orderA, 'ts, 'product, 'amount) val result = tEnv.sql("SELECT * FROM OrderA") result.toAppendStream[Order].print() env.execute() } case class Order(ts: Timestamp, product: String, amount: Int)}In the above example, timePointToInternalCode() will generated some statements like this:... long result$1 = org.apache.calcite.runtime.SqlFunctions.toLong((java.sql.Timestamp) in1.ts()); boolean isNull$2 = (java.sql.Timestamp) in1.ts() == null;...so, the NPE will happen when in1.ts() is null.</description>
+      <version>1.3.1</version>
+      <fixedVersion>1.3.4,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.expressions.TemporalTypesTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.CodeGenerator.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-3-3 01:00:00" id="7357" opendate="2017-8-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HOP_START() HOP_END() does not work when using HAVING clause with GROUP BY HOP window</summary>
+      <description>The following SQL does not compile:invalid_having_hop_start_sqlSELECT c AS k, COUNT(a) AS v, HOP_START(rowtime, INTERVAL '1' MINUTE, INTERVAL '1' MINUTE) AS windowStart, HOP_END(rowtime, INTERVAL '1' MINUTE, INTERVAL '1' MINUTE) AS windowEnd FROM T1 GROUP BY HOP(rowtime, INTERVAL '1' MINUTE, INTERVAL '1' MINUTE), c HAVING SUM(b) &gt; 1While individually keeping HAVING clause or HOP_START field compiles and runs without issue.more details: https://github.com/apache/flink/compare/master...walterddr:having_does_not_work_with_hop_start_end</description>
+      <version>1.3.1</version>
+      <fixedVersion>1.3.4,1.4.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.sql.SqlITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.sql.GroupWindowTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.batch.sql.GroupWindowTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.FlinkRuleSets.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.common.WindowStartEndPropertiesRule.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-10-22 01:00:00" id="7491" opendate="2017-8-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support COLLECT Aggregate function in Flink SQL</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.4.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.sql.SqlITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.batch.sql.AggregateITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.aggregate.AggregateUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.nodes.FlinkRelNode.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.codegen.ExpressionReducer.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.FlinkTypeFactory.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.Types.scala</file>
+      <file type="M">flink-core.src.main.java.org.apache.flink.api.java.typeutils.MapTypeInfo.java</file>
+      <file type="M">docs.dev.table.sql.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2017-2-20 01:00:00" id="7658" opendate="2017-9-20 00:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Support COLLECT Aggregate function in Flink TABLE API</summary>
+      <description/>
+      <version>None</version>
+      <fixedVersion>1.5.0</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.table.AggregateITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.batch.table.AggregateITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.batch.table.stringexpr.AggregateStringExpressionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.validate.FunctionCatalog.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.expressions.aggregations.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.api.scala.expressionDsl.scala</file>
+      <file type="M">docs.dev.table.tableApi.md</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-11-8 01:00:00" id="8897" opendate="2018-3-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Rowtime materialization causes "mismatched type" AssertionError</summary>
+      <description>As raised in this thread, the query created by the following code will throw a calcite "mismatch type" (Timestamp(3) and TimeIndicator) exception.String sql1 = "select id, eventTs as t1, count(*) over (partition by id order by eventTs rows between 100 preceding and current row) as cnt1 from myTable1";String sql2 = "select distinct id as r_id, eventTs as t2, count(*) over (partition by id order by eventTs rows between 50 preceding and current row) as cnt2 from myTable2";Table left = tableEnv.sqlQuery(sql1);Table right = tableEnv.sqlQuery(sql2);left.join(right).where("id === r_id &amp;&amp; t1 === t2").select("id, t1").writeToSink(...)The logical plan is as follows.LogicalProject(id=[$0], t1=[$1]) LogicalFilter(condition=[AND(=($0, $3), =($1, $4))]) LogicalJoin(condition=[true], joinType=[inner]) LogicalAggregate(group=[{0, 1, 2}]) LogicalWindow(window#0=[window(partition {0} order by [1] rows between $2 PRECEDING and CURRENT ROW aggs [COUNT()])]) LogicalProject(id=[$0], eventTs=[$3]) LogicalTableScan(table=[[_DataStreamTable_0]]) LogicalAggregate(group=[{0, 1, 2}]) LogicalWindow(window#0=[window(partition {0} order by [1] rows between $2 PRECEDING and CURRENT ROW aggs [COUNT()])]) LogicalProject(id=[$0], eventTs=[$3]) LogicalTableScan(table=[[_DataStreamTable_0]])That is because the the rowtime field after an aggregation will be materialized while the RexInputRef type for the filter's operands (t1 === t2) is still TimeIndicator. We should make them unified.</description>
+      <version>None</version>
+      <fixedVersion>1.7.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.runtime.stream.TimeAttributesITCase.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.plan.TimeIndicatorConversionTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.table.JoinTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.test.scala.org.apache.flink.table.api.stream.sql.JoinTest.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.runtime.join.WindowJoinUtil.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.datastream.DataStreamWindowJoinRule.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.plan.rules.datastream.DataStreamJoinRule.scala</file>
+      <file type="M">flink-libraries.flink-table.src.main.scala.org.apache.flink.table.calcite.RelTimeIndicatorConverter.scala</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2018-4-20 01:00:00" id="9031" opendate="2018-3-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DataSet Job result changes when adding rebalance after union</summary>
+      <description>A user reported this issue on the user mailing list.I am using Flink 1.3.1 and I have found a strange behavior on running the following logic: Read data from file and store into DataSet&lt;POJO&gt; Split dataset in two, by checking if "field1" of POJOs is empty or not, so that the first dataset contains only elements with non empty "field1", and the second dataset will contain the other elements. Each dataset is then grouped by, one by "field1" and other by another field, and subsequently reduced. The 2 datasets are merged together by union. The final dataset is written as json.What I was expected, from output, was to find only one element with a specific value of "field1" because: Reducing the first dataset grouped by "field1" should generate only one element with a specific value of "field1". The second dataset should contain only elements with empty "field1". Making an union of them should not duplicate any record.This does not happen. When i read the generated jsons i see some duplicate (non empty) values of "field1". Strangely this does not happen when the union between the two datasets is not computed. In this case the first dataset produces elements only with distinct values of "field1", while second dataset produces only records with empty field "value1".The user has not enable object reuse.Later he reports that the problem disappears when he injects a rebalance() after a union resolves the problem. I had a look at the execution plans for both cases (attached to this issue) but could not identify a problem.Hence I assume, this might be an issue with the runtime code but we need to look deeper into this. The user also provided an example program consisting of two classes which are attached to the issue as well.   </description>
+      <version>1.3.1</version>
+      <fixedVersion>1.3.4,1.4.3,1.5.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">flink-optimizer.src.test.java.org.apache.flink.optimizer.UnionReplacementTest.java</file>
+      <file type="M">flink-optimizer.src.main.java.org.apache.flink.optimizer.traversals.GraphCreatingVisitor.java</file>
+      <file type="M">flink-optimizer.src.main.java.org.apache.flink.optimizer.plantranslate.JobGraphGenerator.java</file>
+      <file type="M">flink-optimizer.src.main.java.org.apache.flink.optimizer.Optimizer.java</file>
+      <file type="M">flink-optimizer.src.main.java.org.apache.flink.optimizer.dag.BinaryUnionNode.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

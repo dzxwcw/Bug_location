@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="2786" opendate="2011-6-17 00:00:00" fixdate="2011-11-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>After a minor compaction, deleted key-slices are visible again</summary>
+      <description>After a minor compaction, deleted key-slices are visible again.Steps to reproduce:1) Insert a row named "test".2) Insert 500000 rows. During this step, row "test" is included in a major compaction: file-1, file-2, file-3 and file-4 compacted to file-5 (includes "test").3) Delete row named "test".4) Insert 500000 rows. During this step, row "test" is included in a minor compaction: file-6, file-7, file-8 and file-9 compacted to file-10 (should include tombstoned "test").After step 4, row "test" is live again.Test environment:Single node with empty database.Standard configured super-column-family (I see this behavior with several gc_grace settings (big and small values):create column family Customers with column_type = 'Super' and comparator = 'BytesType;In Cassandra 0.7.6 I observe the expected behavior, i.e. after step 4, the row is still deleted.I've included a .NET program to reproduce the problem. I will add a Java version later on.</description>
+      <version>0.8.8,1.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.SchemaLoader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.LazilyCompactedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.EchoedRow.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionController.java</file>
+      <file type="M">test.unit.org.apache.cassandra.db.compaction.CompactionsTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.PrecompactedRow.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3347" opendate="2011-10-11 00:00:00" fixdate="2011-11-11 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>include bloomfilter stats in nodeCmd output</summary>
+      <description></description>
+      <version>1.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3406" opendate="2011-10-26 00:00:00" fixdate="2011-11-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Create a nodetool upgrade_sstables to avoid using scrubs for tasks it wasn&amp;#39;t intended to.</summary>
+      <description>Scrub was intended to check a data file is not corrupted and to try to correct some form of corruption and discard the data when it can't repair. But we are now using it also for: major upgrade, to have sstable in the new data format for streaming sake (that one could be "fixed" independently by supporting old format during streaming) to force the compaction of existing sstables after changing the compression algorithmWe should probably provide a separate tool/command for those two last tasks since: we could have a better name, like upgrade_sstables or rewrite_sstables for that operation we could avoid the automatic snapshot that scrub does (and is not expected by users for those operations) make it slightly quicker/simpler by avoiding the corruption detection code</description>
+      <version>1.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeProbe.java</file>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageServiceMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">NEWS.txt</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Constants.java</file>
+      <file type="M">interface.thrift.gen-java.org.apache.cassandra.thrift.Cassandra.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3495" opendate="2011-11-15 00:00:00" fixdate="2011-11-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>capture BloomFilter memory size in Cassandra (JMX)</summary>
+      <description>Maybe this could be done in https://issues.apache.org/jira/browse/CASSANDRA-3347 also, but not sure what's the scope in that jira. It'd be great if the BF memory size can be captured in the JMX monitoring. Though not sure how you would capture the "heap size" (easily that is) of the object. There is a BF.serializedSize() , can this be exposed to the BloomFilterTracker and DataTracker... and use this instead? Anyway, will let the implementor to decide/design</description>
+      <version>1.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.NodeCmd.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStoreMBean.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamilyStore.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3496" opendate="2011-11-15 00:00:00" fixdate="2011-11-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Load from `nodetool ring` does not update after cleanup.</summary>
+      <description>Repro:Bring up a node.Insert 1M rows:127.0.0.1 datacenter1 rack1 Up Normal 406.92 MB 100.00% 77747037169725419723056812679314618801(Already looks wrong, 406.92 is higher than I'm used to seeing from a single run of stress)Bootstrap a second node into the cluster:162877269496252595336256012556853953561127.0.0.1 datacenter1 rack1 Up Normal 407.03 MB 49.96% 77747037169725419723056812679314618801127.0.0.2 datacenter1 rack1 Up Normal 157.91 MB 50.04% 162877269496252595336256012556853953561Cleanup162877269496252595336256012556853953561127.0.0.1 datacenter1 rack1 Up Normal 551.2 MB 49.96% 77747037169725419723056812679314618801127.0.0.2 datacenter1 rack1 Up Normal 157.91 MB 50.04% 162877269496252595336256012556853953561Looks like each operation that adds and removes SSTables only adds to the total and doesn't remove the old sstables from the total size count.</description>
+      <version>1.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.DataTracker.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3501" opendate="2011-11-17 00:00:00" fixdate="2011-11-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Move allows you to move to tokens &gt; 2**127</summary>
+      <description>Currently you can move to tokens greater than what should be the max token in RP.</description>
+      <version>1.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.utils.MerkleTreeTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.dht.RandomPartitioner.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3504" opendate="2011-11-17 00:00:00" fixdate="2011-11-17 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Storage paths exposed in JMX should be absolute/canonical</summary>
+      <description>The data, commitlog, and saved caches directories are exposed through JMX. However, what's exposed is just exactly what's in the config file. This can be ambiguous in some cases. For example, on Windows, if your conf entry is "/var/log/cassandra/data", JMX will expose the String "/var/log/cassandra/data", but the actual directory used might be "C:\var\log\cassandra\data" or "D:\var\log\cassandra\data" &amp;#8211; there's no way to determine what drive letter is actually being used.Reporting the result of File.getCanonicalPath(filename) instead would eliminate the ambiguity.</description>
+      <version>1.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.StorageService.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3508" opendate="2011-11-18 00:00:00" fixdate="2011-11-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>requiring --debug to see stack traces for failures in cassandra-cli is a terrible idea (aka silent failure is never a valid option)</summary>
+      <description>this manifests itself in cassandra-cli by returning null to the user. In order to see what the problem was (and in many cases, just to know there was a problem at all) requires running cassandra-cli with "--debug"</description>
+      <version>1.0.4</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cli.CliOptions.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliMain.java</file>
+      <file type="M">src.java.org.apache.cassandra.cli.CliClient.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3521" opendate="2011-11-22 00:00:00" fixdate="2011-11-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader throwing exceptions when loading snapshot data from compressed CFs</summary>
+      <description>Loaded data from snapshot then enabled `sstable_compression: org.apache.cassandra.io.compress.SnappyCompressor`Then flush, scrub and compact. I can see actual CompressionRatio in JMX Console and access my data without problems..Now I snapshot compressed keyspace and when trying to load snapshot to another single node or different Keyspace (the same super CF structure with compression options enabled, even try to truncate snapshoted CFs.) I cant retrieve any records . sstableloader command with debug mode dont throw any errors and shows its streaming sstableloader-cassandra_2/bin/sstableloader --debug Impressions_compressed/Node logs contains repeating the errors bellow.ERROR &amp;#91;Thread-319&amp;#93; 2011-11-22 09:56:01,931 AbstractCassandraDaemon.java (line 133) Fatal exception in thread Thread&amp;#91;Thread-319,5,main&amp;#93;java.lang.AssertionError: attempted to delete non-existing file HidSaid-tmp-hb-260-Data.db at org.apache.cassandra.io.util.FileUtils.deleteWithConfirm(FileUtils.java:49) at org.apache.cassandra.streaming.IncomingStreamReader.retry(IncomingStreamReader.java:170) at org.apache.cassandra.streaming.IncomingStreamReader.read(IncomingStreamReader.java:92) at org.apache.cassandra.net.IncomingTcpConnection.stream(IncomingTcpConnection.java:184) at org.apache.cassandra.net.IncomingTcpConnection.run(IncomingTcpConnection.java:81) INFO &amp;#91;Thread-320&amp;#93; 2011-11-22 09:56:02,492 StreamInSession.java (line 120) Streaming of file Impressions_compressed/HidSaid-hb-9-Data.db sections=1 progress=0/5616749 - 0% from org.apache.cassandra.streaming.StreamInSession@3cc62c07 failed: requesting a retry.ERROR &amp;#91;Thread-320&amp;#93; 2011-11-22 09:56:02,493 AbstractCassandraDaemon.java (line 133) Fatal exception in thread Thread&amp;#91;Thread-320,5,main&amp;#93;java.lang.AssertionError: attempted to delete non-existing file HidSaid-tmp-hb-261-Data.db at org.apache.cassandra.io.util.FileUtils.deleteWithConfirm(FileUtils.java:49) at org.apache.cassandra.streaming.IncomingStreamReader.retry(IncomingStreamReader.java:170) at org.apache.cassandra.streaming.IncomingStreamReader.read(IncomingStreamReader.java:92) at org.apache.cassandra.net.IncomingTcpConnection.stream(IncomingTcpConnection.java:184) at org.apache.cassandra.net.IncomingTcpConnection.run(IncomingTcpConnection.java:81)Hope its enough if you need more info just tell me what you need to reproduce this bug.</description>
+      <version>1.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="3529" opendate="2011-11-24 00:00:00" fixdate="2011-11-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>ConcurrentModificationException in Table.all()</summary>
+      <description>[junit] java.util.ConcurrentModificationException [junit] at java.util.HashMap$HashIterator.nextEntry(HashMap.java:793) [junit] at java.util.HashMap$KeyIterator.next(HashMap.java:828) [junit] at com.google.common.collect.Iterators$8.next(Iterators.java:750) [junit] at org.apache.cassandra.db.ColumnFamilyStore.all(ColumnFamilyStore.java:1509) [junit] at org.apache.cassandra.db.MeteredFlusher.countFlushingBytes(MeteredFlusher.java:118) [junit] at org.apache.cassandra.db.MeteredFlusher.run(MeteredFlusher.java:45) [junit] at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:441) [junit] at java.util.concurrent.FutureTask$Sync.innerRunAndReset(FutureTask.java:317) [junit] at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:150) [junit] at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$101(ScheduledThreadPoolExecutor.java:98) [junit] at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.runPeriodic(ScheduledThreadPoolExecutor.java:180) [junit] at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:204) [junit] at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:886) [junit] at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:908) [junit] at java.lang.Thread.run(Thread.java:662)</description>
+      <version>1.0.4</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.Schema.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

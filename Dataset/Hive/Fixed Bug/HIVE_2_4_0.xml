@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HIVE">
+  <bug id="17417" opendate="2017-8-31 00:00:00" fixdate="2017-11-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>LazySimple Timestamp is very expensive</summary>
+      <description>In a specific case where a schema contains array&lt;struct&gt; with timestamp and date fields (array size &gt;10000). Any access to this column very very expensive in terms of CPU as most of the time is serialization of timestamp and date. Refer attached profiles. &gt;70% time spent in serialization + tostring conversions.</description>
+      <version>2.4.0,3.0.0</version>
+      <fixedVersion>2.4.0,3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">serde.src.java.org.apache.hadoop.hive.serde2.io.TimestampWritable.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17468" opendate="2017-9-6 00:00:00" fixdate="2017-9-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Shade and package appropriate jackson version for druid storage handler</summary>
+      <description>Currently we are excluding all the jackson core dependencies coming from druid. This is wrong in my opinion since this will lead to the packaging of unwanted jackson library from other projects.As you can see the file hive-druid-deps.txt currently jacskon core is coming from calcite and the version is 2.6.3 which is very different from 2.4.6 used by druid. This patch exclude the unwanted jars and make sure to bring in druid jackson dependency from druid it self.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">druid-handler.src.test.org.apache.hadoop.hive.ql.io.TestDruidRecordWriter.java</file>
+      <file type="M">druid-handler.src.test.org.apache.hadoop.hive.druid.TestHiveDruidQueryBasedInputFormat.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidTopNQueryRecordReader.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidTimeseriesQueryRecordReader.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidSerDe.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidSelectQueryRecordReader.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidGroupByQueryRecordReader.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.io.DruidRecordWriter.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.io.DruidQueryBasedInputFormat.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.io.DruidOutputFormat.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.DruidStorageHandlerUtils.java</file>
+      <file type="M">druid-handler.pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17563" opendate="2017-9-20 00:00:00" fixdate="2017-9-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CodahaleMetrics.JsonFileReporter is not updating hive.service.metrics.file.location</summary>
+      <description>The JsonFileReporter has a bug where it never updates the content of hive.service.metrics.file.location. The original implementation relied on fs.rename to overwrite the file if it already existed, but after HIVE-13705 fs.rename now returns false if the destination file exists.Also, there is no reason for the JsonFileReporter to write to any fs besides the local filesystem, so we should make this local fs specific.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.src.test.java.org.apache.hadoop.hive.metastore.metrics.TestMetrics.java</file>
+      <file type="M">standalone-metastore.src.main.java.org.apache.hadoop.hive.metastore.metrics.JsonReporter.java</file>
+      <file type="M">common.src.test.org.apache.hadoop.hive.common.metrics.metrics2.TestCodahaleMetrics.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.common.metrics.metrics2.JsonFileMetricsReporter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17574" opendate="2017-9-21 00:00:00" fixdate="2017-10-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid multiple copies of HDFS-based jars when localizing job-jars</summary>
+      <description>Raising this on behalf of Selina Zhang. (For my own reference: YHIVE-1035.)This has to do with the classpaths of Hive actions run from Oozie, and affects scripts that adds jars/resources from HDFS locations.As part of Oozie's "sharelib" deploys, foundation jars (such as Hive jars) tend to be stored in HDFS paths, as are any custom user-libraries used in workflows. An ADD JAR|FILE|ARCHIVE statement in a Hive script causes the following steps to occur: Files are downloaded from HDFS to local temp dir. UDFs are resolved/validated. All jars/files, including those just downloaded from HDFS, are shipped right back to HDFS-based scratch-directories, for job submission.For HDFS-based files, this is wasteful and time-consuming. #3 above should skip shipping HDFS-based resources, and add those directly to the Tez session.We have a patch that's being used internally at Yahoo.</description>
+      <version>2.2.0,2.4.0,3.0.0</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.org.apache.hadoop.hive.ql.session.TestAddResource.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.util.ResourceDownloader.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.session.SessionState.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.Utilities.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.tez.DagUtils.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17665" opendate="2017-10-2 00:00:00" fixdate="2017-10-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Update netty-all to latest 4.0.x.Final</summary>
+      <description>Update netty version to latest 4.0.x.Final to address http://www.cvedetails.com/cve/CVE-2016-4970/</description>
+      <version>2.4.0,3.0.0</version>
+      <fixedVersion>2.2.1,2.3.1,2.4.0,3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17792" opendate="2017-10-12 00:00:00" fixdate="2017-10-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enable Bucket Map Join when there are extra keys other than bucketed columns</summary>
+      <description>Currently this wont go through Bucket Map Join(BMJ)CREATE TABLE tab_part (key int, value string) PARTITIONED BY(ds STRING) CLUSTERED BY (key) INTO 4 BUCKETS STORED AS TEXTFILE;CREATE TABLE tab(key int, value string) PARTITIONED BY(ds STRING) STORED AS TEXTFILE;select a.key, a.value, b.valuefrom tab a join tab_part b on a.key = b.key and a.value = b.value;</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.spark.bucket.map.join.tez1.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.tez.smb.main.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.llap.bucket.map.join.tez1.q.out</file>
+      <file type="M">ql.src.test.queries.clientpositive.bucket.map.join.tez1.q</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.metainfo.annotation.OpTraitsRulesProcFactory.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.ConvertJoinMapJoin.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17831" opendate="2017-10-18 00:00:00" fixdate="2017-10-18 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HiveSemanticAnalyzerHookContext does not update the HiveOperation after sem.analyze() is called</summary>
+      <description>The SemanticAnalyzer.analyze() called on the Driver.compile() method updates the HiveOperation based on the analysis this does. However, the patch done on HIVE-17048 does not update such operation and is send an invalid operation to the postAnalyze() call.</description>
+      <version>2.2.1,2.3.1,2.4.0,3.0.0</version>
+      <fixedVersion>2.1.2,2.2.1,2.3.2,2.4.0,3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.HiveSemanticAnalyzerHookContextImpl.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.hooks.TestHs2Hooks.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17873" opendate="2017-10-22 00:00:00" fixdate="2017-10-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>External LLAP client: allow same handleID to be used more than once</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">llap-ext-client.src.java.org.apache.hadoop.hive.llap.LlapBaseInputFormat.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17879" opendate="2017-10-24 00:00:00" fixdate="2017-6-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade Datanucleus Maven Plugin</summary>
+      <description>when build hive with jdk9got following error[ERROR] Failed to execute goal org.datanucleus:datanucleus-maven-plugin:3.3.0-release:enhance (default) on project hive-standalone-metastore: Error executing DataNucleus tool org.datanucleus.enhancer.DataNucleusEnhancer: InvocationTargetException: java/sql/Date: java.sql.Date -&gt; [Help 1]org.apache.maven.lifecycle.LifecycleExecutionException: Failed to execute goal org.datanucleus:datanucleus-maven-plugin:3.3.0-release:enhance (default) on project hive-standalone-metastore: Error executing DataNucleus tool org.datanucleus.enhancer.DataNucleusEnhancer at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:212) at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:153) at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:145) at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:116) at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:80) at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build(SingleThreadedBuilder.java:51) at org.apache.maven.lifecycle.internal.LifecycleStarter.execute(LifecycleStarter.java:128) at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:307) at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:193) at org.apache.maven.DefaultMaven.execute(DefaultMaven.java:106) at org.apache.maven.cli.MavenCli.execute(MavenCli.java:863) at org.apache.maven.cli.MavenCli.doMain(MavenCli.java:288) at org.apache.maven.cli.MavenCli.main(MavenCli.java:199) at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.base/java.lang.reflect.Method.invoke(Method.java:564) at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced(Launcher.java:289) at org.codehaus.plexus.classworlds.launcher.Launcher.launch(Launcher.java:229) at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode(Launcher.java:415) at org.codehaus.plexus.classworlds.launcher.Launcher.main(Launcher.java:356)Caused by: org.apache.maven.plugin.MojoExecutionException: Error executing DataNucleus tool org.datanucleus.enhancer.DataNucleusEnhancer at org.datanucleus.maven.AbstractDataNucleusMojo.executeInJvm(AbstractDataNucleusMojo.java:350) at org.datanucleus.maven.AbstractEnhancerMojo.enhance(AbstractEnhancerMojo.java:266) at org.datanucleus.maven.AbstractEnhancerMojo.executeDataNucleusTool(AbstractEnhancerMojo.java:72) at org.datanucleus.maven.AbstractDataNucleusMojo.execute(AbstractDataNucleusMojo.java:126) at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo(DefaultBuildPluginManager.java:134) at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:207) ... 20 moreCaused by: java.lang.reflect.InvocationTargetException at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62) at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) at java.base/java.lang.reflect.Method.invoke(Method.java:564) at org.datanucleus.maven.AbstractDataNucleusMojo.executeInJvm(AbstractDataNucleusMojo.java:333) ... 25 moreCaused by: java.lang.NoClassDefFoundError: java/sql/Date at org.datanucleus.ClassConstants.&lt;clinit&gt;(ClassConstants.java:66) at org.datanucleus.plugin.NonManagedPluginRegistry.registerExtensions(NonManagedPluginRegistry.java:206) at org.datanucleus.plugin.NonManagedPluginRegistry.registerExtensionPoints(NonManagedPluginRegistry.java:155) at org.datanucleus.plugin.PluginManager.&lt;init&gt;(PluginManager.java:63) at org.datanucleus.plugin.PluginManager.createPluginManager(PluginManager.java:430) at org.datanucleus.AbstractNucleusContext.&lt;init&gt;(AbstractNucleusContext.java:85) at org.datanucleus.enhancer.EnhancementNucleusContextImpl.&lt;init&gt;(EnhancementNucleusContextImpl.java:48) at org.datanucleus.enhancer.EnhancementNucleusContextImpl.&lt;init&gt;(EnhancementNucleusContextImpl.java:37) at org.datanucleus.enhancer.DataNucleusEnhancer.&lt;init&gt;(DataNucleusEnhancer.java:161) at org.datanucleus.enhancer.CommandLineHelper.createDataNucleusEnhancer(CommandLineHelper.java:153) at org.datanucleus.enhancer.DataNucleusEnhancer.main(DataNucleusEnhancer.java:1108) ... 30 moreCaused by: java.lang.ClassNotFoundException: java.sql.Date at java.base/java.net.URLClassLoader.findClass(URLClassLoader.java:466) at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:563) at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:496) ... 41 more</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.pom.xml</file>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="17880" opendate="2017-10-24 00:00:00" fixdate="2017-1-24 01:00:00" resolution="Unresolved">
+    <buginformation>
+      <summary>hive tez get error result whith using "join" join two subquery</summary>
+      <description>table broadcast_time partitioned by par_date(yyyyMMdd)createtime:yyyy-MM-dd HH:mm:ss1,when use alias field par_date(same name with partitioned field)SELECT par_date, count(1)FROM ( SELECT qid, substr(createtime, 1, 11) par_date FROM broadcast_time WHERE par_date = 20171023 AND qid = 1111111 ) t1 JOIN ( SELECT qid FROM room_info WHERE par_date = 20171023 ) r ON t1.qid = r.qidGROUP BY par_date;get reuslt:20171023 392,when use alias field new_par_date(different with partitioned field)SELECT new_par_date, count(1)FROM ( SELECT qid, substr(createtime, 1, 11) new_par_date FROM broadcast_time WHERE par_date = 20171023 AND qid = 3015850 ) t1 JOIN ( SELECT qid FROM room_info WHERE par_date = 20171023 ) r ON t1.qid = r.qidGROUP BY new_par_date;get result:2015-10-19 12015-10-20 52015-10-21 32015-10-25 12015-10-31 12015-11-21 22015-11-24 22016-02-29 12016-03-01 22016-03-06 12016-03-11 12016-03-15 22016-03-16 12016-03-17 12016-03-21 12016-04-16 72016-05-07 22016-09-24 12017-05-12 22017-06-19 12017-06-20 1</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.queries.clientpositive.druid.timeseries.q</file>
+      <file type="M">pom.xml</file>
+      <file type="M">druid-handler.src.test.org.apache.hadoop.hive.ql.io.TestDruidRecordWriter.java</file>
+      <file type="M">druid-handler.src.test.org.apache.hadoop.hive.druid.serde.TestDruidSerDe.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidTimeseriesQueryRecordReader.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidSelectQueryRecordReader.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.serde.DruidGroupByQueryRecordReader.java</file>
+      <file type="M">druid-handler.src.java.org.apache.hadoop.hive.druid.DruidStorageHandlerUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18084" opendate="2017-11-16 00:00:00" fixdate="2017-11-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade checkstyle version to support lambdas</summary>
+      <description>Current version does not support lambdas in source files so it skips them. We need to upgrade checkstyle version to fix this.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.pom.xml</file>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18513" opendate="2018-1-22 00:00:00" fixdate="2018-2-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Query results caching</summary>
+      <description>Add a query results cache that can save the results of an executed Hive query for reuse on subsequent queries. This may be useful in cases where the same query is issued many times, since Hive can return back the results of a cached query rather than having to execute the full query on the cluster.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">service.src.java.org.apache.hive.service.server.HiveServer2.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.session.SessionState.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.FetchWork.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.QBParseInfo.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.CalcitePlanner.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.calcite.HiveCalciteUtil.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.Utilities.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.Driver.java</file>
+      <file type="M">itests.util.src.main.java.org.apache.hadoop.hive.ql.QTestUtil.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+      <file type="M">itests.hive-blobstore.src.test.resources.hive-site.xml</file>
+      <file type="M">data.conf.tez.hive-site.xml</file>
+      <file type="M">data.conf.spark.yarn-client.hive-site.xml</file>
+      <file type="M">data.conf.spark.standalone.hive-site.xml</file>
+      <file type="M">data.conf.spark.local.hive-site.xml</file>
+      <file type="M">data.conf.rlist.hive-site.xml</file>
+      <file type="M">data.conf.perf-reg.tez.hive-site.xml</file>
+      <file type="M">data.conf.perf-reg.spark.hive-site.xml</file>
+      <file type="M">data.conf.llap.hive-site.xml</file>
+      <file type="M">data.conf.hive-site.xml</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.ql.log.PerfLogger.java</file>
+      <file type="M">common.src.java.org.apache.hadoop.hive.conf.HiveConf.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18514" opendate="2018-1-22 00:00:00" fixdate="2018-1-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>add service output for ranger to WM DDL operations</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.DDLSemanticAnalyzer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18516" opendate="2018-1-23 00:00:00" fixdate="2018-2-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>load data should rename files consistent with insert statements for ACID Tables</summary>
+      <description>load data should rename files consistent with insert statements for ACID Tables.</description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.spark.smb.mapjoin.7.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.smb.mapjoin.7.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.beeline.smb.mapjoin.7.q.out</file>
+      <file type="M">ql.src.test.results.clientnegative.load.data.into.acid.q.out</file>
+      <file type="M">ql.src.test.queries.clientpositive.smb.mapjoin.7.q</file>
+      <file type="M">ql.src.test.queries.clientnegative.load.data.into.acid.q</file>
+      <file type="M">ql.src.test.org.apache.hadoop.hive.ql.TestTxnLoadData.java</file>
+      <file type="M">ql.src.test.org.apache.hadoop.hive.ql.metadata.TestHiveCopyFiles.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.LoadSemanticAnalyzer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.metadata.Hive.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18557" opendate="2018-1-26 00:00:00" fixdate="2018-1-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>q.outs: fix issues caused by q.out_spark files</summary>
+      <description>HIVE-18061 caused some issues in yetus check by introducing q.out_spark files.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18607" opendate="2018-2-2 00:00:00" fixdate="2018-2-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HBase HFile write does strange things</summary>
+      <description>There's some strange code in the output handler that changes output directory into a file because Hive supposedly wants that. If you run insert overwrite with a side directory multiple times, the 2nd insert fails</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-handler.src.test.results.positive.hbase.handler.bulk.q.out</file>
+      <file type="M">hbase-handler.src.test.queries.positive.hbase.handler.bulk.q</file>
+      <file type="M">hbase-handler.src.java.org.apache.hadoop.hive.hbase.HiveHFileOutputFormat.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18626" opendate="2018-2-5 00:00:00" fixdate="2018-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Repl load "with" clause does not pass config to tasks</summary>
+      <description>The "with" clause in repl load suppose to pass custom hive config entries to replication. However, the config is only effective in BootstrapEventsIterator, but not the generated tasks (such as MoveTask, DDLTask).</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.ImportTableDesc.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.ReplicationSemanticAnalyzer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.repl.bootstrap.load.table.LoadTable.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.repl.bootstrap.load.table.LoadPartitions.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.repl.bootstrap.load.LoadDatabase.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18627" opendate="2018-2-6 00:00:00" fixdate="2018-2-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>PPD: Handle FLOAT boxing differently for single/double precision constants</summary>
+      <description>Constants like 0.1 and 0.3 are differently boxed based on intermediate precision of the compiler codepath.Disabling CBO produces 0.1BD constants which fail to box correctly to Double/Float.Enabling CBO fixes this issue, but cannot be applied all queries in Hive.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">errata.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18852" opendate="2018-3-2 00:00:00" fixdate="2018-7-2 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Misleading error message in alter table validation</summary>
+      <description>The metastore's validation error message when attempting to rename a table to a non-existent database is wrong. For instance, attempting to alter table 'db.table' to 'non_existent_database.table' results in the Thrift error:TException - service has thrown: InvalidOperationException(message=Unable to change partition or table. Database db does not exist Check metastore logs for detailed stack.non_existent_database)I believe the offending line of code is here, notice that dbname is used in the message, not newDbName. I don't know if switching that would cause the case of a non-existing dbname case to regress, though.</description>
+      <version>2.4.0</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">standalone-metastore.metastore-server.src.main.java.org.apache.hadoop.hive.metastore.HiveAlterHandler.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="18855" opendate="2018-3-3 00:00:00" fixdate="2018-3-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix unit test TestMiniLlapLocalCliDriver.testCliDriver[results_cache_1]</summary>
+      <description>Looks like this test has been broken for a while.</description>
+      <version>None</version>
+      <fixedVersion>3.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="19274" opendate="2018-4-23 00:00:00" fixdate="2018-4-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add an OpTreeSignature persistence checker hook</summary>
+      <description>Adding a Hook to run during testing which checks that OpTreeSignatures are working as expected would be really usefull; it should run at least during the PerfCliDriver</description>
+      <version>None</version>
+      <fixedVersion>3.1.0,3.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.JoinDesc.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.signature.SignatureUtils.java</file>
+      <file type="M">data.conf.perf-reg.tez.hive-site.xml</file>
+      <file type="M">data.conf.llap.hive-site.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="19381" opendate="2018-5-1 00:00:00" fixdate="2018-5-1 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Function replication in cloud fail when download resource from AWS</summary>
+      <description>Another case replication shall use the config in with clause.</description>
+      <version>None</version>
+      <fixedVersion>3.1.0,3.0.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.session.SessionState.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.FunctionTask.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="19727" opendate="2018-5-29 00:00:00" fixdate="2018-6-29 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix Signature matching of table aliases</summary>
+      <description>there is a probable problem with alias matching: "t1 as a" is matched to "t2 as a"</description>
+      <version>None</version>
+      <fixedVersion>3.1.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.spark.union.ppr.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union9.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union5.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union4.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union25.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union20.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union2.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union15.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union11.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.union10.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.subquery.select.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.spark.explainuser.1.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.join22.q.out</file>
+      <file type="M">ql.src.test.results.clientpositive.spark.dynamic.rdd.cache.q.out</file>
+      <file type="M">ql.src.test.org.apache.hadoop.hive.ql.optimizer.signature.TestOperatorSignature.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.TableScanDesc.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20069" opendate="2018-7-3 00:00:00" fixdate="2018-7-3 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix reoptimization in case of DPP and Semijoin optimization</summary>
+      <description>reported by t3rmin4t0rIn case dynamic partition pruning; the operator statistics became partial; to only reflect the actually scanned partitions; but they are being used as an information about the "full" table...which leads to the exchange of the 2 tables being joined...which is really unfortunate...</description>
+      <version>None</version>
+      <fixedVersion>3.2.0,4.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.stats.OperatorStats.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.mapper.StatsSources.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.TezCompiler.java</file>
+      <file type="M">itests.src.test.resources.testconfiguration.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20486" opendate="2018-8-30 00:00:00" fixdate="2018-11-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Kafka: Use Row SerDe + vectorization</summary>
+      <description>KafkaHandler returns unvectorized rows which causes the operators downstream to be slower and sub-optimal.Hive has a vectorization shim which allows Kafka streams without complex projections to be wrapped into a vectorized reader via hive.vectorized.use.row.serde.deserialize.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.queries.clientpositive.kafka.storage.handler.q</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.Utilities.java</file>
+      <file type="M">kafka-handler.src.test.org.apache.hadoop.hive.kafka.SimpleKafkaWriterTest.java</file>
+      <file type="M">kafka-handler.src.java.org.apache.hadoop.hive.kafka.SimpleKafkaWriter.java</file>
+      <file type="M">kafka-handler.src.java.org.apache.hadoop.hive.kafka.KafkaSerDe.java</file>
+      <file type="M">kafka-handler.src.java.org.apache.hadoop.hive.kafka.KafkaRecordReader.java</file>
+      <file type="M">kafka-handler.src.java.org.apache.hadoop.hive.kafka.KafkaRecordIterator.java</file>
+      <file type="M">kafka-handler.src.java.org.apache.hadoop.hive.kafka.KafkaInputFormat.java</file>
+      <file type="M">itests.util.src.main.java.org.apache.hadoop.hive.ql.QTestUtil.java</file>
+      <file type="M">ql.src.test.results.clientpositive.druid.kafka.storage.handler.q.out</file>
+    </fixedFiles>
+  </bug>
+  <bug id="20489" opendate="2018-8-30 00:00:00" fixdate="2018-9-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Explain plan of query hangs</summary>
+      <description>Explain on a query that joins 47 views, in effect around 94 joins after view expansion seems to take forever. The case here tries to generate a plan using map join with conditional tasks.When the task graph is huge with many paths, there can be a performance issue during compilation. This is caused by recursive traversal of task graph in internTableDesc and deriveFinalExplainAttributes. The use of recursion is inefficient in a couple of ways. For large graphs the recursion was filling up the stack Instead of finding the map works, the traversal was walking all possible paths from root causing a huge performance problem.The fix is to replace the traversal from recursive to an iterative one, keeping track of the nodes already visited. The fix uses getMRTasks, getSparkTasks and getTezTasks to do iterative traversal. These calls were changed to using iterative calls through HIVE-17195. When pushing this patch to an older release, please make sure HIVE-17195 is also pushed to that release.</description>
+      <version>None</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.TaskCompiler.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.optimizer.GenMapRedUtils.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.util.DAGTraversal.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="22403" opendate="2019-10-25 00:00:00" fixdate="2019-11-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Print ENV Variables In Command Line Help Debug Mode</summary>
+      <description>Beeline should print the various CONF and HOME directories it is utilizing when it starts up.  &gt; export DEBUG=1; beeline --help</description>
+      <version>2.4.0,3.2.0</version>
+      <fixedVersion>4.0.0-alpha-1</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.ext.debug.sh</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2749" opendate="2012-1-25 00:00:00" fixdate="2012-2-25 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CONV returns incorrect results sometimes</summary>
+      <description>...because it fails to reset state.</description>
+      <version>None</version>
+      <fixedVersion>0.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.test.results.clientpositive.udf.conv.q.out</file>
+      <file type="M">ql.src.test.queries.clientpositive.udf.conv.q</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.udf.UDFConv.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="2750" opendate="2012-1-26 00:00:00" fixdate="2012-1-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Hive multi group by single reducer optimization causes invalid column reference error</summary>
+      <description>After the optimization, if two query blocks have the same distinct clause and the same group by keys, but the first query block does not reference all the rows the second query block does, an invalid column reference error is raised for the columns unreferenced in the first query block.E.g.FROM srcINSERT OVERWRITE TABLE dest_g2 SELECT substr(src.key,1,1), count(DISTINCT src.key) WHERE substr(src.key,1,1) &gt;= 5 GROUP BY substr(src.key,1,1)INSERT OVERWRITE TABLE dest_g3 SELECT substr(src.key,1,1), count(DISTINCT src.key), count(src.value) WHERE substr(src.key,1,1) &lt; 5 GROUP BY substr(src.key,1,1);This results in an invalid column reference error on src.value</description>
+      <version>None</version>
+      <fixedVersion>0.9.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.SemanticAnalyzer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8472" opendate="2014-10-15 00:00:00" fixdate="2014-8-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add ALTER DATABASE SET LOCATION</summary>
+      <description>Similarly to ALTER TABLE tablename SET LOCATION, it would be helpful if there was an equivalent for databases.</description>
+      <version>2.2.0,2.4.0,3.0.0</version>
+      <fixedVersion>2.2.1,2.4.0,3.0.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.Operation2Privilege.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.security.authorization.plugin.HiveOperationType.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.security.authorization.AuthorizationPreEventListener.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.HiveOperation.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.plan.AlterDatabaseDesc.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.SemanticAnalyzerFactory.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.HiveParser.g</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.parse.DDLSemanticAnalyzer.java</file>
+      <file type="M">ql.src.java.org.apache.hadoop.hive.ql.exec.DDLTask.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.ObjectStore.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.HiveMetaStore.java</file>
+      <file type="M">metastore.src.java.org.apache.hadoop.hive.metastore.events.PreEventContext.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.ql.security.TestAuthorizationPreEventListener.java</file>
+      <file type="M">itests.hive-unit.src.test.java.org.apache.hadoop.hive.metastore.TestHiveMetaStore.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

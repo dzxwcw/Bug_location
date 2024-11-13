@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  <bug fixdate="2012-9-9 01:00:00" id="4034" opendate="2012-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: Alphabetize the "Miscellaneous Help Topics" section</summary>
+      <description>The first section in the help is in alphabetical order, but not the second part:Miscellaneous help topics:==========================DROP_INDEX CREATE DELETE_WHERE ALTER_DROP DROP_KEYSPACE UPDATE_USING SELECT_EXPR ALTER_ALTER UPDATE_WHERE UUID_INPUT TYPES TIMESTAMP_OUTPUT DELETE_COLUMNS SELECT_COLUMNFAMILY CONSISTENCYLEVEL ALTER_ADD CREATE_COLUMNFAMILY_OPTIONS CREATE_INDEX ALTER_WITH BEGIN CREATE_KEYSPACE APPLY UPDATE_SET ASCII_OUTPUT DELETE_USING UPDATE_COUNTERS DROP CREATE_COLUMNFAMILY_TYPES TRUNCATE TIMESTAMP_INPUT DROP_COLUMNFAMILY INSERT ALTER BLOB_INPUT TEXT_OUTPUT CREATE_COLUMNFAMILYSELECT_WHERE UPDATE DELETE BOOLEAN_INPUT SELECT_LIMIT</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-9-22 01:00:00" id="4073" opendate="2012-3-22 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh: flush CAPTURE output after each command</summary>
+      <description>In cqlsh A user might want to enable capturing, run a command, and then go look at the file to see the output. This workflow could be useful, for instance, where the output is large. Internal buffering forces the user to turn capture off each time he or she wants to see the output.</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2012-9-12 01:00:00" id="4334" opendate="2012-6-12 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh tab completion error in "CREATE KEYSPACE"</summary>
+      <description>The following:cqlsh&gt; CREATE KEYSPACE test WITH strategy_class = 'S&lt;TAB&gt;will tab complete like this:cqlsh&gt; CREATE KEYSPACE test WITH strategy_class = 'SimpleStrategy 'Note the extra space after SimpleStrategy. Not a big deal to remove, but it could be misleading to people.</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-9-6 01:00:00" id="4423" opendate="2012-7-6 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>auto completion in cqlsh should work when using fully qualified name</summary>
+      <description>minor cqlsh improvement:the auto completion in cqlsh rocks, so this is just to make a nitpick improvement: if i typecqlsh&gt; create KEYSPACE test WITH strategy_class = 'SimpleStrategy' and then tab tab after it, it will auto complete into:cqlsh&gt; create KEYSPACE test WITH strategy_class = 'SimpleStrategy' AND strategy_options:replication_factor = but if i use a fully qualified name:cqlsh&gt; create KEYSPACE test WITH strategy_class = 'org.apache.cassandra.locator.SimpleStrategy' AND &lt;strategy_option_name&gt; it is not smart enough to figured out the available options.It'd be nice to make the auto completion works for those fully qualified cases.</description>
+      <version>1.1.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cqlhandling.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-9-20 01:00:00" id="4454" opendate="2012-7-20 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add a notice on cqlsh startup about CQL2/3 switches</summary>
+      <description>Several developers I've talked with seem not to have noticed the -3 switch immediately to run in CQL3 mode. If missing, cqlsh can obviously appear buggy in its way to handle CQL3.I guess it would be worth to add a notice at startup about this important detail.</description>
+      <version>1.1.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.pylexotron.py</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-9-30 01:00:00" id="4594" opendate="2012-8-30 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY TO and COPY FROM don&amp;#39;t default to consistent ordering of columns</summary>
+      <description>Here is the input: CREATE KEYSPACE test WITH strategy_class = 'SimpleStrategy' AND strategy_options:replication_factor = 1;USE test; CREATE TABLE airplanes ( name text PRIMARY KEY, manufacturer ascii, year int, mach float ); INSERT INTO airplanes (name, manufacturer, year, mach) VALUES ('P38-Lightning', 'Lockheed', 1937, '.7'); COPY airplanes TO 'temp.cfg' WITH HEADER=true; TRUNCATE airplanes; COPY airplanes FROM 'temp.cfg' WITH HEADER=true; SELECT * FROM airplanes;Here is what happens when executed. Note how it tried to import the float into the int column:cqlsh:test&gt; DROP KEYSPACE test; cqlsh:test&gt; CREATE KEYSPACE test WITH strategy_class = 'SimpleStrategy' AND strategy_options:replication_factor = 1;cqlsh:test&gt; USE test; cqlsh:test&gt; cqlsh:test&gt; CREATE TABLE airplanes ( ... name text PRIMARY KEY, ... manufacturer ascii, ... year int, ... mach float ... ); cqlsh:test&gt; cqlsh:test&gt; INSERT INTO airplanes (name, manufacturer, year, mach) VALUES ('P38-Lightning', 'Lockheed', 1937, '.7');cqlsh:test&gt; cqlsh:test&gt; COPY airplanes TO 'temp.cfg' WITH HEADER=true; 1 rows exported in 0.003 seconds. cqlsh:test&gt; TRUNCATE airplanes; cqlsh:test&gt; cqlsh:test&gt; COPY airplanes FROM 'temp.cfg' WITH HEADER=true; Bad Request: unable to make int from '0.7' Aborting import at record #0 (line 1). Previously-inserted values still present.0 rows imported in 0.002 seconds.</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-10-4 01:00:00" id="4611" opendate="2012-9-4 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add AlterKeyspace statement</summary>
+      <description>Somehow we never added an "ALTER KEYSPACE" statement. We should.</description>
+      <version>1.1.6,1.2.0beta1</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql.QueryProcessor.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateKeyspaceStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateColumnFamilyStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.CFPropDefs.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-9-8 01:00:00" id="4634" opendate="2012-9-8 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>cqlsh --color option doesn&amp;#39;t allow you to disable colors</summary>
+      <description>There's no way to disable colors with cqlsh, despite it having a --color option, because that option can only enable color if present, not disable it, and the default is that color is enabled.(Incidentally, if the --file option is used, it will disable color.)</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-9-11 01:00:00" id="4642" opendate="2012-9-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add offline scrub to debian package</summary>
+      <description>When we added the offline scrub in CASSANDRA-4321, we forgot to add the launch script to the debian package. We should.</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">debian.cassandra.install</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.sstablescrub</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2012-9-13 01:00:00" id="4666" opendate="2012-9-13 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add multi-line support to cqlsh history buffer</summary>
+      <description>The cqlsh tool has history support. If you press the up arrow, you get previous entries.If you do a multi-line command however like: cqlsh &gt; dosomething;when you press the up arrow you get each individual statement separately. (First "something;" and then "do").This is not useful if you type a large create statement and typo one of the pieces.It'd be nice if cqlsh supported multi-line history items and could bring them back with the up arrow.</description>
+      <version>1.1.6</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">bin.cqlsh</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+  
+  
+  <bug fixdate="2012-9-25 01:00:00" id="4721" opendate="2012-9-25 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Have Cassandra return the right error for keyspaces with dots</summary>
+      <description>cqlsh&gt; CREATE KEYSPACE 'solr.test' WITH strategy_class = 'SimpleStrategy' AND strategy_options:replication_factor = 1;Bad Request: Invalid keyspace name: shouldn't be empty nor more than 48 characters long (got "solr.test")</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.KSMetaData.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2012-10-3 01:00:00" id="4759" opendate="2012-10-3 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CQL3 Predicate logic bug when using composite columns</summary>
+      <description>Looks like a predicate logic bug that only happens when you have &gt; 2 primary keys and use COMPACT STORAGE (meaning its using composite columns under the hood)First I'll show it works with just 2 cqlsh:dev&gt; CREATE TABLE testrev ( ... key text, ... rdate timestamp, ... num double, ... PRIMARY KEY(key,rdate) ... ) WITH COMPACT STORAGE ... AND CLUSTERING ORDER BY(rdate DESC);cqlsh:dev&gt; INSERT INTO testrev(key,rdate,num) VALUES ('foo','2012-01-01',10.5);cqlsh:dev&gt; select * from testrev where key='foo' and rdate &gt; '2012-01-01';cqlsh:dev&gt; select * from testrev where key='foo' and rdate &gt;= '2012-01-01'; key | rdate | num-----+--------------------------+------ foo | 2012-01-01 00:00:00-0500 | 10.5Now we create with 3 parts to the PRIMARY KEYcqlsh:dev&gt; drop TABLE testrev ;cqlsh:dev&gt; CREATE TABLE testrev ( ... key text, ... rdate timestamp, ... rdate2 timestamp, ... num double, ... PRIMARY KEY(key,rdate,rdate2) ... ) WITH COMPACT STORAGE ... AND CLUSTERING ORDER BY(rdate DESC);cqlsh:dev&gt; INSERT INTO testrev(key,rdate,rdate2,num) VALUES ('foo','2012-01-01','2012-01-01',10.5);cqlsh:dev&gt; select * from testrev where key='foo' and rdate &gt; '2012-01-01'; key | rdate | rdate2 | num-----+--------------------------+--------------------------+------ foo | 2012-01-01 00:00:00-0500 | 2012-01-01 00:00:00-0500 | 10.5cqlsh:dev&gt; select * from testrev where key='foo' and rdate &gt;= '2012-01-01';The last query should return the row...</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.SelectStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-10-5 01:00:00" id="4770" opendate="2012-10-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>(CQL3) data type not in lowercase are not handled correctly.</summary>
+      <description>Seems that we accept int but we don't accept INT (that is, the parser accepts it, but we fail later to recognize it).</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.CFPropDefs.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2012-1-5 01:00:00" id="4771" opendate="2012-10-5 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Setting TTL to Integer.MAX causes columns to not be persisted.</summary>
+      <description>When inserting columns via batch mutation, we have an edge case where columns will be set to Integer.MAX. When setting the column expiration time to Integer.MAX, the columns do not appear to be persisted.Fails:Integer.MAX_VALUE Integer.MAX_VALUE/2Works:Integer.MAX_VALUE/3</description>
+      <version>1.1.6</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.thrift.ThriftValidation.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ExpiringColumn.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.ModificationStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+</bugrepository>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="CASSANDRA">
+  <bug id="8301" opendate="2014-11-12 00:00:00" fixdate="2014-3-12 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Create a tool that given a bunch of sstables creates a "decent" sstable leveling</summary>
+      <description>In old versions of cassandra (i.e. not trunk/3.0), when bootstrapping a new node, you will end up with a ton of files in L0 and it might be extremely painful to get LCS to compact into a new levelingWe could probably exploit the fact that we have many non-overlapping sstables in L0, and offline-bump those sstables into higher levels. It does not need to be perfect, just get the majority of the data into L1+ without creating overlaps.So, suggestion is to create an offline tool that looks at the range each sstable covers and tries to bump it as high as possible in the leveling.</description>
+      <version>2.0.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8610" opendate="2015-1-13 00:00:00" fixdate="2015-2-13 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Allow IF EXISTS for UPDATE statements</summary>
+      <description>While creating a hands-on exercice for Cassandra, I was facing a quite annoying limitation. Let's take this table:CREATE TABLE killrchat.chat_rooms( room_name text, creation_date timestamp, banner text, creator text, participants set&lt;text&gt;,PRIMARY KEY(room_name));Upon a new participant joining the room, to be concurrency-proof (avoiding mutating the participants set if the room is deleted concurrently), I would like to issue this query: UPDATE chat_rooms SET participants = participants + {'johnny'} WHERE room_name = 'games' IF EXISTS; Unfortunately the clause IF EXISTS is not allowed for UPDATE statements. Similarly I tried UPDATE chat_rooms SET participants = participants + {'johnny'} WHERE room_name = 'games' IF room_name='games'; It doesn't work either, it is not allowed to use one column of the primary key as condition column for LWT (why ? mystery). So far, the only work-around I found is: UPDATE chat_rooms SET participants = participants + {'johnny'} WHERE room_name = 'games' IF name='games'; I added an extra column called name which is just the duplicate of the partition key room_name. It does work but is not very elegant. I believe there are legit use cases for UPDATE ... IF EXISTS;</description>
+      <version>2.0.13,2.1.3</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.UpdateStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.Cql.g</file>
+      <file type="M">pylib.cqlshlib.helptopics.py</file>
+      <file type="M">pylib.cqlshlib.cql3handling.py</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8645" opendate="2015-1-19 00:00:00" fixdate="2015-1-19 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>sstableloader reports nonsensical bandwidth</summary>
+      <description>When restoring a snapshot I see sstableloader reporting this:[total: 0% - 5MB/s (avg: 0MB/s)] [total: 0% - 31MB/s (avg: 0MB/s)] [total: 1% - 2147483647MB/s (avg: 0MB/s)] [total: 1% - 2147483647MB/s (avg: 0MB/s)] [total: 1% - 31MB/s (avg: 0MB/s)] [total: 1% - 31MB/s (avg: 0MB/s)] [total: 1% - 2147483647MB/s (avg: 0MB/s)] [total: 1% - 2147483647MB/s (avg: 0MB/s)] [total: 1% - 2147483647MB/s (avg: 0MB/s)] [total: 1% - 2147483647MB/s (avg: 0MB/s)] [total: 1% - 2147483647MB/s (avg: 0MB/s)] ...2147483647MB/s doesn’t look right.</description>
+      <version>2.0.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.BulkLoader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8666" opendate="2015-1-22 00:00:00" fixdate="2015-1-22 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Simplify logic of ABSC#BatchRemoveIterator#commit()</summary>
+      <description>Replace current logic with a straightforward single loop.</description>
+      <version>2.0.13,2.1.3</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.ArrayBackedSortedColumns.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8678" opendate="2015-1-24 00:00:00" fixdate="2015-1-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>CREATE TABLE accepts value for default_time_to_live on counter table</summary>
+      <description>I can create a counter table (via cqlsh) with a default_time_to_live:CREATE TABLE IF NOT EXISTS metrics2( time timestamp, value counter, PRIMARY KEY ((time))) WITH default_time_to_live=10;Upsert a row that increments the counter:UPDATE metrics2 SET value=value+1 WHERE timestamp='2015-01-24 10:48 -0600';Wait 10 seconds, and select, and the row is (of course) still there. There should probably be a warning or error preventing the creation of a table that has both counter columns and a value set for default_time_to_live.</description>
+      <version>2.0.13,2.1.3</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.CounterColumnType.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.marshal.AbstractType.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CFPropDefs.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.AlterTableStatement.java</file>
+      <file type="M">src.java.org.apache.cassandra.config.CFMetaData.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8748" opendate="2015-2-5 00:00:00" fixdate="2015-2-5 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Backport memory leak fix from CASSANDRA-8707 to 2.0</summary>
+      <description>There are multiple elements in CASSANDRA-8707 but the memory leak is common to Cassandra 2.0. This ticket is to fix the memory leak specifically for 2.0.</description>
+      <version>2.0.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableSimpleWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableSimpleUnsortedWriter.java</file>
+      <file type="M">src.java.org.apache.cassandra.io.sstable.SSTableReader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8767" opendate="2015-2-9 00:00:00" fixdate="2015-2-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>"Added column does not sort as the last column" when using new python driver</summary>
+      <description>We've just upgraded one of our python apps from using the old cql library to the new python-driver. When running one particular query, it produces the attached assertion error in Cassandra. The query is: SELECT buffer, id, type, json FROM events WHERE buffer = %(bid)s AND idkey = %(idkey)s ORDER BY id ASCWhere buffer and idkey are integer primary keys, and id is the clustering key (ordered asc).This query, with identical parameters, does not cause this error using the old cql python library, or with the cqlsh client..</description>
+      <version>2.0.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.service.pager.AbstractQueryPager.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.ColumnFamily.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8852" opendate="2015-2-23 00:00:00" fixdate="2015-2-23 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Stream throttling mixes up bits &amp; bytes</summary>
+      <description>The throttling of the streaming doesn't work the way it's intended. If you set streamThroughputOutboundMegabitsPerSec to 1, the ratelimiter rate is set to 1024*1024*8. Which means your allowing 8 megabyte/second throughput, not 1/8 megabyte/second as intended.</description>
+      <version>2.0.13</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.streaming.StreamManager.java</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

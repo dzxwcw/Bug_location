@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<bugrepository name="HBASE">
+  <bug id="10101" opendate="2013-12-7 00:00:00" fixdate="2013-12-7 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>testOfflineRegionReAssginedAfterMasterRestart times out sometimes.</summary>
+      <description>Sometimes, I got this test timed out. The log is attached. It could be because the new cluster takes a while to process the dead server, or assign meta.</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.96.1,0.99.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestRestartCluster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestMasterFailover.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestAssignmentManagerOnCluster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.TestAssignmentManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RegionStates.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.AssignmentManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10528" opendate="2014-2-14 00:00:00" fixdate="2014-1-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>DefaultBalancer selects plans to move regions onto draining nodes</summary>
+      <description>We have quite a large cluster &gt; 100k regions, and we needed to isolate a region was very hot until we could push a patch. We put this region on its own regionserver and set it in the draining state. The default balancer was selecting regions to move to this cluster for its region plans. It just so happened for other tables, the default load balancer was creating plans for the draining servers, even though they were not available to move regions to. Thus we were closing regions, then attempting to move them to the draining server then finding out its draining. We had to disable the balancer to resolve this issue.There are some approaches we can take here.1. Exclude draining servers altogether, don't even pass those into the load balancer from HMaster.2. We could exclude draining servers from ceiling and floor calculations where we could potentially skip load balancing because those draining servers wont be represented when deciding whether to balance.3. Along with #2 when assigning regions, we would skip plans to assign regions to those draining servers.I am in favor of #1 which is simply removes servers as candidates for balancing if they are in the draining state.But I would love to hear what everyone else thinks.</description>
+      <version>0.94.5</version>
+      <fixedVersion>1.0.0,0.98.10,1.1.0,0.94.27</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RegionStates.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="1053" opendate="2008-12-9 00:00:00" fixdate="2008-12-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>bring recent rpc changes down from hadoop</summary>
+      <description>Add HADOOP-4797 "RPC Server can leave a lot of direct buffers" and HADOOP-4802 "RPC Server send buffer retains size of largest response ever sent" to our rpc. These are 0.20.0 improvements. Bring them down so for first we have benefit of the improvement and the second, so we can undo our bringing RPC Server local when we move to 0.20.0 (having the two RPCServers look the same will make it easier undoing it).</description>
+      <version>None</version>
+      <fixedVersion>0.19.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.hadoop.hbase.ipc.HBaseServer.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="10674" opendate="2014-3-4 00:00:00" fixdate="2014-8-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HBCK should be updated to do replica related checks</summary>
+      <description>HBCK should be updated to have a check for whether the replicas are assigned to the right machines (default and non-default replicas ideally should not be in the same server if there is more than one server in the cluster and such scenarios). jmhsieh suggested this in HBASE-10362.</description>
+      <version>None</version>
+      <fixedVersion>1.1.0,2.0.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.TestHBaseFsck.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.HBaseFsckRepair.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.HBaseFsck.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.HRegionInfo.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7464" opendate="2012-12-30 00:00:00" fixdate="2012-1-30 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[REST] Sending HTML for errors is unhelpful</summary>
+      <description>The large HTML 404 page returned by Stargate is not helpful. The REST interface is not intended for humans to read, esp. when the client is known to be a program because it's asking for binary, but really any time. Nice big readable error pages use bandwidth and clutter network traces to no purpose.Please allow the 404 and other error pages to be configured away, or just stop sending them (my preference). If some body must be sent, a simple text/plain "Not found" would be fine, I think.</description>
+      <version>0.94.5,0.95.2</version>
+      <fixedVersion>0.94.4,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.StorageClusterVersionResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.StorageClusterStatusResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.SchemaResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.ScannerResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.ScannerInstanceResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RowResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RootResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RegionsResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.MultiRowResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.ExistsResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.Constants.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7469" opendate="2012-12-31 00:00:00" fixdate="2012-12-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[REST] Share a HBaseAdmin instance</summary>
+      <description>Simplification.</description>
+      <version>0.94.5,0.95.2</version>
+      <fixedVersion>0.94.4,0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.TableResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.StorageClusterVersionResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.StorageClusterStatusResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.SchemaResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RootResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RESTServlet.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7472" opendate="2012-12-31 00:00:00" fixdate="2012-1-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[REST] Support MIME type application/protobuf</summary>
+      <description>Protobuf representation is currently selected with 'application/x-protobuf'. We should also consider supporting 'application/protobuf' because it appears in an IETF draft. See http://tools.ietf.org/id/draft-rfernando-protocol-buffers-00.txt</description>
+      <version>0.94.5,0.95.2</version>
+      <fixedVersion>0.94.4,0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestVersionResource.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestTableResource.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestStatusResource.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestSchemaResource.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestScannersWithFilters.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestScannerResource.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestRowResource.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.rest.TestMultiRowResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.VersionResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.StorageClusterStatusResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.SchemaResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.ScannerResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.ScannerInstanceResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RowResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RootResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RegionsResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.provider.producer.ProtobufMessageBodyProducer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.provider.consumer.ProtobufMessageBodyConsumer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.MultiRowResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.ExistsResource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.Constants.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7498" opendate="2013-1-4 00:00:00" fixdate="2013-1-4 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make REST server thread pool size configurable</summary>
+      <description>Currently, the REST server thread pool size is the default: 250. It can't be configured. We need to make it configurable so that it can be adjusted per traffic/load so that REST server is less likely to OOM and die.</description>
+      <version>0.94.5,0.95.2</version>
+      <fixedVersion>0.94.5,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.resources.hbase-default.xml</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RESTServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7586" opendate="2013-1-16 00:00:00" fixdate="2013-1-16 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix two findbugs warnings to get our count down to the tolerated number again</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.filter.FirstKeyOnlyFilter.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.client.ClientScanner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="759" opendate="2008-7-22 00:00:00" fixdate="2008-12-22 01:00:00" resolution="Won&amp;#39;t Fix">
+    <buginformation>
+      <summary>TestMetaUtils failing on hudson</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.test.java.org.apache.hadoop.hbase.util.DisabledTestMetaUtils.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7656" opendate="2013-1-24 00:00:00" fixdate="2013-1-24 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Clean up line endings to be LF in the repo</summary>
+      <description>After HBASE-6816, there are still 2 files in the repo with CRLF line endings. We should change recommit them with LF line endings.</description>
+      <version>None</version>
+      <fixedVersion>0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.zookeeper.TestRecoverableZooKeeper.java</file>
+      <file type="M">hbase-server.src.main.resources.hbase-webapps.static.js.jquery.min.js</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7938" opendate="2013-2-26 00:00:00" fixdate="2013-3-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Add integration test for ImportTsv/LoadIncrementalHFiles workflow</summary>
+      <description>We have existing unit tests for smoke-testing the packaged MR jobs, however they do not create a runtime environment that is true to running on a real MR cluster. This is particularly true in regard to classpaths (HBASE-7934) but also other static state (HBASE-4802). An integration test that can be pointed to run on a pseudo-distributed Hadoop deployed on localhost would find these kinds of problems.</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.mapreduce.TestImportTsv.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.HBaseTestingUtility.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7942" opendate="2013-2-26 00:00:00" fixdate="2013-5-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Make use of the plumbing in HBASE-7932 to provide location hints when region files are created</summary>
+      <description>This "functionality" is blocked by the fixes in HDFS. Reflection is going to be used to figure out whether the underlying Hadoop version has the new API. Things will behave the same way if the underlying HDFS version doesn't have the new API.</description>
+      <version>None</version>
+      <fixedVersion>0.95.1</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.TestFSUtils.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.MockRegionServerServices.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.master.MockRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.FSUtils.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.StoreFile.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.RegionServerServices.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionFileSystem.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.HFileWriterV2.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.HFile.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.io.hfile.AbstractHFileWriter.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7944" opendate="2013-2-26 00:00:00" fixdate="2013-3-26 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replication leaks file reader resource &amp; not reset currentNbOperations</summary>
+      <description>When I trace test case TestReplicationQueueFailover, I found current replication logic has two following issues:1) leak file reader when finishing read a file in function finishCurrentFile2) never reset currentNbOperations(this can be seen in the attached error log) such as "currentNbOperations:12655 and seenEntries:0 and size: 0" inconsistant info.</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.94.6,0.95.0</fixedVersion>
+      <type>Sub-task</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationSource.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.replication.regionserver.ReplicationHLogReaderManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7947" opendate="2013-2-27 00:00:00" fixdate="2013-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Custom compaction requests should have test for adding to wrong list</summary>
+      <description>This came from backporting HBASE-7725 to 0.94. Essentially, the created compaction requests were added to the wrong list, resulting in concurrent modifications exceptions and incorrect return values when used in practice. The code is fine in 0.95/trunk, but should include the same added test to catch a possible regression.</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestCompaction.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7948" opendate="2013-2-27 00:00:00" fixdate="2013-3-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>client doesn&amp;#39;t need to refresh meta while the region is opening</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.resources.log4j.properties</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.TestHRegionLocation.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.mapreduce.TestLoadIncrementalHFilesSplitRecovery.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestHCM.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.HConnectionTestingUtility.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.catalog.TestMetaReaderEditorNoCluster.java</file>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.catalog.TestCatalogTracker.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.HRegionLocation.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.HConnectionManager.java</file>
+      <file type="M">conf.log4j.properties</file>
+    </fixedFiles>
+  </bug>
+  <bug id="7954" opendate="2013-2-27 00:00:00" fixdate="2013-8-27 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix the retrying logic of memstore flushes to avoid extra sleep</summary>
+      <description>Matteo pointed out:"We can avoid the redundant sleep in the retrying logic."</description>
+      <version>0.94.5,0.95.0</version>
+      <fixedVersion>0.98.0,0.94.12</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HStore.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8015" opendate="2013-3-6 00:00:00" fixdate="2013-6-6 01:00:00" resolution="Implemented">
+    <buginformation>
+      <summary>Support for Namespaces</summary>
+      <description></description>
+      <version>None</version>
+      <fixedVersion>None</fixedVersion>
+      <type>New Feature</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.TableName.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8017" opendate="2013-3-6 00:00:00" fixdate="2013-4-6 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade hadoop 1 dependency to 1.1.2</summary>
+      <description>Hadoop 1.1.2 has been released.From Matt:This release includes 24 bug fixes and backward-compatible enhancements,compared to Hadoop 1.1.1. Improvements include: bug fixes in use of Kerberos security and SPNEGO a couple potential deadlock situations fixes for IBM JDK compatibility several unit test failure cleanups other useful improvementsFor details, please seehttp://hadoop.apache.org/docs/r1.1.2/releasenotes.html.</description>
+      <version>None</version>
+      <fixedVersion>0.98.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pom.xml</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8044" opendate="2013-3-8 00:00:00" fixdate="2013-3-8 01:00:00" resolution="Duplicate">
+    <buginformation>
+      <summary>split/flush/compact/major_compact from hbase shell does not work for region key with \x format</summary>
+      <description>the conversion between bytes and string is incorrect</description>
+      <version>0.94.5</version>
+      <fixedVersion>0.98.0,0.94.7,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.HBaseAdmin.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="81" opendate="2007-12-8 00:00:00" fixdate="2007-11-8 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>[hbase] When a scanner lease times out, throw a more "user friendly" exception</summary>
+      <description>Currently, if a client spends too much time between next() requests on a scanner (or between scanner creation and the first call to next), the region server will time out the scanner and close. The next call to next() will receive an UnknownScannerException because all knowledge of the scanner was wiped out on the server when the lease expired.The the client side scanner should keep a timer so it compute the elapsed time between next() calls so that if it receives an UnknownScannerException, it can determine if the scanner lease timed out and if so, throw a more "user friendly" exception such as LeaseTimedOutException</description>
+      <version>None</version>
+      <fixedVersion>0.19.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.hadoop.hbase.client.HTable.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8106" opendate="2013-3-14 00:00:00" fixdate="2013-3-14 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Test to check replication log znodes move is done correctly</summary>
+      <description>ReplicationZookeeper#copyQueuesFromRSUsingMulti moves the znodes under a regionserver failover environment. This jira is to add that the move is done correctly.</description>
+      <version>0.94.5</version>
+      <fixedVersion>0.98.0,0.94.7,0.95.0</fixedVersion>
+      <type>Test</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.replication.regionserver.TestReplicationSourceManager.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8123" opendate="2013-3-15 00:00:00" fixdate="2013-3-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Replace HashMap/HashSet with TreeMap/TreeSet where byte[] is used as key</summary>
+      <description>We still have code using HashMap/HashSet with byte[] as key</description>
+      <version>0.94.5,0.95.0</version>
+      <fixedVersion>0.98.0,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.wal.TestHLog.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.security.access.AccessController.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.wal.FSHLog.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.mapreduce.PutCombiner.java</file>
+      <file type="M">hbase-examples.src.main.java.org.apache.hadoop.hbase.mapreduce.IndexBuilder.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.HTableMultiplexer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8152" opendate="2013-3-20 00:00:00" fixdate="2013-3-20 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Avoid creating empty reference file when splitkey is outside the key range of a store file</summary>
+      <description>When splitting a store file, if the split key is before the first key, or greater than the last key, then only one reference file should be created.Currently, two reference file will be created.</description>
+      <version>0.94.5</version>
+      <fixedVersion>0.98.0,0.94.7,0.95.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.regionserver.TestStoreFile.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionFileSystem.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8170" opendate="2013-3-21 00:00:00" fixdate="2013-3-21 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>HbaseAdmin.createTable cannot handle creating three regions</summary>
+      <description>createTable(HTableDescriptor desc, byte [] startKey, byte [] endKey, int numRegions) (line #370) dictates that you must specify a minimum of three regions, however is not able to handle being fed a value three. This is a result of line #379 where it attempts to create the key splits, and calls Bytes.Split with a value of 0 for the third parameter. createTable should instead just create a byte[][] with the startKey and endKey in this scenario.</description>
+      <version>0.94.5</version>
+      <fixedVersion>0.98.0,0.94.7,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.client.TestAdmin.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.HBaseAdmin.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8304" opendate="2013-4-9 00:00:00" fixdate="2013-3-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Bulkload fails to remove files if fs.default.name / fs.defaultFS is configured without default port</summary>
+      <description>When fs.default.name or fs.defaultFS in hadoop core-site.xml is configured as hdfs://ip, and hbase.rootdir is configured as hdfs://ip:port/hbaserootdir where port is the hdfs namenode's default port. the bulkload operation will not remove the file in bulk output dir. Store::bulkLoadHfile will think hdfs:://ip and hdfs:://ip:port as different filesystem and go with copy approaching instead of rename.The root cause is that hbase master will rewrite fs.default.name/fs.defaultFS according to hbase.rootdir when regionserver started, thus, dest fs uri from the hregion will not matching src fs uri passed from client.any suggestion what is the best approaching to fix this issue? I kind of think that we could check for default port if src uri come without port info.</description>
+      <version>0.94.5</version>
+      <fixedVersion>0.98.1,0.99.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.test.java.org.apache.hadoop.hbase.util.TestFSHDFSUtils.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.FSHDFSUtils.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionFileSystem.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8952" opendate="2013-7-15 00:00:00" fixdate="2013-7-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Missing error handling can cause RegionServer RPC thread to busy loop forever</summary>
+      <description>If the connection to the client is closed unexpectedly and "at the wrong time", the code will attempt to keep reading from the socket in a busy loop.This bug seems to be present in all released versions of HBase, including the tip of the 0.94 and 0.95 branches, however I only ran into it while porting AsyncHBase to 0.95</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.2</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.ipc.RpcServer.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="8956" opendate="2013-7-15 00:00:00" fixdate="2013-7-15 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>A couple of small misspellings thoughout the codebase.</summary>
+      <description>I noticed a couple of times, the word could is written as Cound.</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.95.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.util.Merge.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.regionserver.HRegionServer.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.ipc.RpcClient.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9473" opendate="2013-9-9 00:00:00" fixdate="2013-9-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Change UI to list &amp;#39;system tables&amp;#39; rather than &amp;#39;catalog tables&amp;#39;.</summary>
+      <description>Minor, one-line, bit of polishing.</description>
+      <version>None</version>
+      <fixedVersion>0.99.0,0.98.7</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.jamon.org.apache.hadoop.hbase.tmpl.master.MasterStatusTmpl.jamon</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9476" opendate="2013-9-9 00:00:00" fixdate="2013-9-9 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Yet more master log cleanup</summary>
+      <description>Even more cleanup, tightening, of log output (was staring at some over the last day..)</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.96.0</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.SplitLogManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.ServerManager.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.RegionStates.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.HMaster.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.handler.OpenedRegionHandler.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.master.AssignmentManager.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.zookeeper.ZKAssign.java</file>
+      <file type="M">hbase-client.src.main.java.org.apache.hadoop.hbase.client.ClientScanner.java</file>
+    </fixedFiles>
+  </bug>
+  <bug id="9866" opendate="2013-10-31 00:00:00" fixdate="2013-12-31 01:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Support the mode where REST server authorizes proxy users</summary>
+      <description>In one use case, someone was trying to authorize with the REST server as a proxy user. That mode is not supported today. The curl request would be something like (assuming SPNEGO auth) - curl -i --negotiate -u : http://&lt;HOST&gt;:&lt;PORT&gt;/version/cluster?doas=&lt;USER&gt;</description>
+      <version>None</version>
+      <fixedVersion>0.98.0,0.99.0</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RESTServletContainer.java</file>
+      <file type="M">hbase-server.src.main.java.org.apache.hadoop.hbase.rest.RESTServlet.java</file>
+      <file type="M">hbase-common.src.main.resources.hbase-default.xml</file>
+    </fixedFiles>
+  </bug>
+</bugrepository>

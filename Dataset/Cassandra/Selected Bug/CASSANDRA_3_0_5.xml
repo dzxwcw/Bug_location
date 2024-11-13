@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><bugrepository name="CASSANDRA">
+  
+  
+  
+  
+  <bug fixdate="2016-3-21 01:00:00" id="11053" opendate="2016-1-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>COPY FROM on large datasets: fix progress report and optimize performance part 4</summary>
+      <description>DescriptionRunning COPY from on a large dataset (20G divided in 20M records) revealed two issues: The progress report is incorrect, it is very slow until almost the end of the test at which point it catches up extremely quickly. The performance in rows per second is similar to running smaller tests with a smaller cluster locally (approx 35,000 rows per second). As a comparison, cassandra-stress manages 50,000 rows per second under the same set-up, therefore resulting 1.5 times faster.See attached file copy_from_large_benchmark.txt for the benchmark details.Doc-impacting changes to COPY FROM options A new option was added: PREPAREDSTATEMENTS - it indicates if prepared statements should be used; it defaults to true. The default value of CHUNKSIZE changed from 1000 to 5000. The default value of MINBATCHSIZE changed from 2 to 10.</description>
+      <version>2.1.14,2.2.6,3.0.5,3.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">pylib.setup.py</file>
+      <file type="M">pylib.cqlshlib.util.py</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">bin.cqlsh</file>
+      <file type="M">pylib.cqlshlib.copyutil.py</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-3-23 01:00:00" id="11210" opendate="2016-2-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Unresolved hostname in replace address</summary>
+      <description>If you provide a hostname which could not be resolved by DNS, it leads to replace args being ignored. If you provide an IP which is not in the cluster, it does the right thing and complain.</description>
+      <version>2.2.6,3.0.5,3.5,3.11.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.config.DatabaseDescriptor.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-23 01:00:00" id="11215" opendate="2016-2-23 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Reference leak with parallel repairs on the same table</summary>
+      <description>When starting multiple repairs on the same table Cassandra starts to log about reference leak as:ERROR [Reference-Reaper:1] 2016-02-23 15:02:05,516 Ref.java:187 - LEAK DETECTED: a reference (org.apache.cassandra.utils.concurrent.Ref$State@5213f926) to class org.apache.cassandra.io.sstable.format.SSTableReader$InstanceTidier@605893242:.../testrepair/standard1-dcf311a0da3411e5a5c0c1a39c091431/la-30-big was not released before the reference was garbage collectedReproducible with:ccm create repairtest -v 2.2.5 -n 3ccm startccm stress write n=1000000 -schema replication(strategy=SimpleStrategy,factor=3) keyspace=testrepair# And then perform two repairs concurrently with:ccm node1 nodetool repair testrepairI know that starting multiple repairs in parallel on the same table isn't very wise, but this shouldn't result in reference leaks.</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  <bug fixdate="2016-3-9 01:00:00" id="11321" opendate="2016-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>&amp;#39;sstabledump -d&amp;#39; omits static rows and partition level deletions</summary>
+      <description>The new sstabledump tool currently omits a partition's static row and partition level deletions.Attached patch 0001-Include-static-row-and-partition-level-deletes.patch that fixes this.Static row example:[CORP:2016]@0 Row[info=[ts=-9223372036854775808] ]: STATIC | [idx=NASDAQ ts=1457484225583260 ttl=604800 ldt=1458089025]Partition delete example:[CORP:2015]@0 deletedAt=1457491759491826, localDeletion=1457491759</description>
+      <version>3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-9 01:00:00" id="11330" opendate="2016-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Enable sstabledump to be used on 2i tables</summary>
+      <description>It is sometimes useful to be able to inspect the sstables backing 2i tables, which requires a small tweak to the way the partitioner is created.Although this is an improvement rather than a bugfix, I've marked it for 3.0.x as it's really very non-invasive.</description>
+      <version>3.0.5,3.5</version>
+      <fixedVersion>Legacy/Tools</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.tools.SSTableExport.java</file>
+      <file type="M">src.java.org.apache.cassandra.db.SerializationHeader.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-9 01:00:00" id="11331" opendate="2016-3-9 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Create Index IF NOT EXISTS throws error when index already exists</summary>
+      <description>While testing with trunk, I see that issuing the following queries throws an InvalidRequest, despite being valid.CREATE KEYSPACE k WITH replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND durable_writes = true;USE k;CREATE TABLE k.t ( id int PRIMARY KEY, v int, v2 int, v3 text);CREATE INDEX IF NOT EXISTS ON t (v2);CREATE INDEX IF NOT EXISTS ON t (v2);InvalidRequest: code=2200 [Invalid query] message="Index t_v2_idx_1 is a duplicate of existing index t_v2_idx"The second CREATE INDEX IF NOT EXISTS should work fine.</description>
+      <version>3.0.5,3.5</version>
+      <fixedVersion>Legacy/CQL</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">test.unit.org.apache.cassandra.cql3.validation.entities.SecondaryIndexTest.java</file>
+      <file type="M">src.java.org.apache.cassandra.cql3.statements.CreateIndexStatement.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  <bug fixdate="2016-3-11 01:00:00" id="11344" opendate="2016-3-11 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Fix bloom filter sizing with LCS</summary>
+      <description>Since CASSANDRA-7272 we most often over allocate the bloom filter size with LCS</description>
+      <version>2.2.6,3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.writers.MaxSSTableSizeWriter.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-3-21 01:00:00" id="11390" opendate="2016-3-21 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Too big MerkleTrees allocated during repair</summary>
+      <description>Since CASSANDRA-5220 we create one merkle tree per range, but each of those trees is allocated to hold all the keys on the node, taking up too much memory</description>
+      <version>3.0.5,3.5</version>
+      <fixedVersion>None</fixedVersion>
+      <type>Bug</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">src.java.org.apache.cassandra.db.compaction.CompactionManager.java</file>
+      <file type="M">CHANGES.txt</file>
+    </fixedFiles>
+  </bug>
+  
+  <bug fixdate="2016-3-28 01:00:00" id="11444" opendate="2016-3-28 00:00:00" resolution="Fixed">
+    <buginformation>
+      <summary>Upgrade ohc to 0.4.3</summary>
+      <description/>
+      <version>3.0.5,3.5</version>
+      <fixedVersion>Legacy/Core</fixedVersion>
+      <type>Improvement</type>
+    </buginformation>
+    <fixedFiles>
+      <file type="M">lib.ohc-core-j8-0.4.2.jar</file>
+      <file type="M">lib.ohc-core-0.4.2.jar</file>
+      <file type="M">CHANGES.txt</file>
+      <file type="M">build.xml</file>
+    </fixedFiles>
+  </bug>
+  
+  
+  
+</bugrepository>
