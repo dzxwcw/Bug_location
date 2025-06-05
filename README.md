@@ -1,4 +1,4 @@
-### Locating Fault with Issue-Fix Graph
+### Locating Fault not Mentioned in Bug Report
 
 We propose a novel approach called BisL to locate fault with Issue-Fix Graph. In contrast to traditional IR-based method, we do not compare with source files but with fixed issue reports. We build IfGraphs from fixed issue reports and propose an algorithm to rank suspicious buggy files. Our approach improves accuracy and stability of fault location. When we remove all bug reports that mention code names of buggy files, the effectiveness of the baselines is very poor, but BisL sitll holds high.
 
