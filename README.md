@@ -44,3 +44,16 @@ We propose a novel approach called BisL to locate fault with Issue-Fix Graph. In
 ![issue](https://github.com/dzxwcw/Bug_location/blob/main/issue%20report%20example/issue.png)
 
 Issue reports are stored in xml format and each report contains information such as fixdate, opendate, summary, description, fixed version and fixed files.&#x20;
+
+#### Code Structure
+
+*   BisL/src
+
+    *   bug\_loc\_v0: This folder includes source code of our proposed apporach.
+
+    *   tool: This folder includes some elevant preprocessor functions.
+
+You should ensure your java version is 1.7 and you need to download and install your own graph database neo4j and the version of it need > 5.13.0
+
+
+
