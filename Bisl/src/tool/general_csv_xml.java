@@ -26,7 +26,7 @@ import static com.github.javaparser.JavaParser.*;
 import static org.neo4j.driver.Values.parameters;
 import static sun.management.MonitorInfoCompositeData.getClassName;
 
-public class import_csv_neo4j {
+public class general_csv_xml {
     public static int getLongestCommonSubsequenceLength(String s1, String s2) {
         int m = s1.length();
         int n = s2.length();
